@@ -146,12 +146,18 @@ def collect_conversation_context(state: HotelConversationState) -> HotelConversa
     conversation_history = state["conversation_history"]
     guest_message = state["guest_message"]
 
-    full_history = conversation_history + [
-        {
-            "role": "guest",
-            "content": guest_message,
-        }
-    ]
+    full_history = list(conversation_history)
+    if guest_message and not (
+        full_history
+        and full_history[-1].get("role") == "guest"
+        and full_history[-1].get("content") == guest_message
+    ):
+        full_history.append(
+            {
+                "role": "guest",
+                "content": guest_message,
+            }
+        )
 
     return {
         **state,
@@ -167,6 +173,8 @@ def extract_intent_and_entities(state: HotelConversationState) -> HotelConversat
 You are a hotel WhatsApp assistant extraction agent.
 
 Your job is to read the conversation and extract the guest's current request as structured JSON.
+
+If the latest guest message is a short answer to the assistant's previous clarification question, combine it with the earlier request. For example, if the assistant asks for a room number and the guest replies "100", set roomNumber to "100" and keep the original intent and issue or order details from the conversation.
 
 Return ONLY valid JSON with this exact structure:
 
