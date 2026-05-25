@@ -87,6 +87,33 @@ class FaqResponse(BaseModel):
     message: str
 
 
+class RoomServiceConfirmationRequest(BaseModel):
+    extraction: Dict[str, Any]
+    conversationHistory: List[ConversationMessage] = []
+
+
+class RoomServiceConfirmationResponse(BaseModel):
+    message: str
+    pendingOrder: Dict[str, Any]
+
+
+class RoomServiceConfirmationEvaluationRequest(BaseModel):
+    guestMessage: str
+    pendingOrder: Dict[str, Any]
+    conversationHistory: List[ConversationMessage] = []
+
+
+class RoomServiceConfirmationEvaluationResponse(BaseModel):
+    confirmationAction: Literal[
+        "CONFIRMED",
+        "CHANGE_REQUESTED",
+        "CANCELLED",
+        "UNCLEAR",
+    ]
+    updatedOrder: Dict[str, Any]
+    message: str
+
+
 # ---------- LangGraph state ----------
 
 class HotelConversationState(TypedDict):
@@ -97,6 +124,9 @@ class HotelConversationState(TypedDict):
     extraction_json: Dict[str, Any]
     clarification_message: str
     faq_message: str
+    room_service_confirmation_message: str
+    room_service_pending_order: Dict[str, Any]
+    room_service_confirmation_action: str
 
 
 # ---------- Helpers ----------
@@ -174,6 +204,20 @@ For ROOM_SERVICE, required fields are:
 - roomNumber
 - items
 
+For ROOM_SERVICE, extractedEntities must use this shape when possible:
+{{
+  "items": [
+    {{
+      "quantity": 1,
+      "name": "burger",
+      "modifiers": null
+    }}
+  ],
+  "roomNumber": "402",
+  "specialInstructions": null
+}}
+Use integer quantities. If the guest gives an item without a quantity, infer quantity 1.
+
 For MAINTENANCE, required fields are:
 - roomNumber
 - issueDescription
@@ -241,6 +285,116 @@ Conversation:
     return {
         **state,
         "clarification_message": clarification_json["message"],
+    }
+
+
+def normalize_room_service_order(state: HotelConversationState) -> HotelConversationState:
+    extraction = state["extraction_json"]
+    history_text = state["history_text"]
+
+    prompt = f"""
+You are a hotel room service assistant.
+
+Normalize the room service request into a pending order and write a short confirmation message.
+
+Return ONLY valid JSON with this exact structure:
+
+{{
+  "message": "I have your room service order as: 1 burger and 2 cokes. Is that correct, or would you like to change anything?",
+  "pendingOrder": {{
+    "roomNumber": null,
+    "items": [
+      {{
+        "quantity": 1,
+        "name": "burger",
+        "modifiers": null
+      }}
+    ],
+    "specialInstructions": null
+  }}
+}}
+
+Rules:
+- List every food or drink item in the message
+- Keep item names natural and concise
+- Use integer quantities; if no quantity is stated, use 1
+- Include roomNumber if present in the extraction
+- Ask whether the order is correct or if the guest wants to change anything
+- Do not say the order has been placed yet
+
+Extraction:
+{json.dumps(extraction, ensure_ascii=False, indent=2)}
+
+Conversation:
+{history_text}
+"""
+
+    confirmation_json = call_openai_json(prompt)
+
+    return {
+        **state,
+        "room_service_confirmation_message": confirmation_json["message"],
+        "room_service_pending_order": confirmation_json["pendingOrder"],
+    }
+
+
+def evaluate_room_service_confirmation_reply(state: HotelConversationState) -> HotelConversationState:
+    guest_message = state["guest_message"]
+    pending_order = state["room_service_pending_order"]
+    history_text = state["history_text"]
+
+    prompt = f"""
+You are a hotel room service assistant evaluating a guest reply to an order confirmation.
+
+Classify the reply and update the pending room service order when needed.
+
+Return ONLY valid JSON with this exact structure:
+
+{{
+  "confirmationAction": "CONFIRMED | CHANGE_REQUESTED | CANCELLED | UNCLEAR",
+  "updatedOrder": {{
+    "roomNumber": null,
+    "items": [
+      {{
+        "quantity": 1,
+        "name": "burger",
+        "modifiers": null
+      }}
+    ],
+    "specialInstructions": null
+  }},
+  "message": "short WhatsApp message"
+}}
+
+Decision rules:
+- CONFIRMED: the guest clearly accepts the pending order, such as yes, correct, looks good, go ahead
+- CHANGE_REQUESTED: the guest changes quantities, adds/removes items, changes instructions, or changes the room
+- CANCELLED: the guest clearly cancels the order
+- UNCLEAR: the reply does not clearly confirm, cancel, or change the order
+
+Message rules:
+- For CHANGE_REQUESTED, restate the full updated order and ask if it is correct
+- For UNCLEAR, ask the guest to confirm, change, or cancel the order
+- For CANCELLED, confirm that the order was cancelled
+- For CONFIRMED, write a brief acknowledgement; the BPMN process will place the order next
+
+Pending order:
+{json.dumps(pending_order, ensure_ascii=False, indent=2)}
+
+Guest reply:
+{guest_message}
+
+Conversation:
+{history_text}
+"""
+
+    evaluation_json = call_openai_json(prompt)
+
+    return {
+        **state,
+        "room_service_confirmation_action": evaluation_json["confirmationAction"],
+        "room_service_pending_order": evaluation_json["updatedOrder"],
+        "room_service_confirmation_message": evaluation_json["message"],
     }
 
 
@@ -333,6 +487,9 @@ def hotel_extract_intent(request: HotelConversationRequest):
         "extraction_json": {},
         "clarification_message": "",
         "faq_message": "",
+        "room_service_confirmation_message": "",
+        "room_service_pending_order": {},
+        "room_service_confirmation_action": "",
     }
 
     result = extract_graph.invoke(initial_state)
@@ -351,6 +508,9 @@ def hotel_generate_clarification(request: ClarificationRequest):
         "extraction_json": request.extraction,
         "clarification_message": "",
         "faq_message": "",
+        "room_service_confirmation_message": "",
+        "room_service_pending_order": {},
+        "room_service_confirmation_action": "",
     }
 
     result = generate_clarification_question(initial_state)
@@ -370,12 +530,66 @@ def hotel_faq_response(request: FaqResponseRequest):
         "extraction_json": {},
         "clarification_message": "",
         "faq_message": "",
+        "room_service_confirmation_message": "",
+        "room_service_pending_order": {},
+        "room_service_confirmation_action": "",
     }
 
     result = faq_graph.invoke(initial_state)
 
     return {
         "message": result["faq_message"],
+    }
+
+
+@app.post("/hotel/room-service-confirmation", response_model=RoomServiceConfirmationResponse)
+def hotel_room_service_confirmation(request: RoomServiceConfirmationRequest):
+    history = [item.model_dump() for item in request.conversationHistory]
+
+    initial_state: HotelConversationState = {
+        "guest_message": "",
+        "conversation_history": history,
+        "known_context": {},
+        "history_text": build_history_text(history),
+        "extraction_json": request.extraction,
+        "clarification_message": "",
+        "faq_message": "",
+        "room_service_confirmation_message": "",
+        "room_service_pending_order": {},
+        "room_service_confirmation_action": "",
+    }
+
+    result = normalize_room_service_order(initial_state)
+
+    return {
+        "message": result["room_service_confirmation_message"],
+        "pendingOrder": result["room_service_pending_order"],
+    }
+
+
+@app.post("/hotel/evaluate-room-service-confirmation", response_model=RoomServiceConfirmationEvaluationResponse)
+def hotel_evaluate_room_service_confirmation(request: RoomServiceConfirmationEvaluationRequest):
+    history = [item.model_dump() for item in request.conversationHistory]
+
+    initial_state: HotelConversationState = {
+        "guest_message": request.guestMessage,
+        "conversation_history": history,
+        "known_context": {},
+        "history_text": build_history_text(history),
+        "extraction_json": {},
+        "clarification_message": "",
+        "faq_message": "",
+        "room_service_confirmation_message": "",
+        "room_service_pending_order": request.pendingOrder,
+        "room_service_confirmation_action": "",
+    }
+
+    result = evaluate_room_service_confirmation_reply(initial_state)
+
+    return {
+        "confirmationAction": result["room_service_confirmation_action"],
+        "updatedOrder": result["room_service_pending_order"],
+        "message": result["room_service_confirmation_message"],
     }
 
 
@@ -389,6 +603,9 @@ def hotel_debug(request: HotelConversationRequest):
         "extraction_json": {},
         "clarification_message": "",
         "faq_message": "",
+        "room_service_confirmation_message": "",
+        "room_service_pending_order": {},
+        "room_service_confirmation_action": "",
     }
 
     result = extract_graph.invoke(initial_state)
