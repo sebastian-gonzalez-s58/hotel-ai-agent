@@ -2,6 +2,30 @@ import json
 from typing import Any
 
 
+INTERACTION_JSON_GUIDANCE = """
+You may include an optional "interaction" object when predefined WhatsApp actions would make the next reply easier.
+Use this shape:
+{
+  "interaction": {
+    "type": "BUTTONS | LIST",
+    "title": "short title or null",
+    "body": "short body text or null",
+    "buttonText": "short list button text or null",
+    "actions": [
+      {"id": "STABLE_ACTION_ID", "label": "guest-facing label"}
+    ]
+  }
+}
+Interaction rules:
+- Use BUTTONS only for 2 or 3 choices.
+- Use LIST for 4 to 10 choices.
+- Action ids must be stable uppercase identifiers in English.
+- Labels must match the guest's language.
+- The message must still make sense without the interaction.
+- Omit interaction or use null when free text is better.
+"""
+
+
 def extraction_prompt(history_text: str, known_context: dict[str, Any]) -> str:
     return f"""
 You are a hotel WhatsApp assistant extraction agent.
@@ -13,7 +37,7 @@ If the latest guest message is a short answer to the assistant's previous clarif
 Return ONLY valid JSON with this exact structure:
 
 {{
-  "intent": "FAQ | ROOM_SERVICE | MAINTENANCE | HOUSEKEEPING | RESTAURANT_RESERVATION | COMPLAINT | HUMAN_REVIEW | UNKNOWN",
+  "intent": "FAQ | ROOM_SERVICE | MAINTENANCE | HOUSEKEEPING | SPA | RESTAURANT_RESERVATION | COMPLAINT | HUMAN_REVIEW | UNKNOWN",
   "confidence": 0.0,
   "containsEmergency": false,
   "roomNumber": null,
@@ -28,6 +52,7 @@ Intent rules:
 - ROOM_SERVICE: food, drinks, minibar, ordering items from kitchen/bar
 - MAINTENANCE: broken AC, water leak, electricity, TV not working, plumbing, lock problem
 - HOUSEKEEPING: towels, cleaning, toiletries, extra pillows, blankets
+- SPA: spa services, massages, wellness treatments, spa menu, spa reservations
 - RESTAURANT_RESERVATION: booking or reserving a table at the hotel restaurant, including date or time requests for restaurant reservations
 - COMPLAINT: dissatisfaction, noise, bad service, dirty room, serious negative experience
 - HUMAN_REVIEW: guest explicitly asks for staff/human/manager or the request is sensitive
@@ -46,6 +71,7 @@ Completeness rules:
 For ROOM_SERVICE, required fields are:
 - roomNumber
 - items
+- deliveryLocation
 
 For ROOM_SERVICE, extractedEntities must use this shape when possible:
 {{
@@ -57,9 +83,11 @@ For ROOM_SERVICE, extractedEntities must use this shape when possible:
     }}
   ],
   "roomNumber": "402",
+  "deliveryLocation": "ROOM | DOCK_1 | DOCK_2 | POOL_1 | POOL_2",
   "specialInstructions": null
 }}
 Use integer quantities. If the guest gives an item without a quantity, infer quantity 1.
+If the guest says delivery is for their room, use deliveryLocation="ROOM".
 
 For MAINTENANCE, required fields are:
 - roomNumber
@@ -93,6 +121,14 @@ For FAQ, usually no required fields unless the question is ambiguous.
 If required information is missing, add field names to missingFields and set requestComplete=false.
 If enough information is present, missingFields=[] and requestComplete=true.
 
+Interactive reply id rules:
+- ROOM_SERVICE means the guest selected room service
+- SPA means the guest selected SPA
+- MAINTENANCE means the guest selected maintenance
+- FRONT_DESK means the guest selected front desk or human help
+- FAQ means the guest selected general questions or hotel information
+- ROOM, DOCK_1, DOCK_2, POOL_1, POOL_2 are room service delivery locations
+
 Known context:
 {json.dumps(known_context, ensure_ascii=False, indent=2)}
 
@@ -117,11 +153,20 @@ Rules:
 - If restaurant reservation date is missing, ask what date they would like
 - If restaurant reservation time is missing, ask what time they would like
 - If maintenance issue is unclear, ask what is not working
+- If the intent is UNKNOWN or the guest appears to be greeting the assistant, offer a main service menu
+- If room service deliveryLocation is missing, ask where the order should be delivered
 - Return ONLY valid JSON:
 
 {{
-  "message": "your clarification question"
+  "message": "your clarification question",
+  "interaction": null
 }}
+
+Recommended interactions:
+- Main menu: LIST with ROOM_SERVICE, SPA, MAINTENANCE, FRONT_DESK, FAQ
+- Room service delivery location: LIST with ROOM, DOCK_1, DOCK_2, POOL_1, POOL_2
+
+{INTERACTION_JSON_GUIDANCE}
 
 Extraction:
 {json.dumps(extraction, ensure_ascii=False, indent=2)}
@@ -154,7 +199,19 @@ Return ONLY valid JSON with this exact structure:
         "modifiers": null
       }}
     ],
-    "specialInstructions": null
+    "specialInstructions": null,
+    "deliveryLocation": null
+  }},
+  "interaction": {{
+    "type": "BUTTONS",
+    "title": null,
+    "body": null,
+    "buttonText": null,
+    "actions": [
+      {{"id": "CONFIRM_ORDER", "label": "Confirm"}},
+      {{"id": "CHANGE_ORDER", "label": "Change"}},
+      {{"id": "CANCEL_ORDER", "label": "Cancel"}}
+    ]
   }}
 }}
 
@@ -164,9 +221,13 @@ Rules:
 - Keep item names natural and concise
 - Use integer quantities; if no quantity is stated, use 1
 - Include roomNumber if present in the extraction
+- Include deliveryLocation if present in the extraction
 - Ask whether the order is correct or if the guest wants to change anything
+- Include confirmation actions with labels in the guest's language
 - Do not say the order has been placed yet
 - If the guest asks for an item that is clearly unavailable or not present in the menu, politely mention that it may need staff confirmation and keep it in pendingOrder with the closest natural name
+
+{INTERACTION_JSON_GUIDANCE}
 
 Extraction:
 {json.dumps(extraction, ensure_ascii=False, indent=2)}
@@ -202,15 +263,17 @@ Return ONLY valid JSON with this exact structure:
         "modifiers": null
       }}
     ],
-    "specialInstructions": null
+    "specialInstructions": null,
+    "deliveryLocation": null
   }},
-  "message": "short WhatsApp message"
+  "message": "short WhatsApp message",
+  "interaction": null
 }}
 
 Decision rules:
-- CONFIRMED: the guest clearly accepts the pending order, such as yes, correct, looks good, go ahead
-- CHANGE_REQUESTED: the guest changes quantities, adds/removes items, changes instructions, or changes the room
-- CANCELLED: the guest clearly cancels the order
+- CONFIRMED: the guest clearly accepts the pending order, such as yes, correct, looks good, go ahead, or CONFIRM_ORDER
+- CHANGE_REQUESTED: the guest changes quantities, adds/removes items, changes instructions, changes the room, or selects CHANGE_ORDER
+- CANCELLED: the guest clearly cancels the order or selects CANCEL_ORDER
 - UNCLEAR: the reply does not clearly confirm, cancel, or change the order
 
 Message rules:
@@ -218,6 +281,9 @@ Message rules:
 - For UNCLEAR, ask the guest to confirm, change, or cancel the order
 - For CANCELLED, confirm that the order was cancelled
 - For CONFIRMED, write a brief acknowledgement; the BPMN process will place the order next
+- For CHANGE_REQUESTED or UNCLEAR, include confirmation buttons: CONFIRM_ORDER, CHANGE_ORDER, CANCEL_ORDER
+
+{INTERACTION_JSON_GUIDANCE}
 
 Pending order:
 {json.dumps(pending_order, ensure_ascii=False, indent=2)}
@@ -247,7 +313,8 @@ Rules:
   "message": "answer to guest, or a short internal fallback message if human help is needed",
   "answered": true,
   "needsHumanAnswer": false,
-  "category": "short category such as horarios, politicas, servicios, general"
+  "category": "short category such as horarios, politicas, servicios, general",
+  "interaction": null
 }}
 
 Set answered=true and needsHumanAnswer=false only when the answer is supported by knownContext or faqKnowledge.
@@ -284,8 +351,16 @@ Rules:
 - Return ONLY valid JSON:
 
 {{
-  "message": "guest-facing message"
+  "message": "guest-facing message",
+  "interaction": null
 }}
+
+Recommended interactions:
+- If asking whether the guest wants to continue after inactivity, use CONTINUE_CONVERSATION and CANCEL_REQUEST.
+- If asking the guest to confirm maintenance resolution, use MAINTENANCE_RESOLVED and MAINTENANCE_NOT_RESOLVED.
+- If presenting a main navigation choice, use ROOM_SERVICE, SPA, MAINTENANCE, FRONT_DESK, FAQ.
+
+{INTERACTION_JSON_GUIDANCE}
 
 Known context:
 {json.dumps(known_context or {}, ensure_ascii=False, indent=2)}
@@ -331,6 +406,17 @@ Return ONLY valid JSON with this exact structure:
     "partySize": null,
     "roomNumber": null,
     "specialRequests": null
+  }},
+  "interaction": {{
+    "type": "BUTTONS",
+    "title": null,
+    "body": null,
+    "buttonText": null,
+    "actions": [
+      {{"id": "CONFIRM_SPA", "label": "Confirm"}},
+      {{"id": "CHANGE_SPA", "label": "Change"}},
+      {{"id": "CANCEL_SPA", "label": "Cancel"}}
+    ]
   }}
 }}
 
@@ -338,7 +424,10 @@ Rules:
 - Use knownContext for available services and hours when provided
 - Preserve natural-language dates or times if you cannot confidently normalize them
 - Ask whether the reservation details are correct or if the guest wants to change anything
+- Include confirmation actions with labels in the guest's language
 - Do not say the reservation is confirmed with SPA staff yet
+
+{INTERACTION_JSON_GUIDANCE}
 
 Known context:
 {json.dumps(known_context, ensure_ascii=False, indent=2)}
@@ -374,13 +463,14 @@ Return ONLY valid JSON with this exact structure:
     "roomNumber": null,
     "specialRequests": null
   }},
-  "message": "short WhatsApp message"
+  "message": "short WhatsApp message",
+  "interaction": null
 }}
 
 Decision rules:
-- CONFIRMED: guest clearly accepts the pending reservation
-- CHANGE_REQUESTED: guest changes service, date, time, people, room, or instructions
-- CANCELLED: guest clearly cancels
+- CONFIRMED: guest clearly accepts the pending reservation or selects CONFIRM_SPA
+- CHANGE_REQUESTED: guest changes service, date, time, people, room, instructions, or selects CHANGE_SPA
+- CANCELLED: guest clearly cancels or selects CANCEL_SPA
 - UNCLEAR: reply is ambiguous
 
 Message rules:
@@ -388,6 +478,9 @@ Message rules:
 - For UNCLEAR, ask the guest to confirm, change, or cancel
 - For CANCELLED, confirm cancellation
 - For CONFIRMED, write a brief acknowledgement; the BPMN process will notify SPA staff next
+- For CHANGE_REQUESTED or UNCLEAR, include confirmation buttons: CONFIRM_SPA, CHANGE_SPA, CANCEL_SPA
+
+{INTERACTION_JSON_GUIDANCE}
 
 Pending reservation:
 {json.dumps(pending_reservation, ensure_ascii=False, indent=2)}
@@ -453,14 +546,17 @@ Return ONLY valid JSON with this exact structure:
 
 {{
   "guestConfirmedResolved": true,
-  "message": "short WhatsApp message"
+  "message": "short WhatsApp message",
+  "interaction": null
 }}
 
 Rules:
-- guestConfirmedResolved=true if the guest clearly says the issue is solved, fixed, working, okay, or thanks in a confirming way
-- guestConfirmedResolved=false if the guest says it is not fixed, still broken, worse, unclear, or asks for more help
+- guestConfirmedResolved=true if the guest clearly says the issue is solved, fixed, working, okay, thanks in a confirming way, or selects MAINTENANCE_RESOLVED
+- guestConfirmedResolved=false if the guest says it is not fixed, still broken, worse, unclear, asks for more help, or selects MAINTENANCE_NOT_RESOLVED
 - If true, thank the guest and say the request will be closed
 - If false, apologize briefly and say the team will continue following up
+
+{INTERACTION_JSON_GUIDANCE}
 
 Known context:
 {json.dumps(known_context, ensure_ascii=False, indent=2)}

@@ -171,6 +171,7 @@ async def hotel_generate_clarification(request: ClarificationRequest):
 
     return {
         "message": result["clarification_message"],
+        "interaction": result.get("clarification_interaction"),
     }
 
 
@@ -197,6 +198,7 @@ async def hotel_faq_response(request: FaqResponseRequest):
         "answered": result.get("faq_answered", True),
         "needsHumanAnswer": result.get("faq_needs_human_answer", False),
         "category": result.get("faq_category"),
+        "interaction": result.get("faq_interaction"),
     }
 
 
@@ -217,6 +219,7 @@ async def hotel_room_service_confirmation(request: RoomServiceConfirmationReques
     return {
         "message": result["room_service_confirmation_message"],
         "pendingOrder": result["room_service_pending_order"],
+        "interaction": result.get("room_service_confirmation_interaction"),
     }
 
 
@@ -242,6 +245,7 @@ async def hotel_evaluate_room_service_confirmation(request: RoomServiceConfirmat
         "confirmationAction": result["room_service_confirmation_action"],
         "updatedOrder": result["room_service_pending_order"],
         "message": result["room_service_confirmation_message"],
+        "interaction": result.get("room_service_confirmation_interaction"),
     }
 
 
@@ -255,7 +259,10 @@ async def hotel_spa_menu_response(request: SpaMenuResponseRequest):
     result = await run_agent_step(
         lambda: generate_spa_menu_message(history, request.knownContext)
     )
-    return {"message": result["message"]}
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
 
 
 @hotel_router.post("/spa/reservation-confirmation", response_model=SpaReservationConfirmationResponse)
@@ -277,6 +284,7 @@ async def hotel_spa_reservation_confirmation(request: SpaReservationConfirmation
     return {
         "message": result["message"],
         "pendingReservation": result["pendingReservation"],
+        "interaction": result.get("interaction"),
     }
 
 
@@ -298,6 +306,7 @@ async def hotel_spa_evaluate_confirmation(request: SpaReservationConfirmationEva
         "confirmationAction": result["confirmationAction"],
         "updatedReservation": result["updatedReservation"],
         "message": result["message"],
+        "interaction": result.get("interaction"),
     }
 
 
@@ -315,7 +324,10 @@ async def hotel_maintenance_initial_response(request: MaintenanceInitialResponse
             request.knownContext,
         )
     )
-    return {"message": result["message"]}
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
 
 
 @hotel_router.post("/maintenance/staff-update-response", response_model=GenericMessageResponse)
@@ -334,7 +346,10 @@ async def hotel_maintenance_staff_update_response(request: MaintenanceStaffUpdat
             request.knownContext,
         )
     )
-    return {"message": result["message"]}
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
 
 
 @hotel_router.post("/maintenance/evaluate-guest-resolution", response_model=MaintenanceGuestResolutionEvaluationResponse)
@@ -355,6 +370,7 @@ async def hotel_maintenance_evaluate_guest_resolution(request: MaintenanceGuestR
     return {
         "guestConfirmedResolved": result["guestConfirmedResolved"],
         "message": result["message"],
+        "interaction": result.get("interaction"),
     }
 
 
@@ -371,7 +387,10 @@ async def hotel_unmatched_guest_response(request: UnmatchedGuestResponseRequest)
             request.knownContext,
         )
     )
-    return {"message": result["message"]}
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
 
 
 @hotel_router.post("/inactivity-reminder", response_model=GenericMessageResponse)
@@ -385,7 +404,10 @@ async def hotel_inactivity_reminder(request: GenericMessageRequest):
     result = await run_agent_step(
         lambda: generate_inactivity_message("reminder", history, request.knownContext)
     )
-    return {"message": result["message"]}
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
 
 
 @hotel_router.post("/inactivity-closure", response_model=GenericMessageResponse)
@@ -399,7 +421,10 @@ async def hotel_inactivity_closure(request: GenericMessageRequest):
     result = await run_agent_step(
         lambda: generate_inactivity_message("closure", history, request.knownContext)
     )
-    return {"message": result["message"]}
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
 
 
 @hotel_router.post("/front-desk-handoff", response_model=GenericMessageResponse)
@@ -417,7 +442,10 @@ async def hotel_front_desk_handoff(request: GenericMessageRequest):
             request.knownContext,
         )
     )
-    return {"message": result["message"]}
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
 
 
 @hotel_router.post("/request-processed-response", response_model=GenericMessageResponse)
@@ -435,7 +463,10 @@ async def hotel_request_processed_response(request: GenericMessageRequest):
             request.knownContext,
         )
     )
-    return {"message": result["message"]}
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
 
 
 @hotel_router.post("/request-cancelled-response", response_model=GenericMessageResponse)
@@ -453,7 +484,23 @@ async def hotel_request_cancelled_response(request: GenericMessageRequest):
             request.knownContext,
         )
     )
-    return {"message": result["message"]}
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
+
+
+@hotel_router.post("/integration-test-response", response_model=GenericMessageResponse)
+async def hotel_integration_test_response(request: GenericMessageRequest):
+    validate_conversation_payload(
+        guest_message=request.guestMessage,
+        conversation_history=request.conversationHistory,
+        known_context=request.knownContext,
+    )
+    return {
+        "message": "Hola mundo desde el agente de Chatbot Inn. Integracion completa OK.",
+        "interaction": None,
+    }
 
 
 

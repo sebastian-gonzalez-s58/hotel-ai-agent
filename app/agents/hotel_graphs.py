@@ -71,6 +71,7 @@ def generate_clarification_question(state: HotelConversationState) -> HotelConve
     return {
         **state,
         "clarification_message": clarification_json["message"],
+        "clarification_interaction": clarification_json.get("interaction"),
     }
 
 
@@ -88,6 +89,7 @@ def normalize_room_service_order(state: HotelConversationState) -> HotelConversa
         **state,
         "room_service_confirmation_message": confirmation_json["message"],
         "room_service_pending_order": confirmation_json["pendingOrder"],
+        "room_service_confirmation_interaction": confirmation_json.get("interaction"),
     }
 
 
@@ -105,6 +107,7 @@ def evaluate_room_service_confirmation_reply(state: HotelConversationState) -> H
         "room_service_confirmation_action": evaluation_json["confirmationAction"],
         "room_service_pending_order": evaluation_json["updatedOrder"],
         "room_service_confirmation_message": evaluation_json["message"],
+        "room_service_confirmation_interaction": evaluation_json.get("interaction"),
     }
 
 
@@ -127,6 +130,7 @@ def generate_faq_response(state: HotelConversationState) -> HotelConversationSta
         "faq_answered": faq_json.get("answered", True),
         "faq_needs_human_answer": faq_json.get("needsHumanAnswer", False),
         "faq_category": faq_json.get("category"),
+        "faq_interaction": faq_json.get("interaction"),
     }
 
 

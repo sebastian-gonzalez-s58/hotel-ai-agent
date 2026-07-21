@@ -8,6 +8,19 @@ class ConversationMessage(BaseModel):
     content: str
 
 
+class SuggestedAction(BaseModel):
+    id: str
+    label: str
+
+
+class Interaction(BaseModel):
+    type: str = "BUTTONS"
+    title: str | None = None
+    body: str | None = None
+    buttonText: str | None = None
+    actions: list[SuggestedAction] = Field(default_factory=list)
+
+
 class HotelConversationRequest(BaseModel):
     conversationId: str | None = None
     guestMessage: str
@@ -21,6 +34,7 @@ class HotelExtractionResponse(BaseModel):
         "ROOM_SERVICE",
         "MAINTENANCE",
         "HOUSEKEEPING",
+        "SPA",
         "RESTAURANT_RESERVATION",
         "COMPLAINT",
         "HUMAN_REVIEW",
@@ -42,6 +56,7 @@ class ClarificationRequest(BaseModel):
 
 class ClarificationResponse(BaseModel):
     message: str
+    interaction: Interaction | None = None
 
 
 class FaqResponseRequest(BaseModel):
@@ -55,6 +70,7 @@ class FaqResponse(BaseModel):
     answered: bool = True
     needsHumanAnswer: bool = False
     category: str | None = None
+    interaction: Interaction | None = None
 
 
 class RoomServiceConfirmationRequest(BaseModel):
@@ -65,6 +81,7 @@ class RoomServiceConfirmationRequest(BaseModel):
 class RoomServiceConfirmationResponse(BaseModel):
     message: str
     pendingOrder: dict[str, Any]
+    interaction: Interaction | None = None
 
 
 class RoomServiceConfirmationEvaluationRequest(BaseModel):
@@ -82,6 +99,7 @@ class RoomServiceConfirmationEvaluationResponse(BaseModel):
     ]
     updatedOrder: dict[str, Any]
     message: str
+    interaction: Interaction | None = None
 
 
 class GenericMessageRequest(BaseModel):
@@ -92,6 +110,7 @@ class GenericMessageRequest(BaseModel):
 
 class GenericMessageResponse(BaseModel):
     message: str
+    interaction: Interaction | None = None
 
 
 class SpaMenuResponseRequest(BaseModel):
@@ -109,6 +128,7 @@ class SpaReservationConfirmationRequest(BaseModel):
 class SpaReservationConfirmationResponse(BaseModel):
     message: str
     pendingReservation: dict[str, Any]
+    interaction: Interaction | None = None
 
 
 class SpaReservationConfirmationEvaluationRequest(BaseModel):
@@ -126,6 +146,7 @@ class SpaReservationConfirmationEvaluationResponse(BaseModel):
     ]
     updatedReservation: dict[str, Any]
     message: str
+    interaction: Interaction | None = None
 
 
 class MaintenanceInitialResponseRequest(BaseModel):
@@ -150,6 +171,7 @@ class MaintenanceGuestResolutionEvaluationRequest(BaseModel):
 class MaintenanceGuestResolutionEvaluationResponse(BaseModel):
     guestConfirmedResolved: bool
     message: str
+    interaction: Interaction | None = None
 
 
 class UnmatchedGuestResponseRequest(BaseModel):
