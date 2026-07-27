@@ -376,11 +376,83 @@ Conversation:
 def spa_menu_prompt(history_text: str, known_context: dict[str, Any]) -> str:
     return generic_message_prompt(
         purpose=(
-            "Send the guest the available SPA options and operating hours. "
-            "Ask for service, desired date, desired time, and number of people."
+            "Open the SPA reservation flow. The message MUST include this exact catalog URL: "
+            "https://spa-hotelcristalino.catalogodigitalonline.com/ . "
+            "Tell the guest that the link contains the SPA services, then ask them to provide "
+            "the service they want, the desired date, and the desired time. "
+            "Ask for exactly those three details, do not ask for party size, and do not ask "
+            "for confirmation. Write in the guest's language and keep the message concise."
         ),
         history_text=history_text,
         known_context=known_context,
+    )
+
+
+def spa_reservation_details_prompt(
+    guest_message: str,
+    pending_reservation: dict[str, Any],
+    history_text: str,
+    known_context: dict[str, Any],
+) -> str:
+    return f"""
+You collect the minimum information required for a hotel SPA availability request.
+
+Merge the latest guest message into the pending reservation and return ONLY valid JSON:
+
+{{
+  "message": "short guest-facing message",
+  "pendingReservation": {{
+    "serviceName": null,
+    "reservationDate": null,
+    "reservationTime": null
+  }},
+  "missingFields": ["serviceName", "reservationDate", "reservationTime"],
+  "requestComplete": false,
+  "interaction": null
+}}
+
+Rules:
+- The only required fields are serviceName, reservationDate, and reservationTime
+- Preserve every non-empty value already present in pendingReservation unless the guest changes it
+- Extract values from natural language without inventing information
+- Keep natural-language dates and times when exact normalization is uncertain
+- requestComplete is true only when all three required fields are non-empty
+- missingFields contains exactly the required fields that are still empty
+- If fields are missing, ask only for those missing fields in the guest's language
+- If complete, briefly acknowledge that all request details were received
+- Do not ask the guest to confirm the reservation
+- Do not claim that SPA availability or the reservation has been confirmed
+- Do not add buttons or lists
+
+Pending reservation:
+{json.dumps(pending_reservation or {}, ensure_ascii=False, indent=2)}
+
+Known context:
+{json.dumps(known_context or {}, ensure_ascii=False, indent=2)}
+
+Latest guest message:
+{guest_message}
+
+Conversation:
+{history_text}
+"""
+
+
+def spa_request_received_prompt(
+    guest_message: str | None,
+    history_text: str,
+    known_context: dict[str, Any],
+) -> str:
+    return generic_message_prompt(
+        purpose=(
+            "Tell the guest that the SPA request was received and that the hotel team will "
+            "review availability and contact them shortly to confirm the reservation. "
+            "Do not claim the reservation is already confirmed. Do not ask another question "
+            "and do not add buttons or lists. Write in the guest's language."
+        ),
+        history_text=history_text,
+        known_context=known_context,
+        guest_message=guest_message,
     )
 
 

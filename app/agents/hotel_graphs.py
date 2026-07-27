@@ -16,6 +16,8 @@ from app.prompts.hotel import (
     room_service_confirmation_prompt,
     spa_confirmation_evaluation_prompt,
     spa_menu_prompt,
+    spa_request_received_prompt,
+    spa_reservation_details_prompt,
     spa_reservation_confirmation_prompt,
     unmatched_guest_response_prompt,
 )
@@ -137,6 +139,36 @@ def generate_faq_response(state: HotelConversationState) -> HotelConversationSta
 def generate_spa_menu_message(history: list[dict[str, Any]], known_context: dict[str, Any]) -> dict[str, Any]:
     history_text = build_history_text(history)
     return call_openai_json(spa_menu_prompt(history_text=history_text, known_context=known_context))
+
+
+def collect_spa_reservation_details(
+    guest_message: str,
+    pending_reservation: dict[str, Any],
+    history: list[dict[str, Any]],
+    known_context: dict[str, Any],
+) -> dict[str, Any]:
+    return call_openai_json(
+        spa_reservation_details_prompt(
+            guest_message=guest_message,
+            pending_reservation=pending_reservation,
+            history_text=build_history_text(history),
+            known_context=known_context,
+        )
+    )
+
+
+def generate_spa_request_received_response(
+    guest_message: str | None,
+    history: list[dict[str, Any]],
+    known_context: dict[str, Any],
+) -> dict[str, Any]:
+    return call_openai_json(
+        spa_request_received_prompt(
+            guest_message=guest_message,
+            history_text=build_history_text(history),
+            known_context=known_context,
+        )
+    )
 
 
 def generate_spa_reservation_confirmation(

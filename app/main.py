@@ -18,6 +18,7 @@ from app.agents.helpers import (
     initial_state,
 )
 from app.agents.hotel_graphs import (
+    collect_spa_reservation_details,
     evaluate_room_service_confirmation_reply,
     evaluate_maintenance_guest_resolution,
     evaluate_spa_reservation_confirmation,
@@ -31,6 +32,7 @@ from app.agents.hotel_graphs import (
     generate_request_cancelled_response,
     generate_request_processed_response,
     generate_spa_menu_message,
+    generate_spa_request_received_response,
     generate_spa_reservation_confirmation,
     generate_unmatched_guest_response,
     normalize_room_service_order,
@@ -53,6 +55,8 @@ from app.schemas.hotel import (
     RoomServiceConfirmationRequest,
     RoomServiceConfirmationResponse,
     SpaMenuResponseRequest,
+    SpaReservationDetailsRequest,
+    SpaReservationDetailsResponse,
     SpaReservationConfirmationEvaluationRequest,
     SpaReservationConfirmationEvaluationResponse,
     SpaReservationConfirmationRequest,
@@ -258,6 +262,46 @@ async def hotel_spa_menu_response(request: SpaMenuResponseRequest):
     history = dump_history(request.conversationHistory)
     result = await run_agent_step(
         lambda: generate_spa_menu_message(history, request.knownContext)
+    )
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
+
+
+@hotel_router.post("/spa/reservation-details", response_model=SpaReservationDetailsResponse)
+async def hotel_spa_reservation_details(request: SpaReservationDetailsRequest):
+    validate_conversation_payload(
+        guest_message=request.guestMessage,
+        conversation_history=request.conversationHistory,
+        known_context=request.knownContext,
+    )
+    history = dump_history(request.conversationHistory)
+    result = await run_agent_step(
+        lambda: collect_spa_reservation_details(
+            request.guestMessage,
+            request.pendingReservation,
+            history,
+            request.knownContext,
+        )
+    )
+    return result
+
+
+@hotel_router.post("/spa/request-received-response", response_model=GenericMessageResponse)
+async def hotel_spa_request_received_response(request: GenericMessageRequest):
+    validate_conversation_payload(
+        guest_message=request.guestMessage,
+        conversation_history=request.conversationHistory,
+        known_context=request.knownContext,
+    )
+    history = dump_history(request.conversationHistory)
+    result = await run_agent_step(
+        lambda: generate_spa_request_received_response(
+            request.guestMessage,
+            history,
+            request.knownContext,
+        )
     )
     return {
         "message": result["message"],

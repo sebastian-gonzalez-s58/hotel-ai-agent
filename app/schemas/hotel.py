@@ -118,6 +118,23 @@ class SpaMenuResponseRequest(BaseModel):
     knownContext: dict[str, Any] = Field(default_factory=dict)
 
 
+class SpaReservationDetailsRequest(BaseModel):
+    guestMessage: str
+    pendingReservation: dict[str, Any] = Field(default_factory=dict)
+    conversationHistory: list[ConversationMessage] = Field(default_factory=list)
+    knownContext: dict[str, Any] = Field(default_factory=dict)
+
+
+class SpaReservationDetailsResponse(BaseModel):
+    message: str
+    pendingReservation: dict[str, Any]
+    missingFields: list[
+        Literal["serviceName", "reservationDate", "reservationTime"]
+    ] = Field(default_factory=list)
+    requestComplete: bool
+    interaction: Interaction | None = None
+
+
 class SpaReservationConfirmationRequest(BaseModel):
     guestMessage: str | None = None
     extraction: dict[str, Any] = Field(default_factory=dict)
