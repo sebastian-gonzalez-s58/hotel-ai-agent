@@ -14,6 +14,9 @@ from app.prompts.hotel import (
     maintenance_staff_update_prompt,
     room_service_confirmation_evaluation_prompt,
     room_service_confirmation_prompt,
+    room_service_delivery_location_prompt,
+    room_service_menu_prompt,
+    room_service_order_accepted_prompt,
     spa_confirmation_evaluation_prompt,
     spa_menu_prompt,
     spa_request_received_prompt,
@@ -91,6 +94,8 @@ def normalize_room_service_order(state: HotelConversationState) -> HotelConversa
         **state,
         "room_service_confirmation_message": confirmation_json["message"],
         "room_service_pending_order": confirmation_json["pendingOrder"],
+        "room_service_missing_fields": confirmation_json.get("missingFields", []),
+        "room_service_request_complete": confirmation_json.get("requestComplete", False),
         "room_service_confirmation_interaction": confirmation_json.get("interaction"),
     }
 
@@ -111,6 +116,44 @@ def evaluate_room_service_confirmation_reply(state: HotelConversationState) -> H
         "room_service_confirmation_message": evaluation_json["message"],
         "room_service_confirmation_interaction": evaluation_json.get("interaction"),
     }
+
+
+def generate_room_service_delivery_location_response(
+    history: list[dict[str, Any]],
+    known_context: dict[str, Any],
+) -> dict[str, Any]:
+    return call_openai_json(
+        room_service_delivery_location_prompt(
+            history_text=build_history_text(history),
+            known_context=known_context,
+        )
+    )
+
+
+def generate_room_service_menu_response(
+    history: list[dict[str, Any]],
+    known_context: dict[str, Any],
+) -> dict[str, Any]:
+    return call_openai_json(
+        room_service_menu_prompt(
+            history_text=build_history_text(history),
+            known_context=known_context,
+        )
+    )
+
+
+def generate_room_service_order_accepted_response(
+    guest_message: str | None,
+    history: list[dict[str, Any]],
+    known_context: dict[str, Any],
+) -> dict[str, Any]:
+    return call_openai_json(
+        room_service_order_accepted_prompt(
+            guest_message=guest_message,
+            history_text=build_history_text(history),
+            known_context=known_context,
+        )
+    )
 
 
 def generate_faq_response(state: HotelConversationState) -> HotelConversationState:

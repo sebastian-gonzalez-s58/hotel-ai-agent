@@ -202,6 +202,8 @@ Return ONLY valid JSON with this exact structure:
     "specialInstructions": null,
     "deliveryLocation": null
   }},
+  "missingFields": [],
+  "requestComplete": true,
   "interaction": {{
     "type": "BUTTONS",
     "title": null,
@@ -226,6 +228,11 @@ Rules:
 - Include confirmation actions with labels in the guest's language
 - Do not say the order has been placed yet
 - If the guest asks for an item that is clearly unavailable or not present in the menu, politely mention that it may need staff confirmation and keep it in pendingOrder with the closest natural name
+- The only required fields are items and deliveryLocation
+- requestComplete is true only when pendingOrder has at least one valid item and deliveryLocation is present
+- missingFields contains exactly "items" and/or "deliveryLocation" when either is missing
+- If requestComplete is false, ask only for the missing information and set interaction to null
+- If requestComplete is true, list the complete order once and include the confirmation actions
 
 {INTERACTION_JSON_GUIDANCE}
 
@@ -238,6 +245,82 @@ Menu knowledge:
 Conversation:
 {history_text}
 """
+
+
+def room_service_delivery_location_prompt(
+    history_text: str,
+    known_context: dict[str, Any],
+) -> str:
+    return f"""
+You are opening the room service flow for a hotel guest.
+
+Ask only where the order should be delivered. Do not ask what they want to order
+yet and do not ask for their room number.
+
+Return ONLY valid JSON with this exact structure:
+
+{{
+  "message": "short guest-facing question",
+  "interaction": {{
+    "type": "LIST",
+    "title": "short title",
+    "body": "short body",
+    "buttonText": "short button label",
+    "actions": [
+      {{"id": "ROOM", "label": "guest-language label for their room"}},
+      {{"id": "DOCK_1", "label": "guest-language label for dock 1"}},
+      {{"id": "DOCK_2", "label": "guest-language label for dock 2"}},
+      {{"id": "POOL_1", "label": "guest-language label for pool 1"}},
+      {{"id": "POOL_2", "label": "guest-language label for pool 2"}}
+    ]
+  }}
+}}
+
+Rules:
+- Match the guest's language when clear; otherwise use the preferred language in knownContext
+- Include all five actions exactly once and preserve their stable ids
+- Keep the message concise
+
+Known context:
+{json.dumps(known_context, ensure_ascii=False, indent=2)}
+
+Conversation:
+{history_text}
+"""
+
+
+def room_service_menu_prompt(
+    history_text: str,
+    known_context: dict[str, Any],
+) -> str:
+    return generic_message_prompt(
+        purpose=(
+            "Continue the room service flow. The message MUST include this exact menu URL: "
+            "https://hotelcristalino.menudigitalonline.com/ . "
+            "Tell the guest that the link contains the digital food and drink menu, then ask "
+            "which products and quantities they want to order. Do not ask for their delivery "
+            "location or room number and do not ask for confirmation yet. Do not include an interaction."
+        ),
+        history_text=history_text,
+        known_context=known_context,
+    )
+
+
+def room_service_order_accepted_prompt(
+    guest_message: str | None,
+    history_text: str,
+    known_context: dict[str, Any],
+) -> str:
+    return generic_message_prompt(
+        purpose=(
+            "Confirm that hotel staff has accepted the room service order and that it will be "
+            "delivered as soon as possible. This is the final message: do not ask another question "
+            "and do not include buttons or a list."
+        ),
+        history_text=history_text,
+        known_context=known_context,
+        guest_message=guest_message,
+    )
 
 
 def room_service_confirmation_evaluation_prompt(
@@ -277,11 +360,13 @@ Decision rules:
 - UNCLEAR: the reply does not clearly confirm, cancel, or change the order
 
 Message rules:
-- For CHANGE_REQUESTED, restate the full updated order and ask if it is correct
+- For CHANGE_REQUESTED with concrete changes, restate the full updated order once and ask if it is correct
+- If the guest only selects CHANGE_ORDER without describing a change, ask what they want to add, remove, or modify and do not restate the unchanged order
 - For UNCLEAR, ask the guest to confirm, change, or cancel the order
 - For CANCELLED, confirm that the order was cancelled
 - For CONFIRMED, write a brief acknowledgement; the BPMN process will place the order next
-- For CHANGE_REQUESTED or UNCLEAR, include confirmation buttons: CONFIRM_ORDER, CHANGE_ORDER, CANCEL_ORDER
+- Include confirmation buttons after applying concrete changes or for UNCLEAR
+- When merely asking what should be changed, set interaction to null
 
 {INTERACTION_JSON_GUIDANCE}
 

@@ -81,6 +81,8 @@ class RoomServiceConfirmationRequest(BaseModel):
 class RoomServiceConfirmationResponse(BaseModel):
     message: str
     pendingOrder: dict[str, Any]
+    missingFields: list[str] = Field(default_factory=list)
+    requestComplete: bool = False
     interaction: Interaction | None = None
 
 

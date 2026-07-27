@@ -15,3 +15,5 @@ class HotelConversationState(TypedDict):
     room_service_confirmation_interaction: dict[str, Any] | None
     room_service_pending_order: dict[str, Any]
     room_service_confirmation_action: str
+    room_service_missing_fields: list[str]
+    room_service_request_complete: bool

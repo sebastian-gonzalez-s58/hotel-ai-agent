@@ -37,4 +37,6 @@ def initial_state(
         "room_service_confirmation_message": "",
         "room_service_pending_order": pending_order or {},
         "room_service_confirmation_action": "",
+        "room_service_missing_fields": [],
+        "room_service_request_complete": False,
     }

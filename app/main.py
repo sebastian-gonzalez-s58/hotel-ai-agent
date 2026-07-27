@@ -31,6 +31,9 @@ from app.agents.hotel_graphs import (
     generate_maintenance_staff_update_response,
     generate_request_cancelled_response,
     generate_request_processed_response,
+    generate_room_service_delivery_location_response,
+    generate_room_service_menu_response,
+    generate_room_service_order_accepted_response,
     generate_spa_menu_message,
     generate_spa_request_received_response,
     generate_spa_reservation_confirmation,
@@ -223,7 +226,70 @@ async def hotel_room_service_confirmation(request: RoomServiceConfirmationReques
     return {
         "message": result["room_service_confirmation_message"],
         "pendingOrder": result["room_service_pending_order"],
+        "missingFields": result.get("room_service_missing_fields", []),
+        "requestComplete": result.get("room_service_request_complete", False),
         "interaction": result.get("room_service_confirmation_interaction"),
+    }
+
+
+@hotel_router.post("/room-service/delivery-location-response", response_model=GenericMessageResponse)
+async def hotel_room_service_delivery_location_response(request: GenericMessageRequest):
+    validate_conversation_payload(
+        guest_message=request.guestMessage,
+        conversation_history=request.conversationHistory,
+        known_context=request.knownContext,
+    )
+    history = dump_history(request.conversationHistory)
+    result = await run_agent_step(
+        lambda: generate_room_service_delivery_location_response(
+            history,
+            request.knownContext,
+        )
+    )
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
+
+
+@hotel_router.post("/room-service/menu-response", response_model=GenericMessageResponse)
+async def hotel_room_service_menu_response(request: GenericMessageRequest):
+    validate_conversation_payload(
+        guest_message=request.guestMessage,
+        conversation_history=request.conversationHistory,
+        known_context=request.knownContext,
+    )
+    history = dump_history(request.conversationHistory)
+    result = await run_agent_step(
+        lambda: generate_room_service_menu_response(
+            history,
+            request.knownContext,
+        )
+    )
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
+    }
+
+
+@hotel_router.post("/room-service/order-accepted-response", response_model=GenericMessageResponse)
+async def hotel_room_service_order_accepted_response(request: GenericMessageRequest):
+    validate_conversation_payload(
+        guest_message=request.guestMessage,
+        conversation_history=request.conversationHistory,
+        known_context=request.knownContext,
+    )
+    history = dump_history(request.conversationHistory)
+    result = await run_agent_step(
+        lambda: generate_room_service_order_accepted_response(
+            request.guestMessage,
+            history,
+            request.knownContext,
+        )
+    )
+    return {
+        "message": result["message"],
+        "interaction": result.get("interaction"),
     }
 
 
