@@ -1,6 +1,8 @@
 fastapi
 uvicorn[standard]
+gunicorn
 pydantic
+httpx
 langgraph
 openai
 python-dotenv
