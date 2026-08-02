@@ -41,3 +41,12 @@ def validate_context(context: dict[str, Any]) -> None:
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"knownContext exceeds {settings.max_context_chars} characters",
         )
+
+
+def validate_agent_task(payload: dict[str, Any]) -> None:
+    serialized_payload = json.dumps(payload, ensure_ascii=False)
+    if len(serialized_payload) > settings.max_agent_task_chars:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"Agent task exceeds {settings.max_agent_task_chars} characters",
+        )

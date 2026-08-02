@@ -168,6 +168,13 @@ class SpaReservationConfirmationEvaluationResponse(BaseModel):
     interaction: Interaction | None = None
 
 
+class SpaStaffResponseRequest(BaseModel):
+    staffDecision: Literal["CONFIRMED", "ALTERNATIVES_PROPOSED"]
+    staffMessage: str
+    conversationHistory: list[ConversationMessage] = Field(default_factory=list)
+    knownContext: dict[str, Any] = Field(default_factory=dict)
+
+
 class MaintenanceInitialResponseRequest(BaseModel):
     extraction: dict[str, Any] = Field(default_factory=dict)
     conversationHistory: list[ConversationMessage] = Field(default_factory=list)

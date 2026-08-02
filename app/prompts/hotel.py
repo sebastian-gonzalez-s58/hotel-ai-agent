@@ -323,6 +323,27 @@ def room_service_order_accepted_prompt(
     )
 
 
+def room_service_kitchen_rejected_prompt(
+    guest_message: str | None,
+    history_text: str,
+    known_context: dict[str, Any],
+) -> str:
+    return generic_message_prompt(
+        purpose=(
+            "Tell the guest that kitchen could not accept the current room service order. "
+            "Use roomServiceKitchenRejectionReason from known context when present, but phrase "
+            "it politely and do not expose internal notes. Ask the guest to either change the "
+            "order or cancel it. Include exactly two BUTTONS actions: "
+            "CHANGE_ORDER for changing the order and CANCEL_ORDER for cancelling it. "
+            "Translate the message and button labels to the guest's language. Do not offer an "
+            "option to reconfirm the rejected order."
+        ),
+        history_text=history_text,
+        known_context=known_context,
+        guest_message=guest_message,
+    )
+
+
 def room_service_confirmation_evaluation_prompt(
     guest_message: str,
     pending_order: dict[str, Any],
@@ -644,6 +665,49 @@ Pending reservation:
 
 Guest reply:
 {guest_message}
+
+Conversation:
+{history_text}
+"""
+
+
+def spa_staff_response_prompt(
+    staff_decision: str,
+    staff_message: str,
+    history_text: str,
+    known_context: dict[str, Any],
+) -> str:
+    return f"""
+You are the copy editor and translator for a hotel's SPA team.
+
+Rewrite the staff message as a concise, warm, professional WhatsApp response in the
+language currently used by the guest. Return ONLY valid JSON:
+
+{{
+  "message": "guest-facing response",
+  "interaction": null
+}}
+
+Strict rules:
+- The staff message is the only source of truth for availability
+- Preserve every concrete service, date, time, restriction, and alternative exactly
+- Never invent or infer availability, services, dates, or times
+- Do not omit alternatives supplied by staff
+- Do not mention internal systems, spreadsheets, dashboards, or staff decisions
+- If staffDecision is CONFIRMED, clearly confirm the reservation and do not ask a question
+- If staffDecision is ALTERNATIVES_PROPOSED, explain the result and present the exact
+  alternatives supplied by staff, then ask the guest to choose one, propose another
+  date/time, or cancel
+- Keep interaction null because alternatives may be free-form and change per response
+
+Staff decision:
+{staff_decision}
+
+Staff message:
+{staff_message}
+
+Known context:
+{json.dumps(known_context or {}, ensure_ascii=False, indent=2)}
 
 Conversation:
 {history_text}
