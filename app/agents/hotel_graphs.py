@@ -17,13 +17,11 @@ from app.prompts.hotel import (
     room_service_delivery_location_prompt,
     room_service_menu_prompt,
     room_service_order_accepted_prompt,
-    room_service_kitchen_rejected_prompt,
     spa_confirmation_evaluation_prompt,
     spa_menu_prompt,
     spa_request_received_prompt,
     spa_reservation_details_prompt,
     spa_reservation_confirmation_prompt,
-    spa_staff_response_prompt,
     unmatched_guest_response_prompt,
 )
 from app.services.knowledge_client import get_faq_knowledge, get_menu_knowledge
@@ -158,20 +156,6 @@ def generate_room_service_order_accepted_response(
     )
 
 
-def generate_room_service_kitchen_rejected_response(
-    guest_message: str | None,
-    history: list[dict[str, Any]],
-    known_context: dict[str, Any],
-) -> dict[str, Any]:
-    return call_openai_json(
-        room_service_kitchen_rejected_prompt(
-            guest_message=guest_message,
-            history_text=build_history_text(history),
-            known_context=known_context,
-        )
-    )
-
-
 def generate_faq_response(state: HotelConversationState) -> HotelConversationState:
     known_context = {
         **state["known_context"],
@@ -258,22 +242,6 @@ def evaluate_spa_reservation_confirmation(
             guest_message=guest_message,
             pending_reservation=pending_reservation,
             history_text=history_text,
-        )
-    )
-
-
-def generate_spa_staff_response(
-    staff_decision: str,
-    staff_message: str,
-    history: list[dict[str, Any]],
-    known_context: dict[str, Any],
-) -> dict[str, Any]:
-    return call_openai_json(
-        spa_staff_response_prompt(
-            staff_decision=staff_decision,
-            staff_message=staff_message,
-            history_text=build_history_text(history),
-            known_context=known_context,
         )
     )
 

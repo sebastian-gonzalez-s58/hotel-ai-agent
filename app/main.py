@@ -12,8 +12,6 @@ from app.core.errors import AgentTimeoutError, register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import request_context_middleware
 from app.core.security import verify_internal_token
-from app.core.agent_tracking import bind_agent_tracking_context
-from app.agents.capability_executor import execute_agent_task
 from app.agents.helpers import (
     build_history_text,
     conversation_message_dict,
@@ -36,11 +34,9 @@ from app.agents.hotel_graphs import (
     generate_room_service_delivery_location_response,
     generate_room_service_menu_response,
     generate_room_service_order_accepted_response,
-    generate_room_service_kitchen_rejected_response,
     generate_spa_menu_message,
     generate_spa_request_received_response,
     generate_spa_reservation_confirmation,
-    generate_spa_staff_response,
     generate_unmatched_guest_response,
     normalize_room_service_order,
 )
@@ -68,18 +64,9 @@ from app.schemas.hotel import (
     SpaReservationConfirmationEvaluationResponse,
     SpaReservationConfirmationRequest,
     SpaReservationConfirmationResponse,
-    SpaStaffResponseRequest,
     UnmatchedGuestResponseRequest,
 )
-from app.schemas.tasks import (
-    AgentCapabilitiesResponse,
-    AgentTaskRequest,
-    AgentTaskResponse,
-    AgentTaskType,
-    AgentToolName,
-)
 from app.services.request_limits import (
-    validate_agent_task,
     validate_context,
     validate_guest_message,
     validate_history,
@@ -97,10 +84,7 @@ register_exception_handlers(app)
 
 hotel_router = APIRouter(
     prefix="/hotel",
-    dependencies=[
-        Depends(verify_internal_token),
-        Depends(bind_agent_tracking_context),
-    ],
+    dependencies=[Depends(verify_internal_token)],
 )
 
 
@@ -309,27 +293,6 @@ async def hotel_room_service_order_accepted_response(request: GenericMessageRequ
     }
 
 
-@hotel_router.post("/room-service/kitchen-rejected-response", response_model=GenericMessageResponse)
-async def hotel_room_service_kitchen_rejected_response(request: GenericMessageRequest):
-    validate_conversation_payload(
-        guest_message=request.guestMessage,
-        conversation_history=request.conversationHistory,
-        known_context=request.knownContext,
-    )
-    history = dump_history(request.conversationHistory)
-    result = await run_agent_step(
-        lambda: generate_room_service_kitchen_rejected_response(
-            request.guestMessage,
-            history,
-            request.knownContext,
-        )
-    )
-    return {
-        "message": result["message"],
-        "interaction": result.get("interaction"),
-    }
-
-
 @hotel_router.post("/evaluate-room-service-confirmation", response_model=RoomServiceConfirmationEvaluationResponse)
 async def hotel_evaluate_room_service_confirmation(request: RoomServiceConfirmationEvaluationRequest):
     validate_conversation_payload(
@@ -455,46 +418,6 @@ async def hotel_spa_evaluate_confirmation(request: SpaReservationConfirmationEva
         "message": result["message"],
         "interaction": result.get("interaction"),
     }
-
-
-@hotel_router.post("/spa/staff-response", response_model=GenericMessageResponse)
-async def hotel_spa_staff_response(request: SpaStaffResponseRequest):
-    validate_conversation_payload(
-        guest_message=request.staffMessage,
-        conversation_history=request.conversationHistory,
-        known_context=request.knownContext,
-    )
-    history = dump_history(request.conversationHistory)
-    result = await run_agent_step(
-        lambda: generate_spa_staff_response(
-            request.staffDecision,
-            request.staffMessage,
-            history,
-            request.knownContext,
-        )
-    )
-    return {
-        "message": result["message"],
-        "interaction": result.get("interaction"),
-    }
-
-
-@hotel_router.get("/capabilities", response_model=AgentCapabilitiesResponse)
-async def hotel_capabilities():
-    return {
-        "schemaVersion": 1,
-        "taskTypes": list(AgentTaskType),
-        "tools": list(AgentToolName),
-    }
-
-
-@hotel_router.post("/tasks", response_model=AgentTaskResponse)
-async def hotel_execute_task(request: AgentTaskRequest):
-    validate_guest_message(request.latestMessage)
-    validate_guest_message(request.staffMessage)
-    validate_history(request.conversationHistory)
-    validate_agent_task(request.model_dump(mode="json"))
-    return await run_agent_step(lambda: execute_agent_task(request))
 
 
 @hotel_router.post("/maintenance/initial-response", response_model=GenericMessageResponse)

@@ -20,13 +20,6 @@ def _get_float(name: str, default: float) -> float:
     return float(raw_value)
 
 
-def _get_optional_float(name: str) -> float | None:
-    raw_value = os.getenv(name)
-    if raw_value is None or not raw_value.strip():
-        return None
-    return float(raw_value)
-
-
 def _get_bool(name: str, default: bool) -> bool:
     raw_value = os.getenv(name)
     if raw_value is None or not raw_value.strip():
@@ -52,12 +45,6 @@ class Settings:
     chatbotinn_api_internal_token: str | None
     chatbotinn_api_timeout_seconds: float
     knowledge_cache_ttl_seconds: int
-    max_agent_task_chars: int
-    agent_prompt_version: str
-    openai_input_cost_per_million: float | None
-    openai_cached_input_cost_per_million: float | None
-    openai_output_cost_per_million: float | None
-    telemetry_timeout_seconds: float
 
     def __init__(self) -> None:
         self.app_name = os.getenv("APP_NAME", "chatbotinn-agent")
@@ -77,14 +64,6 @@ class Settings:
         self.chatbotinn_api_internal_token = os.getenv("CHATBOTINN_API_INTERNAL_TOKEN") or self.agent_internal_token
         self.chatbotinn_api_timeout_seconds = _get_float("CHATBOTINN_API_TIMEOUT_SECONDS", 10.0)
         self.knowledge_cache_ttl_seconds = _get_int("KNOWLEDGE_CACHE_TTL_SECONDS", 60)
-        self.max_agent_task_chars = _get_int("MAX_AGENT_TASK_CHARS", 100000)
-        self.agent_prompt_version = os.getenv("AGENT_PROMPT_VERSION", "generic-capabilities-v1")
-        self.openai_input_cost_per_million = _get_optional_float("OPENAI_INPUT_COST_PER_MILLION")
-        self.openai_cached_input_cost_per_million = _get_optional_float(
-            "OPENAI_CACHED_INPUT_COST_PER_MILLION"
-        )
-        self.openai_output_cost_per_million = _get_optional_float("OPENAI_OUTPUT_COST_PER_MILLION")
-        self.telemetry_timeout_seconds = _get_float("TELEMETRY_TIMEOUT_SECONDS", 2.0)
 
     @property
     def is_openai_configured(self) -> bool:
