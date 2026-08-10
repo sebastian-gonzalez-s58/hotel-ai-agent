@@ -15,7 +15,6 @@ from app.prompts.hotel import (
     room_service_confirmation_evaluation_prompt,
     room_service_confirmation_prompt,
     room_service_delivery_location_prompt,
-    room_service_menu_prompt,
     room_service_order_accepted_prompt,
     room_service_kitchen_rejected_prompt,
     spa_confirmation_evaluation_prompt,
@@ -136,11 +135,39 @@ def generate_room_service_menu_response(
     history: list[dict[str, Any]],
     known_context: dict[str, Any],
 ) -> dict[str, Any]:
-    return call_openai_json(
-        room_service_menu_prompt(
-            history_text=build_history_text(history),
-            known_context=known_context,
+    return {
+        "message": _room_service_menu_message(history, known_context),
+        "interaction": None,
+    }
+
+
+def _room_service_menu_message(
+    history: list[dict[str, Any]],
+    known_context: dict[str, Any],
+) -> str:
+    language = str(known_context.get("language") or known_context.get("preferredLanguage") or "")
+    latest_guest_message = ""
+    for item in reversed(history):
+        if item.get("role") == "guest":
+            latest_guest_message = str(item.get("content") or "")
+            break
+
+    text_for_language = f"{language} {latest_guest_message}".casefold()
+    if text_for_language.startswith("en") or any(
+        word in text_for_language for word in ("hello", "hi", "please", "thanks")
+    ):
+        return (
+            "Here is our digital food and drink menu:\n"
+            "https://hotelcristalino.menudigitalonline.com/\n\n"
+            "Please tell us which products you would like to order, including quantities "
+            "and any modifications."
         )
+
+    return (
+        "Aquí tienes nuestro menú digital de alimentos y bebidas:\n"
+        "https://hotelcristalino.menudigitalonline.com/\n\n"
+        "Por favor, indícanos qué alimentos y bebidas deseas pedir, incluyendo cantidades "
+        "y cualquier modificación."
     )
 
 
