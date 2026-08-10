@@ -179,6 +179,52 @@ class CapabilityExecutorTest(unittest.TestCase):
         self.assertEqual([], response.missingFieldCodes)
         self.assertEqual([], response.evidence)
 
+    @patch("app.agents.capability_executor.resolve_authorized_resources")
+    @patch("app.agents.capability_executor.call_openai_json_result")
+    def test_room_service_confirmation_includes_normalized_order(self, openai_call, resources):
+        resources.return_value = {
+            "allowedOfferings": [],
+            "offering": {"code": "ROOM_SERVICE"},
+            "catalogMatches": [],
+            "knowledgeMatches": [],
+        }
+        openai_call.return_value = _result(
+            {
+                "status": "COMPLETED",
+                "message": {
+                    "text": "Â¿Desea confirmar, cambiar o cancelar su pedido?",
+                    "interaction": {
+                        "actions": [
+                            {"id": "CONFIRM", "label": "Confirmar"},
+                            {"id": "CHANGE", "label": "Cambiar"},
+                            {"id": "CANCEL", "label": "Cancelar"},
+                        ]
+                    },
+                },
+            }
+        )
+
+        response = execute_agent_task(
+            AgentTaskRequest(
+                taskType="GENERATE_GUEST_CONFIRMATION",
+                offeringCode="ROOM_SERVICE",
+                latestMessage="1 barbacoa ancestral y 1 cerveza indio",
+                context={"language": "es-MX"},
+                operation={
+                    "deliveryLocationLabel": "habitaciÃ³n Royal Suite",
+                    "paymentLabel": "cargo a la habitaciÃ³n",
+                },
+            )
+        )
+
+        self.assertIn("1 barbacoa ancestral", response.message.text)
+        self.assertIn("1 cerveza indio", response.message.text)
+        self.assertIn("Destino: habitaciÃ³n Royal Suite", response.message.text)
+        self.assertEqual(
+            ["CONFIRM", "CHANGE", "CANCEL"],
+            [action.id for action in response.message.interaction.actions],
+        )
+
 
 def _result(payload):
     return OpenAiJsonResult(

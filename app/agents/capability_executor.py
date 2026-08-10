@@ -65,6 +65,8 @@ def _apply_guardrails(
         and not request.offeringCode
     ):
         _apply_active_offerings_menu(payload, request, resources)
+    if request.taskType == AgentTaskType.GENERATE_GUEST_CONFIRMATION:
+        _apply_guest_confirmation_guardrail(payload, request)
 
 
 def _normalize_payload(payload: dict[str, Any]) -> None:
@@ -130,6 +132,183 @@ def _menu_fallback_text(request: AgentTaskRequest) -> str:
     if looks_spanish:
         return "Hola, ¿en qué servicio del hotel puedo ayudarte hoy?"
     return "Hello, which hotel service can I help you with today?"
+
+
+def _apply_guest_confirmation_guardrail(
+    payload: dict[str, Any],
+    request: AgentTaskRequest,
+) -> None:
+    if not _is_room_service_request(request):
+        return
+
+    order_lines = _room_service_order_lines(request)
+    if not order_lines:
+        return
+
+    destination = _room_service_context_value(
+        request,
+        "deliveryLocationLabel",
+        "roomServiceDeliveryLocationLabel",
+        "deliveryLocation",
+        "roomServiceDeliveryLocation",
+    )
+    payment = _room_service_context_value(
+        request,
+        "paymentLabel",
+        "roomServicePaymentLabel",
+        "paymentMethod",
+    )
+    language = (request.context.language or request.latestMessage or "").casefold()
+    spanish = not language.startswith("en")
+
+    lines = ["Confirmación de pedido", "", "Tengo tu pedido de room service como:"]
+    lines.extend(order_lines)
+    if destination:
+        lines.append(f"Destino: {destination}")
+    if payment:
+        lines.append(f"Pago: {payment}")
+    lines.extend(
+        [
+            "",
+            "¿Es correcto o deseas cambiar algo?"
+            if spanish
+            else "Is this correct, or would you like to change anything?",
+        ]
+    )
+
+    text = "\n".join(lines)
+    payload["message"] = {
+        "text": text,
+        "interaction": {
+            "type": "BUTTONS",
+            "title": "Confirmación de pedido" if spanish else "Order confirmation",
+            "body": text,
+            "actions": [
+                {"id": "CONFIRM", "label": "Confirmar" if spanish else "Confirm"},
+                {"id": "CHANGE", "label": "Cambiar" if spanish else "Change"},
+                {"id": "CANCEL", "label": "Cancelar" if spanish else "Cancel"},
+            ],
+        },
+    }
+    payload["status"] = "NEEDS_CLARIFICATION"
+    payload["complete"] = False
+
+
+def _is_room_service_request(request: AgentTaskRequest) -> bool:
+    values = [
+        request.offeringCode,
+        request.operation.get("offeringCode"),
+        request.operation.get("intent"),
+        request.taskConfig.get("offeringCode"),
+    ]
+    if isinstance(request.offering, dict):
+        values.extend([request.offering.get("code"), request.offering.get("type")])
+    return any(str(value or "").strip().upper() == "ROOM_SERVICE" for value in values)
+
+
+def _room_service_order_lines(request: AgentTaskRequest) -> list[str]:
+    order = _room_service_order(request)
+    items = order.get("items") if isinstance(order, dict) else None
+    lines = _item_lines(items)
+    if lines:
+        return lines
+
+    summary = _room_service_context_value(
+        request,
+        "orderSummary",
+        "roomServiceOrderSummary",
+        "roomServicePendingOrderSummary",
+    )
+    if not summary:
+        summary = _latest_guest_order_text(request)
+    return _summary_lines(summary)
+
+
+def _room_service_order(request: AgentTaskRequest) -> dict[str, Any]:
+    candidates = [
+        request.operation.get("pendingOrder"),
+        request.operation.get("roomServicePendingOrder"),
+        request.operation.get("roomServicePendingOrderJson"),
+        request.taskConfig.get("pendingOrder"),
+        request.taskConfig.get("roomServicePendingOrder"),
+        request.taskConfig.get("roomServicePendingOrderJson"),
+    ]
+    for candidate in candidates:
+        parsed = _dict_or_json(candidate)
+        if parsed:
+            return parsed
+    return {}
+
+
+def _dict_or_json(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if not isinstance(value, str):
+        return {}
+    try:
+        import json
+
+        parsed = json.loads(value)
+    except (TypeError, ValueError):
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def _item_lines(items: Any) -> list[str]:
+    if not isinstance(items, list):
+        return []
+    lines = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        name = _optional_string(
+            item.get("name")
+            or item.get("itemName")
+            or item.get("displayName")
+            or item.get("description")
+        )
+        if not name:
+            continue
+        quantity = item.get("quantity") or item.get("qty") or 1
+        try:
+            quantity_text = str(int(float(quantity)))
+        except (TypeError, ValueError):
+            quantity_text = str(quantity).strip() or "1"
+        modifiers = _optional_string(item.get("modifiers") or item.get("notes"))
+        line = f"{quantity_text} {name}"
+        if modifiers:
+            line = f"{line} ({modifiers})"
+        lines.append(line)
+    return lines
+
+
+def _summary_lines(summary: str | None) -> list[str]:
+    if not summary:
+        return []
+    text = summary.strip().strip(".")
+    if not text:
+        return []
+    parts = [part.strip(" ,.;") for part in text.replace(" e ", " y ").split(" y ")]
+    return [part for part in parts if part]
+
+
+def _latest_guest_order_text(request: AgentTaskRequest) -> str | None:
+    if request.latestMessage:
+        return request.latestMessage
+    for item in reversed(request.conversationHistory):
+        if item.role == "guest" and item.content:
+            return item.content
+    return None
+
+
+def _room_service_context_value(request: AgentTaskRequest, *keys: str) -> str | None:
+    sources = [request.operation, request.taskConfig]
+    for source in sources:
+        for key in keys:
+            value = _optional_string(source.get(key))
+            if value:
+                return value
+    return None
 
 
 def _normalized_message(value: Any) -> dict[str, Any] | None:
