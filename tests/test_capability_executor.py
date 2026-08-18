@@ -225,6 +225,41 @@ class CapabilityExecutorTest(unittest.TestCase):
             [action.id for action in response.message.interaction.actions],
         )
 
+    @patch("app.agents.capability_executor.resolve_authorized_resources")
+    @patch("app.agents.capability_executor.call_openai_json_result")
+    def test_operation_update_places_catalog_link_in_text_without_reply_button(
+        self, openai_call, resources
+    ):
+        resources.return_value = {
+            "allowedOfferings": [],
+            "offering": {"code": "ROOM_SERVICE"},
+            "catalogMatches": [],
+            "knowledgeMatches": [],
+        }
+        openai_call.return_value = _result(
+            {
+                "status": "COMPLETED",
+                "message": {
+                    "text": "Consulte nuestro menu digital y diganos que desea pedir.",
+                    "interaction": {
+                        "actions": [{"id": "VIEW_MENU", "label": "Ver menu"}]
+                    },
+                },
+            }
+        )
+        menu_url = "https://hotelcristalino.menudigitalonline.com/"
+
+        response = execute_agent_task(
+            AgentTaskRequest(
+                taskType="GENERATE_OPERATION_UPDATE",
+                offeringCode="ROOM_SERVICE",
+                taskConfig={"menuUrl": menu_url},
+            )
+        )
+
+        self.assertIn(menu_url, response.message.text)
+        self.assertIsNone(response.message.interaction)
+
 
 def _result(payload):
     return OpenAiJsonResult(

@@ -97,7 +97,9 @@ invent availability or omit alternatives. Do not expose internal notes.
     AgentTaskType.GENERATE_OPERATION_UPDATE: """
 Generate a concise guest-facing update using only operation state and taskConfig. Never
 claim completion, acceptance, delivery, availability, or resolution unless present in the
-provided data.
+provided data. When taskConfig contains menuUrl or catalogUrl, include that exact URL in
+message.text and set interaction to null. Do not create a reply action such as View menu or
+Open menu because reply actions cannot open links.
 """,
     AgentTaskType.GENERATE_HANDOFF_MESSAGE: """
 Explain that the appropriate hotel team has been notified. Use the configured department

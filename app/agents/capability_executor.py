@@ -67,6 +67,8 @@ def _apply_guardrails(
         _apply_active_offerings_menu(payload, request, resources)
     if request.taskType == AgentTaskType.GENERATE_GUEST_CONFIRMATION:
         _apply_guest_confirmation_guardrail(payload, request)
+    if request.taskType == AgentTaskType.GENERATE_OPERATION_UPDATE:
+        _apply_link_update_guardrail(payload, request)
 
 
 def _normalize_payload(payload: dict[str, Any]) -> None:
@@ -132,6 +134,28 @@ def _menu_fallback_text(request: AgentTaskRequest) -> str:
     if looks_spanish:
         return "Hola, ¿en qué servicio del hotel puedo ayudarte hoy?"
     return "Hello, which hotel service can I help you with today?"
+
+
+def _apply_link_update_guardrail(
+    payload: dict[str, Any],
+    request: AgentTaskRequest,
+) -> None:
+    link = _optional_string(
+        request.taskConfig.get("menuUrl") or request.taskConfig.get("catalogUrl")
+    )
+    if not link:
+        return
+
+    message = payload.get("message") or {}
+    text = _optional_string(message.get("text"))
+    if not text:
+        text = link
+    elif link not in text:
+        text = f"{text.rstrip()}\n\n{link}"
+
+    message["text"] = text
+    message["interaction"] = None
+    payload["message"] = message
 
 
 def _apply_guest_confirmation_guardrail(
