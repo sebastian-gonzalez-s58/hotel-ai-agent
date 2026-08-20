@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import Callable
 from typing import Any
 
-from fastapi import APIRouter, Depends, FastAPI, status
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, status
 from fastapi.responses import JSONResponse
 from starlette.concurrency import run_in_threadpool
 
@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.errors import AgentTimeoutError, register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import request_context_middleware
-from app.core.security import verify_internal_token
+from app.core.security import verify_internal_token, verify_v2_request_headers
 from app.core.agent_tracking import bind_agent_tracking_context
 from app.agents.capability_executor import execute_agent_task
 from app.agents.helpers import (
@@ -84,6 +84,9 @@ from app.services.request_limits import (
     validate_guest_message,
     validate_history,
 )
+from app.agents.v2_turn_planner import plan_v2_turn
+from app.schemas.v2_turns import AgentTurnRequest, AgentTurnResponse
+from app.services.idempotency_cache import v2_turn_idempotency_cache
 
 
 configure_logging()
@@ -102,6 +105,36 @@ hotel_router = APIRouter(
         Depends(bind_agent_tracking_context),
     ],
 )
+
+v2_router = APIRouter(
+    prefix="/internal/v2",
+    dependencies=[Depends(verify_internal_token), Depends(bind_agent_tracking_context)],
+)
+
+
+@v2_router.post("/turns", response_model=AgentTurnResponse)
+async def execute_agent_turn_v2(
+    request: AgentTurnRequest,
+    timestamp: str | None = Header(default=None, alias="X-ChatbotInn-Timestamp"),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    request_id: str | None = Header(default=None, alias="X-Request-Id"),
+):
+    if not (settings.is_v2_runtime_enabled or settings.is_v2_shadow_enabled):
+        raise HTTPException(status_code=404, detail="V2 agent runtime is not enabled")
+    verify_v2_request_headers(
+        timestamp=timestamp,
+        idempotency_key=idempotency_key,
+        request_id=request_id,
+        agent_turn_id=str(request.agentTurnId),
+    )
+    payload = request.model_dump(mode="json")
+    fingerprint = v2_turn_idempotency_cache.fingerprint(payload)
+    cached = v2_turn_idempotency_cache.get(str(request.agentTurnId), fingerprint)
+    if cached is not None:
+        return cached
+    response = await run_agent_step(lambda: plan_v2_turn(request))
+    v2_turn_idempotency_cache.put(str(request.agentTurnId), fingerprint, response)
+    return response
 
 
 def dump_history(messages):
@@ -720,3 +753,4 @@ if settings.enable_debug_endpoints:
 
 
 app.include_router(hotel_router)
+app.include_router(v2_router)

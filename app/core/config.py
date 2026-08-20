@@ -70,6 +70,9 @@ class Settings:
     openai_cached_input_cost_per_million: float | None
     openai_output_cost_per_million: float | None
     telemetry_timeout_seconds: float
+    v2_request_timestamp_tolerance_seconds: int
+    v2_idempotency_ttl_seconds: int
+    v2_idempotency_max_entries: int
 
     def __init__(self) -> None:
         self.app_name = os.getenv("APP_NAME", "chatbotinn-agent")
@@ -103,6 +106,11 @@ class Settings:
         )
         self.openai_output_cost_per_million = _get_optional_float("OPENAI_OUTPUT_COST_PER_MILLION")
         self.telemetry_timeout_seconds = _get_float("TELEMETRY_TIMEOUT_SECONDS", 2.0)
+        self.v2_request_timestamp_tolerance_seconds = _get_int(
+            "V2_REQUEST_TIMESTAMP_TOLERANCE_SECONDS", 300
+        )
+        self.v2_idempotency_ttl_seconds = _get_int("V2_IDEMPOTENCY_TTL_SECONDS", 900)
+        self.v2_idempotency_max_entries = _get_int("V2_IDEMPOTENCY_MAX_ENTRIES", 1000)
 
     @property
     def is_openai_configured(self) -> bool:
