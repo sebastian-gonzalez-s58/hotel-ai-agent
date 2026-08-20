@@ -34,10 +34,22 @@ def _get_bool(name: str, default: bool) -> bool:
     return raw_value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _get_choice(name: str, default: str, allowed: set[str]) -> str:
+    raw_value = os.getenv(name)
+    value = default if raw_value is None or not raw_value.strip() else raw_value
+    normalized = value.strip().lower()
+    if normalized not in allowed:
+        choices = ", ".join(sorted(allowed))
+        raise ValueError(f"{name} must be one of: {choices}")
+    return normalized
+
+
 class Settings:
     app_name: str
     app_version: str
     environment: str
+    agent_runtime_mode: str
+    agent_contract_version: str
     openai_api_key: str | None
     openai_model: str
     openai_timeout_seconds: float
@@ -63,6 +75,12 @@ class Settings:
         self.app_name = os.getenv("APP_NAME", "chatbotinn-agent")
         self.app_version = os.getenv("APP_VERSION", "0.1.0")
         self.environment = os.getenv("APP_ENV", "local")
+        self.agent_runtime_mode = _get_choice(
+            "AGENT_RUNTIME_MODE",
+            "legacy",
+            {"legacy", "shadow", "v2"},
+        )
+        self.agent_contract_version = os.getenv("AGENT_CONTRACT_VERSION", "2.0")
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
         self.openai_timeout_seconds = _get_float("OPENAI_TIMEOUT_SECONDS", 20.0)
@@ -102,6 +120,14 @@ class Settings:
             and self.chatbotinn_api_internal_token
             and self.chatbotinn_api_internal_token.strip()
         )
+
+    @property
+    def is_v2_runtime_enabled(self) -> bool:
+        return self.agent_runtime_mode == "v2"
+
+    @property
+    def is_v2_shadow_enabled(self) -> bool:
+        return self.agent_runtime_mode == "shadow"
 
 
 settings = Settings()

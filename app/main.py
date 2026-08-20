@@ -136,6 +136,8 @@ async def health():
         "service": settings.app_name,
         "version": settings.app_version,
         "environment": settings.environment,
+        "runtimeMode": settings.agent_runtime_mode,
+        "contractVersion": settings.agent_contract_version,
     }
 
 
@@ -155,6 +157,8 @@ async def ready():
         "status": "ready",
         "openaiConfigured": True,
         "internalTokenConfigured": True,
+        "runtimeMode": settings.agent_runtime_mode,
+        "contractVersion": settings.agent_contract_version,
     }
 
 
