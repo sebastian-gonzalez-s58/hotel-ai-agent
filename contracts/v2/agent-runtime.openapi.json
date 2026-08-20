@@ -1,0 +1,593 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ChatbotInn Agent Runtime API",
+    "version": "2.0.0",
+    "description": "Target V2 contract for reconstructible agent turns. The runtime proposes guest messages and domain tool calls; the hotel Spring application authorizes and executes tools."
+  },
+  "servers": [
+    {
+      "url": "https://{agentRuntimeHost}",
+      "variables": {
+        "agentRuntimeHost": {
+          "default": "chatbotinn-agent.internal"
+        }
+      }
+    }
+  ],
+  "paths": {
+    "/internal/v2/turns": {
+      "post": {
+        "operationId": "executeAgentTurnV2",
+        "summary": "Produce one structured conversation turn plan",
+        "description": "The endpoint has no business side effects. Tool calls are proposals returned to Spring. For TOOL_CALLS_REQUIRED, Spring executes accepted calls and invokes another turn with TOOL_RESULTS.",
+        "security": [
+          {
+            "agentBearer": [],
+            "requestTimestamp": [],
+            "idempotencyKey": []
+          }
+        ],
+        "parameters": [
+          { "$ref": "#/components/parameters/RequestId" },
+          { "$ref": "#/components/parameters/TraceParent" }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AgentTurnRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "A structured turn plan was produced.",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AgentTurnResponse" }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "422": { "$ref": "#/components/responses/Unprocessable" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
+          "502": { "$ref": "#/components/responses/ModelFailure" },
+          "504": { "$ref": "#/components/responses/Timeout" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "agentBearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "opaque service credential"
+      },
+      "requestTimestamp": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-ChatbotInn-Timestamp"
+      },
+      "idempotencyKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "Idempotency-Key",
+        "description": "Must equal agentTurnId and be reused for retries."
+      }
+    },
+    "parameters": {
+      "RequestId": {
+        "name": "X-Request-Id",
+        "in": "header",
+        "required": true,
+        "schema": { "type": "string", "minLength": 1, "maxLength": 100 }
+      },
+      "TraceParent": {
+        "name": "traceparent",
+        "in": "header",
+        "required": false,
+        "schema": { "type": "string", "maxLength": 255 }
+      }
+    },
+    "schemas": {
+      "AgentTurnRequest": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "agentTurnId",
+          "traceId",
+          "trigger",
+          "hotel",
+          "guest",
+          "conversation",
+          "activeOperations",
+          "availableOfferings",
+          "toolPolicy",
+          "previousToolResults",
+          "createdAt"
+        ],
+        "properties": {
+          "schemaVersion": { "const": "2.0" },
+          "agentTurnId": { "type": "string", "format": "uuid" },
+          "traceId": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "trigger": { "$ref": "#/components/schemas/TurnTrigger" },
+          "hotel": { "$ref": "#/components/schemas/HotelContext" },
+          "guest": { "$ref": "#/components/schemas/GuestContext" },
+          "conversation": { "$ref": "#/components/schemas/ConversationContext" },
+          "activeOperations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/OperationSnapshot" },
+            "maxItems": 100
+          },
+          "availableOfferings": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/OfferingCapability" },
+            "maxItems": 100
+          },
+          "toolPolicy": { "$ref": "#/components/schemas/ToolPolicy" },
+          "previousToolResults": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ToolResult" },
+            "maxItems": 50
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "TurnTrigger": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "INBOUND_MESSAGE",
+              "CONVERSATION_TASK_CREATED",
+              "PROCESS_STATUS_CHANGED",
+              "STAFF_MESSAGE_READY",
+              "TIMER",
+              "TOOL_RESULTS"
+            ]
+          },
+          "messageId": { "type": ["string", "null"], "format": "uuid" },
+          "conversationTaskId": { "type": ["string", "null"], "format": "uuid" },
+          "operationId": { "type": ["string", "null"], "format": "uuid" },
+          "eventCode": { "type": ["string", "null"], "maxLength": 100 },
+          "eventPayload": { "type": "object", "default": {} }
+        }
+      },
+      "HotelContext": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["hotelId", "hotelCode", "name", "timeZone", "defaultLanguage"],
+        "properties": {
+          "hotelId": { "type": "string", "format": "uuid" },
+          "hotelCode": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+          "timeZone": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "defaultLanguage": { "type": "string", "minLength": 2, "maxLength": 35 }
+        }
+      },
+      "GuestContext": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["guestId", "stayId", "displayName", "roomNumber", "preferredLanguage"],
+        "properties": {
+          "guestId": { "type": "string", "format": "uuid" },
+          "stayId": { "type": "string", "format": "uuid" },
+          "displayName": { "type": "string", "minLength": 1, "maxLength": 255 },
+          "roomNumber": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "preferredLanguage": { "type": "string", "minLength": 2, "maxLength": 35 },
+          "openAccount": { "type": "boolean", "default": false }
+        }
+      },
+      "ConversationContext": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "conversationId",
+          "conversationRouteId",
+          "channel",
+          "status",
+          "summary",
+          "recentMessages"
+        ],
+        "properties": {
+          "contactThreadId": { "type": ["string", "null"], "format": "uuid" },
+          "conversationId": { "type": "string", "format": "uuid" },
+          "conversationRouteId": { "type": "string", "format": "uuid" },
+          "channel": { "type": "string", "enum": ["WHATSAPP", "EMAIL", "CONSOLE"] },
+          "status": { "type": "string", "enum": ["OPEN", "CLOSED"] },
+          "focusedConversationTaskId": { "type": ["string", "null"], "format": "uuid" },
+          "summary": { "type": "string", "maxLength": 20000 },
+          "recentMessages": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ConversationMessage" },
+            "maxItems": 200
+          }
+        }
+      },
+      "ConversationMessage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["messageId", "direction", "actor", "text", "createdAt"],
+        "properties": {
+          "messageId": { "type": "string", "format": "uuid" },
+          "direction": { "type": "string", "enum": ["INBOUND", "OUTBOUND", "INTERNAL"] },
+          "actor": { "type": "string", "enum": ["GUEST", "ASSISTANT", "STAFF", "SYSTEM"] },
+          "text": { "type": "string", "maxLength": 20000 },
+          "interactionReplyId": { "type": ["string", "null"], "maxLength": 256 },
+          "operationIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" },
+            "uniqueItems": true,
+            "default": []
+          },
+          "conversationTaskIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" },
+            "uniqueItems": true,
+            "default": []
+          },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "OperationSnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "operationId",
+          "offeringCode",
+          "lifecycle",
+          "detailedStatus",
+          "summary",
+          "availableActions",
+          "pendingConversationTasks",
+          "version"
+        ],
+        "properties": {
+          "operationId": { "type": "string", "format": "uuid" },
+          "offeringCode": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "lifecycle": {
+            "type": "string",
+            "enum": ["ACTIVE", "WAITING_FOR_GUEST", "WAITING_FOR_STAFF", "COMPLETED", "CANCELLED", "FAILED"]
+          },
+          "detailedStatus": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "summary": { "type": "string", "maxLength": 4000 },
+          "processInstanceIds": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true,
+            "default": []
+          },
+          "availableActions": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AvailableAction" }
+          },
+          "pendingConversationTasks": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ConversationTaskSnapshot" }
+          },
+          "version": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "AvailableAction": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["actionCode", "description", "inputSchema"],
+        "properties": {
+          "actionCode": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "description": { "type": "string", "minLength": 1, "maxLength": 1000 },
+          "inputSchema": { "type": "object" },
+          "requiresExplicitGuestConfirmation": { "type": "boolean", "default": false }
+        }
+      },
+      "ConversationTaskSnapshot": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "conversationTaskId",
+          "operationId",
+          "taskType",
+          "status",
+          "requiredOutputSchema",
+          "partialResult",
+          "context",
+          "priority",
+          "version",
+          "createdAt"
+        ],
+        "properties": {
+          "conversationTaskId": { "type": "string", "format": "uuid" },
+          "operationId": { "type": "string", "format": "uuid" },
+          "processInstanceId": { "type": "string", "minLength": 1 },
+          "activityId": { "type": "string", "minLength": 1, "maxLength": 255 },
+          "taskType": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "status": { "type": "string", "enum": ["OPEN"] },
+          "requiredOutputSchema": { "type": "object" },
+          "partialResult": { "type": "object" },
+          "context": {
+            "type": "object",
+            "description": "Guest-safe task reason and process context."
+          },
+          "priority": { "type": "string", "enum": ["LOW", "NORMAL", "HIGH", "URGENT"] },
+          "expiresAt": { "type": ["string", "null"], "format": "date-time" },
+          "version": { "type": "integer", "minimum": 0 },
+          "createdAt": { "type": "string", "format": "date-time" }
+        }
+      },
+      "OfferingCapability": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["offeringCode", "name", "description", "executionMode", "inputSchema"],
+        "properties": {
+          "offeringCode": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "name": { "type": "string", "minLength": 1, "maxLength": 255 },
+          "description": { "type": "string", "minLength": 1, "maxLength": 4000 },
+          "executionMode": { "type": "string", "enum": ["KNOWLEDGE", "PROCESS", "INTEGRATION"] },
+          "inputSchema": { "type": "object" },
+          "catalogCodes": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true,
+            "default": []
+          },
+          "requiresExplicitGuestConfirmation": { "type": "boolean", "default": false }
+        }
+      },
+      "ToolPolicy": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["allowedTools", "maxToolCalls"],
+        "properties": {
+          "allowedTools": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "LIST_AVAILABLE_OFFERINGS",
+                "GET_OFFERING_DEFINITION",
+                "SEARCH_CATALOG",
+                "SEARCH_KNOWLEDGE",
+                "LIST_ACTIVE_OPERATIONS",
+                "GET_OPERATION",
+                "START_SERVICE",
+                "SAVE_CONVERSATION_TASK_PROGRESS",
+                "COMPLETE_CONVERSATION_TASK",
+                "EXECUTE_SERVICE_ACTION"
+              ]
+            },
+            "uniqueItems": true
+          },
+          "maxToolCalls": { "type": "integer", "minimum": 0, "maximum": 20 },
+          "allowMultipleConversationTaskCompletions": { "type": "boolean", "default": true }
+        }
+      },
+      "ToolResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["toolCallId", "toolName", "status"],
+        "properties": {
+          "toolCallId": { "type": "string", "format": "uuid" },
+          "toolName": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "status": { "type": "string", "enum": ["SUCCEEDED", "REJECTED", "FAILED"] },
+          "result": { "type": ["object", "null"] },
+          "error": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/ToolError" },
+              { "type": "null" }
+            ]
+          }
+        }
+      },
+      "ToolError": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message", "retryable"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1, "maxLength": 100 },
+          "message": { "type": "string", "minLength": 1, "maxLength": 2000 },
+          "retryable": { "type": "boolean" },
+          "details": { "type": "object", "default": {} }
+        }
+      },
+      "AgentTurnResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schemaVersion",
+          "agentTurnId",
+          "disposition",
+          "messages",
+          "toolCalls",
+          "usage",
+          "warnings"
+        ],
+        "properties": {
+          "schemaVersion": { "const": "2.0" },
+          "agentTurnId": { "type": "string", "format": "uuid" },
+          "disposition": {
+            "type": "string",
+            "enum": ["RESPONSE_READY", "TOOL_CALLS_REQUIRED", "NO_ACTION", "HANDOFF_REQUIRED"]
+          },
+          "detectedLanguage": { "type": ["string", "null"], "maxLength": 35 },
+          "messages": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/AgentMessage" },
+            "maxItems": 10
+          },
+          "toolCalls": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/DomainToolCall" },
+            "maxItems": 20
+          },
+          "updatedConversationSummary": { "type": ["string", "null"], "maxLength": 20000 },
+          "usage": { "$ref": "#/components/schemas/AgentUsage" },
+          "warnings": {
+            "type": "array",
+            "items": { "type": "string", "maxLength": 1000 },
+            "maxItems": 20
+          }
+        }
+      },
+      "AgentMessage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["messageDraftId", "purpose", "text", "language", "operationIds", "conversationTaskIds"],
+        "properties": {
+          "messageDraftId": { "type": "string", "format": "uuid" },
+          "purpose": {
+            "type": "string",
+            "enum": ["ANSWER", "CLARIFICATION", "CONFIRMATION", "STATUS_UPDATE", "HANDOFF", "REMINDER", "CLOSURE"]
+          },
+          "text": { "type": "string", "minLength": 1, "maxLength": 20000 },
+          "language": { "type": "string", "minLength": 2, "maxLength": 35 },
+          "operationIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" },
+            "uniqueItems": true
+          },
+          "conversationTaskIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" },
+            "uniqueItems": true
+          },
+          "interaction": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/AgentInteraction" },
+              { "type": "null" }
+            ]
+          }
+        }
+      },
+      "AgentInteraction": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["BUTTONS", "LIST", "CTA_URL"] },
+          "title": { "type": ["string", "null"], "maxLength": 60 },
+          "body": { "type": ["string", "null"], "maxLength": 1024 },
+          "actionLabel": { "type": ["string", "null"], "maxLength": 20 },
+          "actionUrl": { "type": ["string", "null"], "format": "uri" },
+          "options": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/InteractionOption" },
+            "maxItems": 10,
+            "default": []
+          }
+        }
+      },
+      "InteractionOption": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "title": { "type": "string", "minLength": 1, "maxLength": 24 },
+          "description": { "type": ["string", "null"], "maxLength": 72 }
+        }
+      },
+      "DomainToolCall": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["toolCallId", "toolName", "arguments", "confidence", "evidenceMessageIds"],
+        "properties": {
+          "toolCallId": { "type": "string", "format": "uuid" },
+          "toolName": {
+            "type": "string",
+            "enum": [
+              "LIST_AVAILABLE_OFFERINGS",
+              "GET_OFFERING_DEFINITION",
+              "SEARCH_CATALOG",
+              "SEARCH_KNOWLEDGE",
+              "LIST_ACTIVE_OPERATIONS",
+              "GET_OPERATION",
+              "START_SERVICE",
+              "SAVE_CONVERSATION_TASK_PROGRESS",
+              "COMPLETE_CONVERSATION_TASK",
+              "EXECUTE_SERVICE_ACTION"
+            ]
+          },
+          "targetOperationId": { "type": ["string", "null"], "format": "uuid" },
+          "targetConversationTaskId": { "type": ["string", "null"], "format": "uuid" },
+          "arguments": { "type": "object" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "evidenceMessageIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" },
+            "uniqueItems": true
+          }
+        }
+      },
+      "AgentUsage": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "model",
+          "inputTokens",
+          "cachedInputTokens",
+          "outputTokens",
+          "reasoningTokens",
+          "totalTokens"
+        ],
+        "properties": {
+          "model": { "type": "string", "minLength": 1, "maxLength": 255 },
+          "inputTokens": { "type": "integer", "minimum": 0 },
+          "cachedInputTokens": { "type": "integer", "minimum": 0 },
+          "outputTokens": { "type": "integer", "minimum": 0 },
+          "reasoningTokens": { "type": "integer", "minimum": 0 },
+          "totalTokens": { "type": "integer", "minimum": 0 },
+          "latencyMs": { "type": ["integer", "null"], "minimum": 0 }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message", "requestId", "retryable"],
+        "properties": {
+          "code": { "type": "string", "minLength": 1 },
+          "message": { "type": "string", "minLength": 1 },
+          "requestId": { "type": "string", "minLength": 1 },
+          "retryable": { "type": "boolean" },
+          "details": { "type": "object", "default": {} }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Malformed request.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid internal credential.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "Conflict": {
+        "description": "Idempotency key reuse with a different payload.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "Unprocessable": {
+        "description": "Context or policy is internally inconsistent.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "TooManyRequests": {
+        "description": "Agent concurrency or provider rate limit reached.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "ModelFailure": {
+        "description": "The model provider failed or returned an invalid structured response.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      },
+      "Timeout": {
+        "description": "The agent turn exceeded its configured deadline.",
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ErrorResponse" } } }
+      }
+    }
+  }
+}
