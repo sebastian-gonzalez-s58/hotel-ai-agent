@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.core.errors import AgentModelError
 from app.prompts.v2_turn import build_v2_turn_prompt
 from app.schemas.v2_turns import AgentTurnRequest, AgentTurnResponse
+from app.schemas.v2_turns import DomainToolName
 from app.services.openai_client import call_openai_json_result
 
 
@@ -39,6 +40,8 @@ def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> No
         for operation in request.activeOperations
         for task in operation.pendingConversationTasks
     }
+    offerings = {offering.offeringCode: offering for offering in request.availableOfferings}
+    operations_by_id = {operation.operationId: operation for operation in request.activeOperations}
 
     if len(response.toolCalls) > request.toolPolicy.maxToolCalls:
         raise AgentModelError("Agent exceeded the tool-call limit")
@@ -61,8 +64,70 @@ def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> No
             raise AgentModelError("Tool call targets a conversation task outside the turn context")
         if not set(call.evidenceMessageIds).issubset(message_ids):
             raise AgentModelError("Tool call contains evidence outside the turn context")
+        _validate_lifecycle_call(call, offerings, operations_by_id)
         if call.toolName.value == "COMPLETE_CONVERSATION_TASK" and call.targetConversationTaskId:
             completed_tasks.add(call.targetConversationTaskId)
 
     if not request.toolPolicy.allowMultipleConversationTaskCompletions and len(completed_tasks) > 1:
         raise AgentModelError("Multiple conversation-task completions are not allowed")
+
+
+def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
+    if call.toolName == DomainToolName.START_SERVICE:
+        if call.targetOperationId is not None:
+            raise AgentModelError("START_SERVICE cannot target an existing operation")
+        offering_code = call.arguments.get("offeringCode")
+        offering = offerings.get(offering_code)
+        if offering is None:
+            raise AgentModelError("START_SERVICE references an unavailable offering")
+        if not isinstance(call.arguments.get("input"), dict):
+            raise AgentModelError("START_SERVICE input must be an object")
+        if not call.evidenceMessageIds:
+            raise AgentModelError("START_SERVICE requires guest evidence")
+        if offering.requiresExplicitGuestConfirmation:
+            confirmation = _argument_uuid(
+                call.arguments.get("guestConfirmationEvidenceMessageId"),
+                "START_SERVICE confirmation evidence",
+            )
+            if confirmation not in set(call.evidenceMessageIds):
+                raise AgentModelError("START_SERVICE confirmation evidence is not declared")
+
+    if call.toolName == DomainToolName.EXECUTE_SERVICE_ACTION:
+        if call.targetOperationId is None:
+            raise AgentModelError("EXECUTE_SERVICE_ACTION requires targetOperationId")
+        operation = operations_by_id.get(call.targetOperationId)
+        if operation is None:
+            raise AgentModelError("EXECUTE_SERVICE_ACTION targets an unavailable operation")
+        argument_operation_id = _argument_uuid(
+            call.arguments.get("operationId"),
+            "EXECUTE_SERVICE_ACTION operationId",
+        )
+        if argument_operation_id != call.targetOperationId:
+            raise AgentModelError("EXECUTE_SERVICE_ACTION operation IDs do not match")
+        if call.arguments.get("expectedVersion") != operation.version:
+            raise AgentModelError("EXECUTE_SERVICE_ACTION uses a stale operation version")
+        if not isinstance(call.arguments.get("input", {}), dict):
+            raise AgentModelError("EXECUTE_SERVICE_ACTION input must be an object")
+        action_code = call.arguments.get("actionCode")
+        action = next(
+            (candidate for candidate in operation.availableActions
+             if candidate.actionCode == action_code),
+            None,
+        )
+        if action is None:
+            raise AgentModelError("EXECUTE_SERVICE_ACTION references an unavailable action")
+        argument_evidence = {
+            _argument_uuid(value, "EXECUTE_SERVICE_ACTION evidence")
+            for value in call.arguments.get("evidenceMessageIds", [])
+        }
+        if argument_evidence != set(call.evidenceMessageIds):
+            raise AgentModelError("EXECUTE_SERVICE_ACTION evidence declarations do not match")
+        if action.requiresExplicitGuestConfirmation and not call.evidenceMessageIds:
+            raise AgentModelError("EXECUTE_SERVICE_ACTION requires explicit guest evidence")
+
+
+def _argument_uuid(value, field: str) -> UUID:
+    try:
+        return UUID(str(value))
+    except (TypeError, ValueError) as exc:
+        raise AgentModelError(f"{field} must be a UUID") from exc

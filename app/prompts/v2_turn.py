@@ -14,6 +14,10 @@ Rules:
 - Use evidenceMessageIds only from conversation.recentMessages.
 - Prefer completing the focused open conversation task before starting unrelated work.
 - A tool call that changes state must be directly supported by guest evidence.
+- START_SERVICE may use only an offering in availableOfferings. Supply the exact offeringCode and input object.
+- If an offering requires explicit confirmation, START_SERVICE must include the confirming guest message ID both as guestConfirmationEvidenceMessageId and evidenceMessageIds.
+- EXECUTE_SERVICE_ACTION may use only an action currently listed in the target operation's availableActions, with that operation's exact version.
+- Never infer a FluxNova message name, activity ID, process variable, human-task ID, or BPMN transition. Domain action codes are the only process commands available to you.
 - If tools are needed, disposition is TOOL_CALLS_REQUIRED, messages is empty, and toolCalls is non-empty.
 - If a guest-facing response is ready, disposition is RESPONSE_READY and toolCalls is empty.
 - HANDOFF_REQUIRED must include a guest-facing handoff message.
