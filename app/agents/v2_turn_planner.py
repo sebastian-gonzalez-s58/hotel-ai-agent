@@ -35,11 +35,12 @@ def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> No
     allowed_tools = set(request.toolPolicy.allowedTools)
     message_ids = {message.messageId for message in request.conversation.recentMessages}
     operation_ids = {operation.operationId for operation in request.activeOperations}
-    task_ids = {
-        task.conversationTaskId
+    tasks_by_id = {
+        task.conversationTaskId: task
         for operation in request.activeOperations
         for task in operation.pendingConversationTasks
     }
+    task_ids = set(tasks_by_id)
     offerings = {offering.offeringCode: offering for offering in request.availableOfferings}
     operations_by_id = {operation.operationId: operation for operation in request.activeOperations}
 
@@ -65,6 +66,7 @@ def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> No
         if not set(call.evidenceMessageIds).issubset(message_ids):
             raise AgentModelError("Tool call contains evidence outside the turn context")
         _validate_lifecycle_call(call, offerings, operations_by_id)
+        _validate_conversation_task_call(call, tasks_by_id)
         if call.toolName.value == "COMPLETE_CONVERSATION_TASK" and call.targetConversationTaskId:
             completed_tasks.add(call.targetConversationTaskId)
 
@@ -124,6 +126,40 @@ def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
             raise AgentModelError("EXECUTE_SERVICE_ACTION evidence declarations do not match")
         if action.requiresExplicitGuestConfirmation and not call.evidenceMessageIds:
             raise AgentModelError("EXECUTE_SERVICE_ACTION requires explicit guest evidence")
+
+
+def _validate_conversation_task_call(call, tasks_by_id) -> None:
+    if call.toolName not in {
+        DomainToolName.SAVE_CONVERSATION_TASK_PROGRESS,
+        DomainToolName.COMPLETE_CONVERSATION_TASK,
+    }:
+        return
+    if call.targetConversationTaskId is None:
+        raise AgentModelError(f"{call.toolName.value} requires targetConversationTaskId")
+
+    task = tasks_by_id.get(call.targetConversationTaskId)
+    if task is None:
+        raise AgentModelError("Conversation-task tool targets an unavailable task")
+    argument_task_id = _argument_uuid(
+        call.arguments.get("conversationTaskId"),
+        f"{call.toolName.value} conversationTaskId",
+    )
+    if argument_task_id != call.targetConversationTaskId:
+        raise AgentModelError("Conversation-task IDs do not match")
+    if call.targetOperationId is not None and call.targetOperationId != task.operationId:
+        raise AgentModelError("Conversation task belongs to another operation")
+    if call.arguments.get("expectedVersion") != task.version:
+        raise AgentModelError("Conversation-task tool uses a stale task version")
+    if not call.evidenceMessageIds:
+        raise AgentModelError("Conversation-task tool requires guest evidence")
+
+    payload_name = (
+        "partialResult"
+        if call.toolName == DomainToolName.SAVE_CONVERSATION_TASK_PROGRESS
+        else "result"
+    )
+    if not isinstance(call.arguments.get(payload_name), dict):
+        raise AgentModelError(f"{call.toolName.value} {payload_name} must be an object")
 
 
 def _argument_uuid(value, field: str) -> UUID:

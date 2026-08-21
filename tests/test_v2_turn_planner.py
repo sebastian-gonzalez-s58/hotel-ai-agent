@@ -94,6 +94,90 @@ class V2TurnPlannerTest(unittest.TestCase):
         with self.assertRaises(AgentModelError):
             _validate_plan(request, response)
 
+    def test_accepts_completion_of_open_conversation_task_at_current_version(self):
+        operation_id = "90000000-0000-0000-0000-000000000001"
+        task_id = "91000000-0000-0000-0000-000000000001"
+        request_payload = payload()
+        active_operation = operation(operation_id)
+        active_operation["pendingConversationTasks"] = [conversation_task(task_id, operation_id)]
+        request_payload["activeOperations"] = [active_operation]
+        request_payload["conversation"]["focusedConversationTaskId"] = task_id
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["COMPLETE_CONVERSATION_TASK"],
+            "maxToolCalls": 2,
+        }
+        request = AgentTurnRequest.model_validate(request_payload)
+        response = tool_response({
+            "toolCallId": "80000000-0000-0000-0000-000000000005",
+            "toolName": "COMPLETE_CONVERSATION_TASK",
+            "targetOperationId": operation_id,
+            "targetConversationTaskId": task_id,
+            "arguments": {
+                "conversationTaskId": task_id,
+                "expectedVersion": 4,
+                "result": {"confirmed": True},
+            },
+            "confidence": 1,
+            "evidenceMessageIds": [MESSAGE_ID],
+        })
+
+        _validate_plan(request, response)
+
+    def test_rejects_stale_or_mismatched_conversation_task_completion(self):
+        operation_id = "90000000-0000-0000-0000-000000000001"
+        task_id = "91000000-0000-0000-0000-000000000001"
+        request_payload = payload()
+        active_operation = operation(operation_id)
+        active_operation["pendingConversationTasks"] = [conversation_task(task_id, operation_id)]
+        request_payload["activeOperations"] = [active_operation]
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["COMPLETE_CONVERSATION_TASK"],
+            "maxToolCalls": 2,
+        }
+        request = AgentTurnRequest.model_validate(request_payload)
+        response = tool_response({
+            "toolCallId": "80000000-0000-0000-0000-000000000006",
+            "toolName": "COMPLETE_CONVERSATION_TASK",
+            "targetConversationTaskId": task_id,
+            "arguments": {
+                "conversationTaskId": "91000000-0000-0000-0000-000000000099",
+                "expectedVersion": 3,
+                "result": {"confirmed": True},
+            },
+            "confidence": 1,
+            "evidenceMessageIds": [MESSAGE_ID],
+        })
+
+        with self.assertRaises(AgentModelError):
+            _validate_plan(request, response)
+
+    def test_accepts_partial_conversation_task_progress(self):
+        operation_id = "90000000-0000-0000-0000-000000000001"
+        task_id = "91000000-0000-0000-0000-000000000001"
+        request_payload = payload()
+        active_operation = operation(operation_id)
+        active_operation["pendingConversationTasks"] = [conversation_task(task_id, operation_id)]
+        request_payload["activeOperations"] = [active_operation]
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["SAVE_CONVERSATION_TASK_PROGRESS"],
+            "maxToolCalls": 2,
+        }
+        request = AgentTurnRequest.model_validate(request_payload)
+        response = tool_response({
+            "toolCallId": "80000000-0000-0000-0000-000000000007",
+            "toolName": "SAVE_CONVERSATION_TASK_PROGRESS",
+            "targetConversationTaskId": task_id,
+            "arguments": {
+                "conversationTaskId": task_id,
+                "expectedVersion": 4,
+                "partialResult": {"requestedDate": "2026-08-21"},
+            },
+            "confidence": 1,
+            "evidenceMessageIds": [MESSAGE_ID],
+        })
+
+        _validate_plan(request, response)
+
 
 def tool_response(tool_call):
     return AgentTurnResponse(
@@ -134,6 +218,27 @@ def operation(operation_id):
         }],
         "pendingConversationTasks": [],
         "version": 3,
+    }
+
+
+def conversation_task(task_id, operation_id):
+    return {
+        "conversationTaskId": task_id,
+        "operationId": operation_id,
+        "processInstanceId": "process-stage6",
+        "activityId": "WaitForStage6ConversationTaskResult",
+        "taskType": "STAGE6_CONFIRMATION",
+        "status": "OPEN",
+        "requiredOutputSchema": {
+            "type": "object",
+            "required": ["confirmed"],
+            "properties": {"confirmed": {"type": "boolean"}},
+        },
+        "partialResult": {},
+        "context": {"reason": "Stage 6 verification"},
+        "priority": "NORMAL",
+        "version": 4,
+        "createdAt": "2026-08-20T18:00:00Z",
     }
 
 
