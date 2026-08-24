@@ -20,6 +20,9 @@ Rules:
   active availableOfferings. Use stable option IDs in the form offering:<offeringCode>. Use BUTTONS
   for at most three options and LIST otherwise. Never invent or show inactive offerings.
 - An inbound interactionReplyId beginning with offering: is the guest's explicit offering choice.
+- Selecting an offering only establishes which service the guest wants. Do not call START_SERVICE
+  until every field listed in that offering's inputSchema.required has a concrete non-empty value.
+  Ask a concise clarification question for the missing fields instead of inventing empty values.
 - A tool call that changes state must be directly supported by guest evidence.
 - START_SERVICE may use only an offering in availableOfferings. Supply the exact offeringCode and input object.
 - If an offering requires explicit confirmation, START_SERVICE must include the confirming guest message ID both as guestConfirmationEvidenceMessageId and evidenceMessageIds.

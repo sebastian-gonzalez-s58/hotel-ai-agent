@@ -156,6 +156,33 @@ class V2TurnPlannerTest(unittest.TestCase):
         with self.assertRaises(AgentModelError):
             _validate_plan(request, response)
 
+    def test_rejects_start_service_when_required_offering_input_is_blank(self):
+        request_payload = payload()
+        maintenance = offering()
+        maintenance.update({
+            "offeringCode": "MAINTENANCE",
+            "name": "Mantenimiento",
+            "inputSchema": {
+                "type": "object",
+                "required": ["issue"],
+                "properties": {"issue": {"type": "string"}},
+            },
+            "requiresExplicitGuestConfirmation": False,
+        })
+        request_payload["availableOfferings"] = [maintenance]
+        request_payload["toolPolicy"] = {"allowedTools": ["START_SERVICE"], "maxToolCalls": 2}
+        request = AgentTurnRequest.model_validate(request_payload)
+        response = tool_response({
+            "toolCallId": "80000000-0000-0000-0000-000000000010",
+            "toolName": "START_SERVICE",
+            "arguments": {"offeringCode": "MAINTENANCE", "input": {"issue": ""}},
+            "confidence": 1,
+            "evidenceMessageIds": [MESSAGE_ID],
+        })
+
+        with self.assertRaisesRegex(AgentModelError, "non-empty value.*issue"):
+            _validate_plan(request, response)
+
     def test_accepts_only_an_advertised_service_action_at_the_current_version(self):
         operation_id = "90000000-0000-0000-0000-000000000001"
         request_payload = payload()

@@ -58,6 +58,10 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         )
         if attempt == MAX_PLAN_ATTEMPTS:
             raise error
+        prompt += (
+            "\n\nThe previous plan was invalid and must not be repeated. "
+            f"Validation error: {details}. Return a corrected plan."
+        )
 
     raise AgentModelError("OpenAI did not return a valid V2 agent plan")
 
@@ -142,6 +146,11 @@ def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
             raise AgentModelError("START_SERVICE references an unavailable offering")
         if not isinstance(call.arguments.get("input"), dict):
             raise AgentModelError("START_SERVICE input must be an object")
+        _validate_offering_input(
+            call.arguments["input"],
+            offering.inputSchema,
+            offering.offeringCode,
+        )
         if not call.evidenceMessageIds:
             raise AgentModelError("START_SERVICE requires guest evidence")
         if offering.requiresExplicitGuestConfirmation:
@@ -184,6 +193,43 @@ def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
             raise AgentModelError("EXECUTE_SERVICE_ACTION evidence declarations do not match")
         if action.requiresExplicitGuestConfirmation and not call.evidenceMessageIds:
             raise AgentModelError("EXECUTE_SERVICE_ACTION requires explicit guest evidence")
+
+
+def _validate_offering_input(value: dict, schema: dict, offering_code: str) -> None:
+    if schema.get("type") not in {None, "object"}:
+        raise AgentModelError(f"Offering {offering_code} input schema must describe an object")
+
+    properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+    required = schema.get("required") if isinstance(schema.get("required"), list) else []
+    for field in required:
+        field_value = value.get(field)
+        if _is_missing_required_value(field_value):
+            raise AgentModelError(
+                f"START_SERVICE requires a non-empty value for offering field {field}"
+            )
+        field_schema = properties.get(field)
+        if isinstance(field_schema, dict):
+            _validate_schema_value(field_value, field_schema, field)
+
+
+def _validate_schema_value(value, schema: dict, field: str) -> None:
+    expected = schema.get("type")
+    valid = {
+        "string": isinstance(value, str) and bool(value.strip()),
+        "integer": isinstance(value, int) and not isinstance(value, bool),
+        "number": isinstance(value, (int, float)) and not isinstance(value, bool),
+        "boolean": isinstance(value, bool),
+        "array": isinstance(value, list) and bool(value),
+        "object": isinstance(value, dict) and bool(value),
+    }.get(expected, True)
+    if not valid:
+        raise AgentModelError(f"START_SERVICE offering field {field} must be {expected}")
+
+
+def _is_missing_required_value(value) -> bool:
+    return value is None or (isinstance(value, str) and not value.strip()) or (
+        isinstance(value, (list, dict)) and not value
+    )
 
 
 def _validate_status_call(call, offerings) -> None:
