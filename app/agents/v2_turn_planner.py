@@ -221,26 +221,26 @@ def _ensure_personalized_service_menu(request: AgentTurnRequest, messages: list[
     message = messages[0]
     display_name = request.guest.displayName.strip()
     first_name = display_name.split()[0] if display_name else ""
-    text = str(message.get("text") or "").strip()
-    if first_name and first_name.casefold() not in text.casefold():
-        greeting = (
-            f"Hola, {first_name}. "
-            if request.guest.preferredLanguage.lower().startswith("es")
-            else f"Hello, {first_name}. "
-        )
-        text = greeting + text
-        message["text"] = text.strip()
-    if message.get("interaction"):
-        return
     spanish = request.guest.preferredLanguage.lower().startswith("es")
+    if spanish:
+        salutation = f"Hola, {first_name}. " if first_name else "Hola. "
+        text = (
+            salutation
+            + "\u00bfC\u00f3mo podemos ayudarte hoy? Por favor, elige una opci\u00f3n del men\u00fa."
+        )
+    else:
+        salutation = f"Hello, {first_name}. " if first_name else "Hello. "
+        text = salutation + "How can we help you today? Please choose an option from the menu."
+
     options = [
         {"id": f"offering:{offering.offeringCode}", "label": offering.name[:24]}
         for offering in request.availableOfferings[:10]
     ]
+    message["text"] = text
     message["interaction"] = {
         "type": "BUTTONS" if len(options) <= 3 else "LIST",
         "title": "Servicios del hotel" if spanish else "Hotel services",
-        "body": text[:1024],
+        "body": text,
         "buttonText": "Ver servicios" if spanish else "View services",
         "options": options,
     }

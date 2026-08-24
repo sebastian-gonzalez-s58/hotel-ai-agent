@@ -284,12 +284,25 @@ class V2TurnPlannerTest(unittest.TestCase):
                 "language": "es-MX",
                 "operationIds": [],
                 "conversationTaskIds": [],
-                "interaction": None,
+                "interaction": {
+                    "type": "BUTTONS",
+                    "title": "Menu",
+                    "body": "Elige una opcion.",
+                    "buttonText": "Opciones",
+                    "options": [{"id": "stale", "label": "Opcion anterior"}],
+                },
             }],
         })
 
         message = normalized["messages"][0]
-        self.assertIn("Sebastian", message["text"])
+        expected_text = (
+            "Hola, Sebastian. \u00bfC\u00f3mo podemos ayudarte hoy? "
+            "Por favor, elige una opci\u00f3n del men\u00fa."
+        )
+        self.assertEqual(expected_text, message["text"])
+        self.assertEqual(expected_text, message["interaction"]["body"])
+        self.assertEqual("Servicios del hotel", message["interaction"]["title"])
+        self.assertEqual("Ver servicios", message["interaction"]["buttonText"])
         self.assertEqual("BUTTONS", message["interaction"]["type"])
         self.assertEqual(
             [{"id": "offering:ROOM_SERVICE", "label": "Servicio a la habitacion"[:24]}],
