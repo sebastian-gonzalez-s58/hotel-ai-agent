@@ -26,6 +26,7 @@ class DomainToolName(str, Enum):
     SEARCH_KNOWLEDGE = "SEARCH_KNOWLEDGE"
     LIST_ACTIVE_OPERATIONS = "LIST_ACTIVE_OPERATIONS"
     GET_OPERATION = "GET_OPERATION"
+    GET_OPERATION_STATUS = "GET_OPERATION_STATUS"
     START_SERVICE = "START_SERVICE"
     SAVE_CONVERSATION_TASK_PROGRESS = "SAVE_CONVERSATION_TASK_PROGRESS"
     COMPLETE_CONVERSATION_TASK = "COMPLETE_CONVERSATION_TASK"
@@ -105,12 +106,17 @@ class ConversationTaskSnapshot(StrictModel):
 
 class OperationSnapshot(StrictModel):
     operationId: UUID
+    referenceCode: str | None = Field(default=None, max_length=32)
     offeringCode: str = Field(min_length=1, max_length=100)
     lifecycle: Literal[
         "ACTIVE", "WAITING_FOR_GUEST", "WAITING_FOR_STAFF", "COMPLETED", "CANCELLED", "FAILED"
     ]
     detailedStatus: str = Field(min_length=1, max_length=100)
     summary: str = Field(max_length=4000)
+    input: dict[str, Any] = Field(default_factory=dict)
+    createdAt: datetime | None = None
+    updatedAt: datetime | None = None
+    completedAt: datetime | None = None
     processInstanceIds: list[str] = Field(default_factory=list)
     availableActions: list[AvailableAction]
     pendingConversationTasks: list[ConversationTaskSnapshot]
@@ -157,6 +163,7 @@ class AgentTurnRequest(StrictModel):
     guest: GuestContext
     conversation: ConversationContext
     activeOperations: list[OperationSnapshot] = Field(max_length=100)
+    recentOperations: list[OperationSnapshot] = Field(default_factory=list, max_length=100)
     availableOfferings: list[OfferingCapability] = Field(max_length=100)
     toolPolicy: ToolPolicy
     previousToolResults: list[ToolResult] = Field(max_length=50)
@@ -173,6 +180,19 @@ class DomainToolCall(StrictModel):
     evidenceMessageIds: list[UUID]
 
 
+class InteractionOption(StrictModel):
+    id: str = Field(min_length=1, max_length=200)
+    label: str = Field(min_length=1, max_length=24)
+
+
+class AgentInteraction(StrictModel):
+    type: Literal["BUTTONS", "LIST"]
+    title: str | None = Field(default=None, max_length=60)
+    body: str = Field(min_length=1, max_length=1024)
+    buttonText: str | None = Field(default=None, max_length=20)
+    options: list[InteractionOption] = Field(min_length=1, max_length=10)
+
+
 class AgentMessage(StrictModel):
     messageDraftId: UUID
     purpose: Literal["ANSWER", "CLARIFICATION", "CONFIRMATION", "STATUS_UPDATE", "HANDOFF", "REMINDER", "CLOSURE"]
@@ -180,7 +200,7 @@ class AgentMessage(StrictModel):
     language: str = Field(min_length=2, max_length=35)
     operationIds: list[UUID]
     conversationTaskIds: list[UUID]
-    interaction: dict[str, Any] | None = None
+    interaction: AgentInteraction | None = None
 
 
 class AgentUsage(StrictModel):

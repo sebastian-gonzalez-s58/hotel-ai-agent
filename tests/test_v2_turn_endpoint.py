@@ -50,6 +50,7 @@ def payload():
             }],
         },
         "activeOperations": [],
+        "recentOperations": [],
         "availableOfferings": [],
         "toolPolicy": {"allowedTools": ["LIST_AVAILABLE_OFFERINGS"], "maxToolCalls": 2},
         "previousToolResults": [],

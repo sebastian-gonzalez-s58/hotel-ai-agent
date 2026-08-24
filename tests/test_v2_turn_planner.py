@@ -6,6 +6,7 @@ from app.core.errors import AgentModelError
 from app.agents.v2_turn_planner import (
     AGENT_TURN_RESPONSE_SCHEMA,
     _normalize_response_envelope,
+    _normalize_guest_experience,
     _validate_plan,
     plan_v2_turn,
 )
@@ -47,6 +48,35 @@ class V2TurnPlannerTest(unittest.TestCase):
             openai_call.call_args.kwargs["response_schema_name"],
             "agent_turn_response_v2",
         )
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_retries_once_when_the_model_returns_an_invalid_plan(self, openai_call):
+        request = AgentTurnRequest.model_validate(payload())
+        invalid = OpenAiJsonResult(
+            payload={"disposition": "RESPONSE_READY", "messages": []},
+            usage=OpenAiTokenUsage(input_tokens=10, output_tokens=2, total_tokens=12),
+            response_id="resp-invalid",
+        )
+        valid = OpenAiJsonResult(
+            payload={
+                "disposition": "RESPONSE_READY",
+                "messages": [{
+                    "purpose": "ANSWER",
+                    "text": "Hola, ¿en qué servicio puedo ayudarte?",
+                    "language": "es-MX",
+                    "operationIds": [],
+                    "conversationTaskIds": [],
+                }],
+            },
+            usage=OpenAiTokenUsage(input_tokens=10, output_tokens=5, total_tokens=15),
+            response_id="resp-valid",
+        )
+        openai_call.side_effect = [invalid, valid]
+
+        response = plan_v2_turn(request)
+
+        self.assertEqual("RESPONSE_READY", response.disposition)
+        self.assertEqual(2, openai_call.call_count)
 
     def test_normalizes_server_owned_response_envelope(self):
         request = AgentTurnRequest.model_validate(payload())
@@ -234,6 +264,88 @@ class V2TurnPlannerTest(unittest.TestCase):
                 "expectedVersion": 4,
                 "partialResult": {"requestedDate": "2026-08-21"},
             },
+            "confidence": 1,
+            "evidenceMessageIds": [MESSAGE_ID],
+        })
+
+        _validate_plan(request, response)
+
+    def test_personalizes_greeting_and_builds_menu_from_available_offerings(self):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [offering()]
+        request = AgentTurnRequest.model_validate(request_payload)
+
+        normalized = _normalize_guest_experience(request, {
+            "disposition": "RESPONSE_READY",
+            "messages": [{
+                "messageDraftId": "81000000-0000-0000-0000-000000000001",
+                "purpose": "ANSWER",
+                "text": "¿En qué puedo ayudarte hoy?",
+                "language": "es-MX",
+                "operationIds": [],
+                "conversationTaskIds": [],
+                "interaction": None,
+            }],
+        })
+
+        message = normalized["messages"][0]
+        self.assertIn("Sebastian", message["text"])
+        self.assertEqual("BUTTONS", message["interaction"]["type"])
+        self.assertEqual(
+            [{"id": "offering:ROOM_SERVICE", "label": "Servicio a la habitacion"[:24]}],
+            message["interaction"]["options"],
+        )
+
+    def test_adds_folio_acknowledgement_after_start_service(self):
+        operation_id = "90000000-0000-0000-0000-000000000001"
+        request_payload = payload()
+        request_payload["availableOfferings"] = [offering()]
+        request_payload["trigger"] = {"type": "TOOL_RESULTS"}
+        request_payload["previousToolResults"] = [{
+            "toolCallId": "80000000-0000-0000-0000-000000000009",
+            "toolName": "START_SERVICE",
+            "status": "SUCCEEDED",
+            "result": {
+                "operationId": operation_id,
+                "referenceCode": "REQ-20260824-ABC12345",
+                "offeringCode": "ROOM_SERVICE",
+                "lifecycle": "ACTIVE",
+                "detailedStatus": "PROCESS_STARTED",
+                "version": 1,
+            },
+        }]
+        request = AgentTurnRequest.model_validate(request_payload)
+
+        normalized = _normalize_guest_experience(request, {
+            "disposition": "RESPONSE_READY",
+            "messages": [{
+                "messageDraftId": "81000000-0000-0000-0000-000000000002",
+                "purpose": "ANSWER",
+                "text": "La solicitud fue creada.",
+                "language": "es-MX",
+                "operationIds": [],
+                "conversationTaskIds": [],
+                "interaction": None,
+            }],
+        })
+
+        self.assertEqual(1, len(normalized["messages"]))
+        self.assertIn("REQ-20260824-ABC12345", normalized["messages"][0]["text"])
+        self.assertNotIn("La solicitud fue creada.", normalized["messages"][0]["text"])
+        self.assertEqual([operation_id], normalized["messages"][0]["operationIds"])
+
+    def test_accepts_status_lookup_by_folio_without_exposing_an_operation_id(self):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [offering()]
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["GET_OPERATION_STATUS"],
+            "maxToolCalls": 2,
+        }
+        request = AgentTurnRequest.model_validate(request_payload)
+        response = tool_response({
+            "toolCallId": "80000000-0000-0000-0000-000000000010",
+            "toolName": "GET_OPERATION_STATUS",
+            "arguments": {"referenceCode": "REQ-20260824-ABC12345"},
             "confidence": 1,
             "evidenceMessageIds": [MESSAGE_ID],
         })
