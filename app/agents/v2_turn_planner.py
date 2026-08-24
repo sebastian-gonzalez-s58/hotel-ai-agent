@@ -1,5 +1,6 @@
+import logging
 import time
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from pydantic import ValidationError
 
@@ -11,10 +12,19 @@ from app.schemas.v2_turns import DomainToolName
 from app.services.openai_client import call_openai_json_result
 
 
+logger = logging.getLogger("chatbotinn-agent.v2-turn-planner")
+AGENT_TURN_RESPONSE_SCHEMA = AgentTurnResponse.model_json_schema()
+
+
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     started_at = time.perf_counter()
-    result = call_openai_json_result(build_v2_turn_prompt(request), purpose="V2_AGENT_TURN")
-    payload = dict(result.payload)
+    result = call_openai_json_result(
+        build_v2_turn_prompt(request),
+        purpose="V2_AGENT_TURN",
+        response_schema=AGENT_TURN_RESPONSE_SCHEMA,
+        response_schema_name="agent_turn_response_v2",
+    )
+    payload = _normalize_response_envelope(request, result.payload)
     payload["usage"] = {
         "model": settings.openai_model,
         **result.usage.as_api_dict(),
@@ -23,9 +33,48 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     try:
         response = AgentTurnResponse.model_validate(payload)
     except ValidationError as exc:
-        raise AgentModelError("OpenAI returned an invalid V2 agent turn") from exc
-    _validate_plan(request, response)
+        logger.error(
+            "Invalid V2 agent response schema agent_turn_id=%s response_id=%s errors=%s",
+            request.agentTurnId,
+            result.response_id,
+            exc.errors(include_url=False, include_input=False),
+        )
+        raise AgentModelError(
+            f"OpenAI returned an invalid V2 agent turn schema response_id={result.response_id}"
+        ) from exc
+    try:
+        _validate_plan(request, response)
+    except AgentModelError as exc:
+        logger.error(
+            "Invalid V2 agent response plan agent_turn_id=%s response_id=%s error=%s",
+            request.agentTurnId,
+            result.response_id,
+            exc,
+        )
+        raise
     return response
+
+
+def _normalize_response_envelope(
+    request: AgentTurnRequest,
+    model_payload: dict,
+) -> dict:
+    payload = dict(model_payload)
+    # These fields are protocol metadata, not model decisions.
+    payload["schemaVersion"] = "2.0"
+    payload["agentTurnId"] = str(request.agentTurnId)
+    payload.setdefault("detectedLanguage", None)
+    payload.setdefault("messages", [])
+    payload.setdefault("toolCalls", [])
+    payload.setdefault("updatedConversationSummary", None)
+    payload.setdefault("warnings", [])
+    for message in payload["messages"]:
+        if isinstance(message, dict):
+            message["messageDraftId"] = str(uuid4())
+    for tool_call in payload["toolCalls"]:
+        if isinstance(tool_call, dict):
+            tool_call["toolCallId"] = str(uuid4())
+    return payload
 
 
 def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> None:

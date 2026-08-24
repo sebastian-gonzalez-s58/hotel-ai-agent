@@ -3,12 +3,74 @@ from unittest.mock import patch
 from uuid import UUID
 
 from app.core.errors import AgentModelError
-from app.agents.v2_turn_planner import _validate_plan
+from app.agents.v2_turn_planner import (
+    AGENT_TURN_RESPONSE_SCHEMA,
+    _normalize_response_envelope,
+    _validate_plan,
+    plan_v2_turn,
+)
 from app.schemas.v2_turns import AgentTurnRequest, AgentTurnResponse
+from app.services.openai_client import OpenAiJsonResult
+from app.services.telemetry_client import OpenAiTokenUsage
 from tests.test_v2_turn_endpoint import MESSAGE_ID, TURN_ID, payload
 
 
 class V2TurnPlannerTest(unittest.TestCase):
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_requests_the_v2_response_schema_from_openai(self, openai_call):
+        request = AgentTurnRequest.model_validate(payload())
+        openai_call.return_value = OpenAiJsonResult(
+            payload={
+                "disposition": "RESPONSE_READY",
+                "messages": [{
+                    "messageDraftId": "81000000-0000-0000-0000-000000000001",
+                    "purpose": "ANSWER",
+                    "text": "Hola, ¿en qué servicio puedo ayudarte?",
+                    "language": "es-MX",
+                    "operationIds": [],
+                    "conversationTaskIds": [],
+                }],
+            },
+            usage=OpenAiTokenUsage(input_tokens=10, output_tokens=5, total_tokens=15),
+            response_id="resp-test",
+        )
+
+        response = plan_v2_turn(request)
+
+        self.assertEqual(response.disposition, "RESPONSE_READY")
+        self.assertEqual(response.usage.totalTokens, 15)
+        self.assertEqual(
+            openai_call.call_args.kwargs["response_schema"],
+            AGENT_TURN_RESPONSE_SCHEMA,
+        )
+        self.assertEqual(
+            openai_call.call_args.kwargs["response_schema_name"],
+            "agent_turn_response_v2",
+        )
+
+    def test_normalizes_server_owned_response_envelope(self):
+        request = AgentTurnRequest.model_validate(payload())
+        model_message_id = "81000000-0000-0000-0000-000000000001"
+        model_tool_call_id = "82000000-0000-0000-0000-000000000001"
+
+        normalized = _normalize_response_envelope(
+            request,
+            {
+                "disposition": "TOOL_CALLS_REQUIRED",
+                "messages": [{"messageDraftId": model_message_id}],
+                "toolCalls": [{"toolCallId": model_tool_call_id}],
+            },
+        )
+
+        self.assertEqual(normalized["schemaVersion"], "2.0")
+        self.assertEqual(normalized["agentTurnId"], TURN_ID)
+        self.assertNotEqual(normalized["messages"][0]["messageDraftId"], model_message_id)
+        self.assertNotEqual(normalized["toolCalls"][0]["toolCallId"], model_tool_call_id)
+        UUID(normalized["messages"][0]["messageDraftId"])
+        UUID(normalized["toolCalls"][0]["toolCallId"])
+        self.assertEqual(normalized["warnings"], [])
+        self.assertIsNone(normalized["detectedLanguage"])
+
     def test_rejects_tool_not_in_policy(self):
         request = AgentTurnRequest.model_validate(payload())
         response = AgentTurnResponse(

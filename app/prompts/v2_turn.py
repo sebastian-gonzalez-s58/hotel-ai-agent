@@ -6,7 +6,7 @@ from app.schemas.v2_turns import AgentTurnRequest
 def build_v2_turn_prompt(request: AgentTurnRequest) -> str:
     payload = request.model_dump(mode="json")
     return f"""You are the decision planner for a hotel assistant.
-Return exactly one JSON object matching AgentTurnResponse schema version 2.0.
+Return exactly one JSON object matching the AgentTurnResponse schema supplied by the API.
 
 Rules:
 - You have no side effects. Propose only tools listed in toolPolicy.allowedTools.
@@ -26,8 +26,9 @@ Rules:
 - HANDOFF_REQUIRED must include a guest-facing handoff message.
 - NO_ACTION has no messages and no tool calls.
 - Keep the language consistent with the guest's latest message unless explicitly asked otherwise.
-- toolCallId and messageDraftId must be new UUIDs.
-- usage must contain zeroes; the server replaces it with measured model usage.
+- schemaVersion, agentTurnId, toolCallId, messageDraftId, and usage are server-owned envelope
+  fields. Include schema-valid placeholder values; the server replaces them with authoritative
+  values.
 
 Runtime context:
 {json.dumps(payload, ensure_ascii=False, separators=(",", ":"))}

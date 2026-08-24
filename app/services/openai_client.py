@@ -45,6 +45,8 @@ def call_openai_json_result(
     prompt: str,
     *,
     purpose: str | None = None,
+    response_schema: dict[str, Any] | None = None,
+    response_schema_name: str = "json_response",
 ) -> OpenAiJsonResult:
     started_at = time.perf_counter()
     tracking_context = get_agent_tracking_context()
@@ -53,11 +55,7 @@ def call_openai_json_result(
             model=settings.openai_model,
             input=prompt,
             temperature=0,
-            text={
-                "format": {
-                    "type": "json_object",
-                }
-            },
+            text={"format": _response_format(response_schema, response_schema_name)},
         )
     except APITimeoutError as exc:
         _record_failure(started_at, tracking_context, purpose, "OpenAI request timed out")
@@ -103,6 +101,22 @@ def call_openai_json_result(
 
 def call_openai_json(prompt: str) -> dict[str, Any]:
     return call_openai_json_result(prompt).payload
+
+
+def _response_format(
+    response_schema: dict[str, Any] | None,
+    response_schema_name: str,
+) -> dict[str, Any]:
+    if response_schema is None:
+        return {"type": "json_object"}
+    return {
+        "type": "json_schema",
+        "name": response_schema_name,
+        "schema": response_schema,
+        # Tool arguments and interaction payloads intentionally contain
+        # offering-specific fields, so they cannot use strict schema mode.
+        "strict": False,
+    }
 
 
 def _record_failure(started_at, context, purpose, message: str) -> None:
