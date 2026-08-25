@@ -139,6 +139,56 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertIn(f"evidenceMessageIds=[{MESSAGE_ID}]", repair_prompt)
         self.assertIn('"confirmed":{"type":"boolean"}', repair_prompt)
 
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_converts_repeated_start_service_after_success_into_acknowledgement(self, openai_call):
+        operation_id = "90000000-0000-0000-0000-000000000020"
+        request_payload = payload()
+        request_payload["availableOfferings"] = [offering()]
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["START_SERVICE"],
+            "maxToolCalls": 2,
+        }
+        request_payload["previousToolResults"] = [{
+            "toolCallId": "80000000-0000-0000-0000-000000000020",
+            "toolName": "START_SERVICE",
+            "status": "SUCCEEDED",
+            "result": {
+                "operationId": operation_id,
+                "offeringCode": "ROOM_SERVICE",
+                "referenceCode": "REQ-20260825-ABC12345",
+                "lifecycle": "ACTIVE",
+                "detailedStatus": "PROCESS_STARTED",
+                "version": 1,
+            },
+        }]
+        request = AgentTurnRequest.model_validate(request_payload)
+        openai_call.return_value = OpenAiJsonResult(
+            payload={
+                "disposition": "TOOL_CALLS_REQUIRED",
+                "messages": [],
+                "toolCalls": [{
+                    "toolName": "START_SERVICE",
+                    "arguments": {
+                        "offeringCode": "ROOM_SERVICE",
+                        "input": {"items": [{"name": "Hamburguesa", "quantity": 1}]},
+                    },
+                    "confidence": 0.9,
+                    "evidenceMessageIds": [MESSAGE_ID],
+                }],
+            },
+            usage=OpenAiTokenUsage(input_tokens=10, output_tokens=5, total_tokens=15),
+            response_id="resp-repeated-start",
+        )
+
+        response = plan_v2_turn(request)
+
+        self.assertEqual("RESPONSE_READY", response.disposition)
+        self.assertEqual([], response.toolCalls)
+        self.assertEqual(1, len(response.messages))
+        self.assertIn("REQ-20260825-ABC12345", response.messages[0].text)
+        self.assertEqual([UUID(operation_id)], response.messages[0].operationIds)
+        self.assertEqual(1, openai_call.call_count)
+
     def test_normalizes_server_owned_response_envelope(self):
         request = AgentTurnRequest.model_validate(payload())
         model_message_id = "81000000-0000-0000-0000-000000000001"

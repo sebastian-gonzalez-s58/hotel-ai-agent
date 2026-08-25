@@ -321,6 +321,13 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
     normalized = dict(payload)
     messages = [dict(message) for message in normalized.get("messages", []) if isinstance(message, dict)]
     normalized["messages"] = messages
+    if _successful_started_operations(request):
+        # A successful lifecycle result is authoritative. The same guest turn must
+        # acknowledge it instead of proposing START_SERVICE again.
+        normalized["disposition"] = "RESPONSE_READY"
+        normalized["toolCalls"] = []
+        _ensure_service_start_acknowledgements(request, messages)
+        return normalized
     if normalized.get("disposition") == "RESPONSE_READY":
         _ensure_personalized_service_menu(request, messages)
         _ensure_service_start_acknowledgements(request, messages)
@@ -361,12 +368,7 @@ def _ensure_personalized_service_menu(request: AgentTurnRequest, messages: list[
 
 
 def _ensure_service_start_acknowledgements(request: AgentTurnRequest, messages: list[dict]) -> None:
-    started = [
-        result.result
-        for result in request.previousToolResults
-        if result.status == "SUCCEEDED" and result.toolName == DomainToolName.START_SERVICE.value
-        and isinstance(result.result, dict) and result.result.get("referenceCode")
-    ]
+    started = _successful_started_operations(request)
     if not started:
         return
     spanish = request.guest.preferredLanguage.lower().startswith("es")
@@ -397,6 +399,15 @@ def _ensure_service_start_acknowledgements(request: AgentTurnRequest, messages: 
             "interaction": None,
         })
     messages[:] = acknowledgements
+
+
+def _successful_started_operations(request: AgentTurnRequest) -> list[dict]:
+    return [
+        result.result
+        for result in request.previousToolResults
+        if result.status == "SUCCEEDED" and result.toolName == DomainToolName.START_SERVICE.value
+        and isinstance(result.result, dict) and result.result.get("referenceCode")
+    ]
 
 
 def _is_greeting_turn(request: AgentTurnRequest) -> bool:
