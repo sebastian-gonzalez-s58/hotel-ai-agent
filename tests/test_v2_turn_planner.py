@@ -87,6 +87,7 @@ class V2TurnPlannerTest(unittest.TestCase):
         active_operation["pendingConversationTasks"] = [conversation_task(task_id, operation_id)]
         request_payload["activeOperations"] = [active_operation]
         request_payload["conversation"]["focusedConversationTaskId"] = task_id
+        request_payload["conversation"]["recentMessages"][0]["text"] = "Sí, ya quedó resuelto"
         request_payload["toolPolicy"] = {
             "allowedTools": ["COMPLETE_CONVERSATION_TASK"],
             "maxToolCalls": 1,
@@ -445,6 +446,57 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertEqual(
             [{"id": "offering:ROOM_SERVICE", "label": "Servicio a la habitacion"[:24]}],
             message["interaction"]["options"],
+        )
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_greeting_cannot_start_service_from_historical_maintenance_context(self, openai_call):
+        operation_id = "90000000-0000-0000-0000-000000000030"
+        request_payload = payload()
+        maintenance = offering()
+        maintenance.update({
+            "offeringCode": "MAINTENANCE",
+            "name": "Mantenimiento",
+            "inputSchema": {
+                "type": "object",
+                "required": ["issue"],
+                "properties": {"issue": {"type": "string"}},
+            },
+            "requiresExplicitGuestConfirmation": False,
+        })
+        request_payload["availableOfferings"] = [maintenance]
+        request_payload["recentOperations"] = [operation(operation_id)]
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["START_SERVICE", "GET_OPERATION_STATUS"],
+            "maxToolCalls": 2,
+        }
+        request = AgentTurnRequest.model_validate(request_payload)
+        openai_call.return_value = OpenAiJsonResult(
+            payload={
+                "disposition": "TOOL_CALLS_REQUIRED",
+                "messages": [],
+                "toolCalls": [{
+                    "toolName": "START_SERVICE",
+                    "arguments": {
+                        "offeringCode": "MAINTENANCE",
+                        "input": {"issue": "Problema de mantenimiento anterior"},
+                    },
+                    "confidence": 0.9,
+                    "evidenceMessageIds": [MESSAGE_ID],
+                }],
+            },
+            usage=OpenAiTokenUsage(input_tokens=10, output_tokens=5, total_tokens=15),
+            response_id="resp-greeting-history",
+        )
+
+        response = plan_v2_turn(request)
+
+        self.assertEqual("RESPONSE_READY", response.disposition)
+        self.assertEqual([], response.toolCalls)
+        self.assertEqual(1, len(response.messages))
+        self.assertIn("Hola, Sebastian", response.messages[0].text)
+        self.assertEqual(
+            "offering:MAINTENANCE",
+            response.messages[0].interaction.options[0].id,
         )
 
     def test_adds_folio_acknowledgement_after_start_service(self):

@@ -321,6 +321,13 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
     normalized = dict(payload)
     messages = [dict(message) for message in normalized.get("messages", []) if isinstance(message, dict)]
     normalized["messages"] = messages
+    if _is_greeting_turn(request) and not request.previousToolResults:
+        # A greeting opens a navigation turn. Historical operations remain available
+        # for later status questions, but they can never trigger side effects here.
+        normalized["disposition"] = "RESPONSE_READY"
+        normalized["toolCalls"] = []
+        _ensure_personalized_service_menu(request, messages)
+        return normalized
     if _successful_started_operations(request):
         # A successful lifecycle result is authoritative. The same guest turn must
         # acknowledge it instead of proposing START_SERVICE again.
@@ -337,8 +344,18 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
 
 
 def _ensure_personalized_service_menu(request: AgentTurnRequest, messages: list[dict]) -> None:
-    if not messages or not request.availableOfferings or not _is_greeting_turn(request):
+    if not request.availableOfferings or not _is_greeting_turn(request):
         return
+    if not messages:
+        messages.append({
+            "messageDraftId": str(uuid4()),
+            "purpose": "ANSWER",
+            "text": "",
+            "language": request.guest.preferredLanguage,
+            "operationIds": [],
+            "conversationTaskIds": [],
+            "interaction": None,
+        })
     message = messages[0]
     display_name = request.guest.displayName.strip()
     first_name = display_name.split()[0] if display_name else ""
