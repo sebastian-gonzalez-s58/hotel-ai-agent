@@ -78,6 +78,67 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertEqual("RESPONSE_READY", response.disposition)
         self.assertEqual(2, openai_call.call_count)
 
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_retries_focused_task_with_an_explicit_completion_template(self, openai_call):
+        operation_id = "90000000-0000-0000-0000-000000000001"
+        task_id = "91000000-0000-0000-0000-000000000001"
+        request_payload = payload()
+        active_operation = operation(operation_id)
+        active_operation["pendingConversationTasks"] = [conversation_task(task_id, operation_id)]
+        request_payload["activeOperations"] = [active_operation]
+        request_payload["conversation"]["focusedConversationTaskId"] = task_id
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["COMPLETE_CONVERSATION_TASK"],
+            "maxToolCalls": 1,
+            "allowMultipleConversationTaskCompletions": False,
+        }
+        request = AgentTurnRequest.model_validate(request_payload)
+        invalid = OpenAiJsonResult(
+            payload={
+                "disposition": "RESPONSE_READY",
+                "messages": [{
+                    "purpose": "CONFIRMATION",
+                    "text": "Gracias por confirmar que el problema se resolvio.",
+                    "language": "es-MX",
+                    "operationIds": [operation_id],
+                    "conversationTaskIds": [task_id],
+                }],
+            },
+            usage=OpenAiTokenUsage(input_tokens=10, output_tokens=5, total_tokens=15),
+            response_id="resp-invalid-task",
+        )
+        valid = OpenAiJsonResult(
+            payload={
+                "disposition": "TOOL_CALLS_REQUIRED",
+                "messages": [],
+                "toolCalls": [{
+                    "toolName": "COMPLETE_CONVERSATION_TASK",
+                    "targetOperationId": operation_id,
+                    "targetConversationTaskId": task_id,
+                    "arguments": {
+                        "conversationTaskId": task_id,
+                        "expectedVersion": 4,
+                        "result": {"confirmed": True},
+                    },
+                    "confidence": 1,
+                    "evidenceMessageIds": [MESSAGE_ID],
+                }],
+            },
+            usage=OpenAiTokenUsage(input_tokens=12, output_tokens=6, total_tokens=18),
+            response_id="resp-valid-task",
+        )
+        openai_call.side_effect = [invalid, invalid, valid]
+
+        response = plan_v2_turn(request)
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", response.disposition)
+        self.assertEqual(3, openai_call.call_count)
+        repair_prompt = openai_call.call_args_list[1].args[0]
+        self.assertIn("exactly one COMPLETE_CONVERSATION_TASK", repair_prompt)
+        self.assertIn(task_id, repair_prompt)
+        self.assertIn(f"evidenceMessageIds=[{MESSAGE_ID}]", repair_prompt)
+        self.assertIn('"confirmed":{"type":"boolean"}', repair_prompt)
+
     def test_normalizes_server_owned_response_envelope(self):
         request = AgentTurnRequest.model_validate(payload())
         model_message_id = "81000000-0000-0000-0000-000000000001"

@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 from uuid import UUID, uuid4
@@ -14,7 +15,7 @@ from app.services.openai_client import call_openai_json_result
 
 logger = logging.getLogger("chatbotinn-agent.v2-turn-planner")
 AGENT_TURN_RESPONSE_SCHEMA = AgentTurnResponse.model_json_schema()
-MAX_PLAN_ATTEMPTS = 2
+MAX_PLAN_ATTEMPTS = 3
 
 
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
@@ -61,9 +62,57 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         prompt += (
             "\n\nThe previous plan was invalid and must not be repeated. "
             f"Validation error: {details}. Return a corrected plan."
+            + _build_focused_task_repair_instruction(request)
         )
 
     raise AgentModelError("OpenAI did not return a valid V2 agent plan")
+
+
+def _build_focused_task_repair_instruction(request: AgentTurnRequest) -> str:
+    focused_task_id = request.conversation.focusedConversationTaskId
+    if focused_task_id is None:
+        return ""
+
+    focused_task = next(
+        (
+            task
+            for operation in request.activeOperations
+            for task in operation.pendingConversationTasks
+            if task.conversationTaskId == focused_task_id
+        ),
+        None,
+    )
+    if focused_task is None:
+        return ""
+
+    latest_inbound = next(
+        (
+            message
+            for message in reversed(request.conversation.recentMessages)
+            if message.direction == "INBOUND"
+        ),
+        None,
+    )
+    if latest_inbound is None:
+        return ""
+
+    required_schema = json.dumps(
+        focused_task.requiredOutputSchema,
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    return (
+        "\nThe turn is answering the focused conversation task. Do not send a guest-facing "
+        "acknowledgement yet. Return disposition TOOL_CALLS_REQUIRED, messages [], and exactly "
+        "one COMPLETE_CONVERSATION_TASK tool call. Use "
+        f"targetOperationId={focused_task.operationId}, "
+        f"targetConversationTaskId={focused_task.conversationTaskId}, "
+        f"arguments.conversationTaskId={focused_task.conversationTaskId}, "
+        f"arguments.expectedVersion={focused_task.version}, and "
+        f"evidenceMessageIds=[{latest_inbound.messageId}]. "
+        "Infer arguments.result from the guest's latest message and make it satisfy this exact "
+        f"requiredOutputSchema: {required_schema}."
+    )
 
 
 def _normalize_response_envelope(
