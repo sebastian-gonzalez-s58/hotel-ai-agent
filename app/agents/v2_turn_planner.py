@@ -135,6 +135,25 @@ def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> No
     if not request.toolPolicy.allowMultipleConversationTaskCompletions and len(completed_tasks) > 1:
         raise AgentModelError("Multiple conversation-task completions are not allowed")
 
+    successfully_completed_tasks = {
+        UUID(str(result.result["conversationTaskId"]))
+        for result in request.previousToolResults
+        if result.status == "SUCCEEDED"
+        and result.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK.value
+        and isinstance(result.result, dict)
+        and result.result.get("conversationTaskId")
+    }
+    for message in response.messages:
+        referenced_tasks = set(message.conversationTaskIds)
+        if not referenced_tasks.issubset(task_ids):
+            raise AgentModelError(
+                "Agent message references a conversation task outside the turn context"
+            )
+        if not referenced_tasks.issubset(successfully_completed_tasks):
+            raise AgentModelError(
+                "Complete the referenced conversation task before acknowledging it"
+            )
+
 
 def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
     if call.toolName == DomainToolName.START_SERVICE:
@@ -309,20 +328,13 @@ def _ensure_service_start_acknowledgements(request: AgentTurnRequest, messages: 
     for operation in started:
         reference = str(operation["referenceCode"])
         operation_id = str(operation.get("operationId") or "")
-        existing = next((
-            message for message in messages
-            if reference.casefold() in str(message.get("text") or "").casefold()
-        ), None)
-        if existing:
-            acknowledgements.append(existing)
-            continue
         offering_code = str(operation.get("offeringCode") or "")
         offering_name = offering_names.get(offering_code, offering_code.replace("_", " ").title())
         text = (
-            f"Se inició tu solicitud de {offering_name} con el folio {reference}. "
-            "Te enviaremos las actualizaciones por este medio; por favor, mantente atento."
+            f"La solicitud de {offering_name.lower()} ha sido iniciada con el folio {reference}. "
+            "Recibirás actualizaciones por este medio; por favor, mantente atento."
             if spanish
-            else f"Your {offering_name} request was started with reference {reference}. "
+            else f"The {offering_name.lower()} request has been started with reference {reference}. "
             "We will send updates through this channel; please keep an eye on your messages."
         )
         linked_operations = [operation_id] if operation_id else []

@@ -361,7 +361,10 @@ class V2TurnPlannerTest(unittest.TestCase):
             "messages": [{
                 "messageDraftId": "81000000-0000-0000-0000-000000000002",
                 "purpose": "ANSWER",
-                "text": "La solicitud fue creada.",
+                "text": (
+                    'Tu solicitud de Servicio a la habitacion para "una barbacoa ancestral" '
+                    "ha sido iniciada con el folio REQ-20260824-ABC12345."
+                ),
                 "language": "es-MX",
                 "operationIds": [],
                 "conversationTaskIds": [],
@@ -371,8 +374,72 @@ class V2TurnPlannerTest(unittest.TestCase):
 
         self.assertEqual(1, len(normalized["messages"]))
         self.assertIn("REQ-20260824-ABC12345", normalized["messages"][0]["text"])
-        self.assertNotIn("La solicitud fue creada.", normalized["messages"][0]["text"])
+        self.assertNotIn("barbacoa ancestral", normalized["messages"][0]["text"])
+        self.assertEqual(
+            (
+                "La solicitud de servicio a la habitacion ha sido iniciada con el folio "
+                "REQ-20260824-ABC12345. Recibirás actualizaciones por este medio; "
+                "por favor, mantente atento."
+            ),
+            normalized["messages"][0]["text"],
+        )
         self.assertEqual([operation_id], normalized["messages"][0]["operationIds"])
+
+    def test_rejects_task_acknowledgement_before_successful_completion(self):
+        operation_id = "90000000-0000-0000-0000-000000000001"
+        task_id = "91000000-0000-0000-0000-000000000001"
+        request_payload = payload()
+        active_operation = operation(operation_id)
+        active_operation["pendingConversationTasks"] = [conversation_task(task_id, operation_id)]
+        request_payload["activeOperations"] = [active_operation]
+        request_payload["conversation"]["focusedConversationTaskId"] = task_id
+        request = AgentTurnRequest.model_validate(request_payload)
+        response = AgentTurnResponse.model_validate({
+            "schemaVersion": "2.0",
+            "agentTurnId": request_payload["agentTurnId"],
+            "disposition": "RESPONSE_READY",
+            "detectedLanguage": "es-MX",
+            "messages": [{
+                "messageDraftId": "81000000-0000-0000-0000-000000000010",
+                "purpose": "CONFIRMATION",
+                "text": "Gracias por confirmar que el problema se resolvió.",
+                "language": "es-MX",
+                "operationIds": [operation_id],
+                "conversationTaskIds": [task_id],
+                "interaction": None,
+            }],
+            "toolCalls": [],
+            "updatedConversationSummary": None,
+            "usage": {
+                "model": "test",
+                "inputTokens": 0,
+                "cachedInputTokens": 0,
+                "outputTokens": 0,
+                "reasoningTokens": 0,
+                "totalTokens": 0,
+            },
+            "warnings": [],
+        })
+
+        with self.assertRaisesRegex(
+            AgentModelError,
+            "Complete the referenced conversation task before acknowledging it",
+        ):
+            _validate_plan(request, response)
+
+        request_payload["previousToolResults"] = [{
+            "toolCallId": "80000000-0000-0000-0000-000000000011",
+            "toolName": "COMPLETE_CONVERSATION_TASK",
+            "status": "SUCCEEDED",
+            "result": {
+                "conversationTaskId": task_id,
+                "operationId": operation_id,
+                "status": "COMPLETED",
+            },
+        }]
+        completed_request = AgentTurnRequest.model_validate(request_payload)
+
+        _validate_plan(completed_request, response)
 
     def test_accepts_status_lookup_by_folio_without_exposing_an_operation_id(self):
         request_payload = payload()
