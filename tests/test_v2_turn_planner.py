@@ -726,6 +726,59 @@ class V2TurnPlannerTest(unittest.TestCase):
         )
         openai_call.assert_not_called()
 
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_faq_selection_collects_question_then_searches_approved_knowledge(self, openai_call):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_faq_offering()]
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["SEARCH_KNOWLEDGE", "START_SERVICE"],
+            "maxToolCalls": 2,
+        }
+        request_payload["conversation"]["recentMessages"] = [{
+            "messageId": "20000000-0000-0000-0000-000000000050",
+            "direction": "INBOUND",
+            "actor": "GUEST",
+            "text": "Preguntas frecuentes",
+            "interactionReplyId": "offering:FAQ",
+            "createdAt": "2026-08-26T15:00:00Z",
+        }]
+
+        first = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("RESPONSE_READY", first.disposition)
+        self.assertEqual("¿Qué información necesitas sobre el hotel?", first.messages[0].text)
+        self.assertEqual([], first.toolCalls)
+
+        request_payload["conversation"]["recentMessages"].extend([
+            {
+                "messageId": "20000000-0000-0000-0000-000000000051",
+                "direction": "OUTBOUND",
+                "actor": "ASSISTANT",
+                "text": first.messages[0].text,
+                "createdAt": "2026-08-26T15:00:01Z",
+            },
+            {
+                "messageId": MESSAGE_ID,
+                "direction": "INBOUND",
+                "actor": "GUEST",
+                "text": "¿A qué hora es el check-out?",
+                "createdAt": "2026-08-26T15:01:00Z",
+            },
+        ])
+
+        second = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", second.disposition)
+        self.assertEqual([], second.messages)
+        self.assertEqual(1, len(second.toolCalls))
+        call = second.toolCalls[0]
+        self.assertEqual("SEARCH_KNOWLEDGE", call.toolName)
+        self.assertEqual("FAQ", call.arguments["offeringCode"])
+        self.assertEqual("¿A qué hora es el check-out?", call.arguments["query"])
+        self.assertEqual([UUID(MESSAGE_ID)], call.evidenceMessageIds)
+        self.assertIn('"question":"¿A qué hora es el check-out?"', second.updatedConversationSummary)
+        openai_call.assert_not_called()
+
     def test_old_catalog_capture_does_not_hijack_a_later_greeting(self):
         request_payload = payload()
         request_payload["availableOfferings"] = [guided_room_service_offering()]
@@ -1140,6 +1193,33 @@ def guided_spa_offering():
                         "inputMode": "TIME",
                         "displayOrder": 30,
                         "introMessage": "¿A qué hora deseas la reservación?",
+                    },
+                },
+            },
+            "additionalProperties": False,
+        },
+        "requiresExplicitGuestConfirmation": False,
+    }
+
+
+def guided_faq_offering():
+    return {
+        "offeringCode": "FAQ",
+        "name": "Preguntas frecuentes",
+        "description": "Información y políticas del hotel",
+        "executionMode": "KNOWLEDGE",
+        "inputSchema": {
+            "type": "object",
+            "required": ["question"],
+            "properties": {
+                "question": {
+                    "type": "string",
+                    "title": "Pregunta",
+                    "x-source": "GUEST",
+                    "x-chatbotinn-capture": {
+                        "inputMode": "FREE_TEXT",
+                        "displayOrder": 10,
+                        "introMessage": "¿Qué información necesitas sobre el hotel?",
                     },
                 },
             },

@@ -20,6 +20,9 @@ MAX_PLAN_ATTEMPTS = 3
 
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     started_at = time.perf_counter()
+    deterministic = _faq_knowledge_lookup_plan(request, started_at)
+    if deterministic is not None:
+        return deterministic
     deterministic = _configured_capture_plan(request, started_at)
     if deterministic is not None:
         return deterministic
@@ -69,6 +72,58 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         )
 
     raise AgentModelError("OpenAI did not return a valid V2 agent plan")
+
+
+def _faq_knowledge_lookup_plan(
+    request: AgentTurnRequest,
+    started_at: float,
+) -> AgentTurnResponse | None:
+    if request.previousToolResults or DomainToolName.SEARCH_KNOWLEDGE not in request.toolPolicy.allowedTools:
+        return None
+
+    context = _pending_free_text_capture_context(request)
+    if context is None or context["offering"].offeringCode != "FAQ":
+        return None
+
+    question = " ".join(context["latestInbound"].text.strip().split()).strip()
+    if not question:
+        return None
+
+    payload = _normalize_response_envelope(request, {
+        "disposition": "TOOL_CALLS_REQUIRED",
+        "messages": [],
+        "toolCalls": [{
+            "toolName": DomainToolName.SEARCH_KNOWLEDGE.value,
+            "targetOperationId": None,
+            "targetConversationTaskId": None,
+            "arguments": {
+                "offeringCode": "FAQ",
+                "query": question,
+                "limit": 10,
+            },
+            "confidence": 1.0,
+            "evidenceMessageIds": [str(context["latestInbound"].messageId)],
+        }],
+        "updatedConversationSummary": _capture_summary(
+            request,
+            "FAQ",
+            {"question": question},
+            False,
+        ),
+        "warnings": [],
+    })
+    payload["usage"] = {
+        "model": settings.openai_model,
+        "inputTokens": 0,
+        "cachedInputTokens": 0,
+        "outputTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 0,
+        "latencyMs": round((time.perf_counter() - started_at) * 1000),
+    }
+    response = AgentTurnResponse.model_validate(payload)
+    _validate_plan(request, response)
+    return response
 
 
 def _configured_capture_plan(
