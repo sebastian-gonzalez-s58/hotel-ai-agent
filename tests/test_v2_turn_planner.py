@@ -210,6 +210,8 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertNotEqual(normalized["toolCalls"][0]["toolCallId"], model_tool_call_id)
         UUID(normalized["messages"][0]["messageDraftId"])
         UUID(normalized["toolCalls"][0]["toolCallId"])
+        self.assertEqual(normalized["messages"][0]["operationIds"], [])
+        self.assertEqual(normalized["messages"][0]["conversationTaskIds"], [])
         self.assertEqual(normalized["warnings"], [])
         self.assertIsNone(normalized["detectedLanguage"])
 

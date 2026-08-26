@@ -131,6 +131,8 @@ def _normalize_response_envelope(
     for message in payload["messages"]:
         if isinstance(message, dict):
             message["messageDraftId"] = str(uuid4())
+            message.setdefault("operationIds", [])
+            message.setdefault("conversationTaskIds", [])
     for tool_call in payload["toolCalls"]:
         if isinstance(tool_call, dict):
             tool_call["toolCallId"] = str(uuid4())
