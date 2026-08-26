@@ -633,6 +633,99 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertIn('"deliveryLocation":"ROOM"', normalized["updatedConversationSummary"])
         self.assertIn('"items":"2 chilaquiles rellenos"', normalized["updatedConversationSummary"])
 
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_spa_capture_collects_service_date_and_time_before_starting(self, openai_call):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_spa_offering()]
+        request_payload["toolPolicy"] = {"allowedTools": ["START_SERVICE"], "maxToolCalls": 2}
+        request_payload["conversation"]["recentMessages"] = [
+            {
+                "messageId": "20000000-0000-0000-0000-000000000030",
+                "direction": "INBOUND",
+                "actor": "GUEST",
+                "text": "Reservación de spa",
+                "interactionReplyId": "offering:SPA",
+                "createdAt": "2026-08-26T14:00:00Z",
+            },
+        ]
+        first = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+        self.assertIn("https://spa.example/catalog", first.messages[0].text)
+        self.assertIn("cuál deseas reservar", first.messages[0].text)
+
+        request_payload["conversation"]["recentMessages"].extend([
+            {
+                "messageId": "20000000-0000-0000-0000-000000000031",
+                "direction": "OUTBOUND",
+                "actor": "ASSISTANT",
+                "text": first.messages[0].text,
+                "createdAt": "2026-08-26T14:00:01Z",
+            },
+            {
+                "messageId": "20000000-0000-0000-0000-000000000032",
+                "direction": "INBOUND",
+                "actor": "GUEST",
+                "text": "Masaje relajante",
+                "createdAt": "2026-08-26T14:01:00Z",
+            },
+        ])
+        second = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+        self.assertEqual("¿Para qué fecha deseas hacer la reservación?", second.messages[0].text)
+
+        request_payload["conversation"]["summary"] = second.updatedConversationSummary or ""
+        request_payload["conversation"]["recentMessages"].extend([
+            {
+                "messageId": "20000000-0000-0000-0000-000000000033",
+                "direction": "OUTBOUND",
+                "actor": "ASSISTANT",
+                "text": second.messages[0].text,
+                "createdAt": "2026-08-26T14:01:01Z",
+            },
+            {
+                "messageId": "20000000-0000-0000-0000-000000000034",
+                "direction": "INBOUND",
+                "actor": "GUEST",
+                "text": "30 de agosto",
+                "createdAt": "2026-08-26T14:02:00Z",
+            },
+        ])
+        third = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+        self.assertEqual("¿A qué hora deseas la reservación?", third.messages[0].text)
+
+        request_payload["conversation"]["summary"] = third.updatedConversationSummary or ""
+        request_payload["conversation"]["recentMessages"].extend([
+            {
+                "messageId": "20000000-0000-0000-0000-000000000035",
+                "direction": "OUTBOUND",
+                "actor": "ASSISTANT",
+                "text": third.messages[0].text,
+                "createdAt": "2026-08-26T14:02:01Z",
+            },
+            {
+                "messageId": MESSAGE_ID,
+                "direction": "INBOUND",
+                "actor": "GUEST",
+                "text": "5 de la tarde",
+                "createdAt": "2026-08-26T14:03:00Z",
+            },
+        ])
+        fourth = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", fourth.disposition)
+        self.assertEqual([], fourth.messages)
+        self.assertEqual(1, len(fourth.toolCalls))
+        call = fourth.toolCalls[0]
+        self.assertEqual("START_SERVICE", call.toolName)
+        self.assertEqual("SPA", call.arguments["offeringCode"])
+        self.assertEqual(
+            {
+                "serviceName": "Masaje relajante",
+                "reservationDate": "30 de agosto",
+                "reservationTime": "5 de la tarde",
+            },
+            call.arguments["input"],
+        )
+        openai_call.assert_not_called()
+
     def test_old_catalog_capture_does_not_hijack_a_later_greeting(self):
         request_payload = payload()
         request_payload["availableOfferings"] = [guided_room_service_offering()]
@@ -994,6 +1087,65 @@ def guided_room_service_offering():
             "additionalProperties": False,
         },
         "requiresExplicitGuestConfirmation": True,
+    }
+
+
+def guided_spa_offering():
+    return {
+        "offeringCode": "SPA",
+        "name": "Reservación de spa",
+        "description": "Servicios y tratamientos de SPA",
+        "executionMode": "PROCESS",
+        "inputSchema": {
+            "type": "object",
+            "required": ["serviceName", "reservationDate", "reservationTime"],
+            "properties": {
+                "serviceName": {
+                    "type": "string",
+                    "title": "Servicio de SPA",
+                    "x-source": "GUEST",
+                    "x-chatbotinn-capture": {
+                        "inputMode": "CATALOG_ITEMS",
+                        "displayOrder": 10,
+                        "introMessage": (
+                            "En este enlace puedes consultar los servicios que ofrecemos en el SPA. "
+                            "Indícanos cuál deseas reservar."
+                        ),
+                        "catalog": {
+                            "code": "SPA_SERVICES",
+                            "name": "Servicios de SPA",
+                            "type": "BOOKABLE_SERVICE",
+                            "externalUrl": "https://spa.example/catalog",
+                            "options": [],
+                        },
+                    },
+                },
+                "reservationDate": {
+                    "type": "string",
+                    "format": "date",
+                    "title": "Fecha deseada",
+                    "x-source": "GUEST",
+                    "x-chatbotinn-capture": {
+                        "inputMode": "DATE",
+                        "displayOrder": 20,
+                        "introMessage": "¿Para qué fecha deseas hacer la reservación?",
+                    },
+                },
+                "reservationTime": {
+                    "type": "string",
+                    "format": "time",
+                    "title": "Hora deseada",
+                    "x-source": "GUEST",
+                    "x-chatbotinn-capture": {
+                        "inputMode": "TIME",
+                        "displayOrder": 30,
+                        "introMessage": "¿A qué hora deseas la reservación?",
+                    },
+                },
+            },
+            "additionalProperties": False,
+        },
+        "requiresExplicitGuestConfirmation": False,
     }
 
 

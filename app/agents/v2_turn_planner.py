@@ -20,6 +20,9 @@ MAX_PLAN_ATTEMPTS = 3
 
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     started_at = time.perf_counter()
+    deterministic = _configured_capture_plan(request, started_at)
+    if deterministic is not None:
+        return deterministic
     prompt = build_v2_turn_prompt(request) + _build_capture_turn_instruction(request)
     for attempt in range(1, MAX_PLAN_ATTEMPTS + 1):
         result = call_openai_json_result(
@@ -66,6 +69,52 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         )
 
     raise AgentModelError("OpenAI did not return a valid V2 agent plan")
+
+
+def _configured_capture_plan(
+    request: AgentTurnRequest,
+    started_at: float,
+) -> AgentTurnResponse | None:
+    latest_inbound = _latest_inbound_message(request)
+    if latest_inbound is None or request.previousToolResults:
+        return None
+
+    selection = _capture_selection(request, latest_inbound)
+    context = _pending_free_text_capture_context(request)
+    if selection is None and context is None:
+        return None
+    if context is not None:
+        capture = context["fieldSchema"].get("x-chatbotinn-capture")
+        explicit_catalog_confirmation = (
+            context["offering"].requiresExplicitGuestConfirmation
+            and isinstance(capture, dict)
+            and str(capture.get("inputMode") or "").upper() == "CATALOG_ITEMS"
+        )
+        if not explicit_catalog_confirmation and not _supports_sequential_capture(context["offering"]):
+            return None
+
+    payload = _normalize_response_envelope(request, {
+        "disposition": "RESPONSE_READY",
+        "messages": [],
+        "toolCalls": [],
+        "updatedConversationSummary": None,
+        "warnings": [],
+    })
+    payload = _normalize_guest_experience(request, payload)
+    if not payload.get("messages") and not payload.get("toolCalls"):
+        return None
+    payload["usage"] = {
+        "model": settings.openai_model,
+        "inputTokens": 0,
+        "cachedInputTokens": 0,
+        "outputTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 0,
+        "latencyMs": round((time.perf_counter() - started_at) * 1000),
+    }
+    response = AgentTurnResponse.model_validate(payload)
+    _validate_plan(request, response)
+    return response
 
 
 def _build_focused_task_repair_instruction(request: AgentTurnRequest) -> str:
@@ -367,6 +416,8 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
     _remove_maintenance_issue_interactions(request, messages)
     if _ensure_explicit_capture_confirmation(request, normalized, messages):
         return normalized
+    if _ensure_sequential_field_capture(request, normalized, messages):
+        return normalized
     if _ensure_configured_field_capture(request, normalized, messages):
         return normalized
     if _is_greeting_turn(request) and not request.previousToolResults:
@@ -389,6 +440,109 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
         if messages:
             normalized["disposition"] = "RESPONSE_READY"
     return normalized
+
+
+def _ensure_sequential_field_capture(
+    request: AgentTurnRequest,
+    normalized: dict,
+    messages: list[dict],
+) -> bool:
+    context = _pending_free_text_capture_context(request)
+    if context is None:
+        return False
+    offering = context["offering"]
+    if offering.requiresExplicitGuestConfirmation or not _supports_sequential_capture(offering):
+        return False
+
+    value = " ".join(context["latestInbound"].text.strip().split()).strip()
+    if not value:
+        return False
+    completed_values = {
+        **context["completedValues"],
+        context["fieldCode"]: value,
+    }
+    remaining = [
+        (field_code, field_schema)
+        for field_code, field_schema in _ordered_guest_capture_fields(offering)
+        if field_code not in completed_values
+    ]
+    if remaining:
+        field_code, field_schema = remaining[0]
+        capture = field_schema.get("x-chatbotinn-capture")
+        if not isinstance(capture, dict):
+            return False
+        message = _capture_message(
+            request,
+            offering.offeringCode,
+            field_code,
+            field_schema,
+            capture,
+        )
+        if message is None:
+            return False
+        messages[:] = [message]
+        normalized["disposition"] = "RESPONSE_READY"
+        normalized["toolCalls"] = []
+        normalized["updatedConversationSummary"] = _capture_summary(
+            request,
+            offering.offeringCode,
+            completed_values,
+            False,
+        )
+        return True
+
+    latest_message_id = str(context["latestInbound"].messageId)
+    messages[:] = []
+    normalized["disposition"] = "TOOL_CALLS_REQUIRED"
+    normalized["toolCalls"] = [{
+        "toolCallId": str(uuid4()),
+        "toolName": DomainToolName.START_SERVICE.value,
+        "targetOperationId": None,
+        "targetConversationTaskId": None,
+        "arguments": {
+            "offeringCode": offering.offeringCode,
+            "input": completed_values,
+        },
+        "confidence": 1.0,
+        "evidenceMessageIds": [latest_message_id],
+    }]
+    normalized["updatedConversationSummary"] = _capture_summary(
+        request,
+        offering.offeringCode,
+        completed_values,
+        True,
+    )
+    return True
+
+
+def _supports_sequential_capture(offering) -> bool:
+    fields = _ordered_guest_capture_fields(offering)
+    if len(fields) < 2:
+        return False
+    modes = {
+        str(field_schema.get("x-chatbotinn-capture", {}).get("inputMode") or "AUTO").upper()
+        for _, field_schema in fields
+    }
+    return modes.issubset({"FREE_TEXT", "DATE", "TIME", "CATALOG_ITEMS"})
+
+
+def _capture_summary(
+    request: AgentTurnRequest,
+    offering_code: str,
+    completed_values: dict[str, str],
+    ready_to_start: bool,
+) -> str:
+    state = json.dumps(
+        {
+            "pendingOffering": offering_code,
+            "capturedFields": completed_values,
+            "readyToStart": ready_to_start,
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    existing = request.conversation.summary.strip()
+    return f"{existing}\n{state}" if existing else state
 
 
 def _ensure_explicit_capture_confirmation(
@@ -534,6 +688,14 @@ def _pending_free_text_capture_context(request: AgentTurnRequest) -> dict | None
     if latest_index <= selected_at:
         return None
 
+    completed_values.update(_completed_free_text_capture_values(
+        request,
+        selected_offering,
+        selected_at,
+        latest_index,
+        completed_values,
+    ))
+
     for field_code, field_schema in _ordered_guest_capture_fields(selected_offering):
         if field_code in completed_values:
             continue
@@ -559,6 +721,40 @@ def _pending_free_text_capture_context(request: AgentTurnRequest) -> dict | None
             "latestInbound": latest_inbound,
         }
     return None
+
+
+def _completed_free_text_capture_values(
+    request: AgentTurnRequest,
+    offering,
+    selected_at: int,
+    latest_index: int,
+    structured_values: dict[str, str],
+) -> dict[str, str]:
+    completed = dict(structured_values)
+    pending_field = None
+    fields = _ordered_guest_capture_fields(offering)
+    for message in request.conversation.recentMessages[selected_at + 1:latest_index]:
+        if message.direction == "OUTBOUND":
+            pending_field = next(
+                (
+                    field_code
+                    for field_code, field_schema in fields
+                    if field_code not in completed
+                    and _is_capture_prompt_message(message, field_schema)
+                ),
+                None,
+            )
+            continue
+        if message.direction != "INBOUND" or pending_field is None:
+            continue
+        if (message.interactionReplyId or "").strip():
+            pending_field = None
+            continue
+        value = " ".join(message.text.strip().split()).strip()
+        if value:
+            completed[pending_field] = value
+        pending_field = None
+    return completed
 
 
 def _is_capture_prompt_message(message, field_schema: dict) -> bool:
