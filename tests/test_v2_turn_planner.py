@@ -497,6 +497,93 @@ class V2TurnPlannerTest(unittest.TestCase):
         )
         self.assertIsNone(normalized["messages"][0]["interaction"])
 
+    def test_offering_capture_uses_configured_delivery_options(self):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_room_service_offering()]
+        request_payload["conversation"]["recentMessages"][0].update({
+            "text": "Servicio a la habitacion",
+            "interactionReplyId": "offering:ROOM_SERVICE",
+        })
+        request = AgentTurnRequest.model_validate(request_payload)
+
+        normalized = _normalize_guest_experience(request, {
+            "disposition": "TOOL_CALLS_REQUIRED",
+            "messages": [],
+            "toolCalls": [{"toolName": "START_SERVICE"}],
+        })
+
+        self.assertEqual("RESPONSE_READY", normalized["disposition"])
+        self.assertEqual([], normalized["toolCalls"])
+        message = normalized["messages"][0]
+        self.assertEqual("¿Dónde deseas recibir tu pedido?", message["text"])
+        self.assertEqual("LIST", message["interaction"]["type"])
+        self.assertEqual(
+            [
+                "field:ROOM_SERVICE:deliveryLocation:ROOM",
+                "field:ROOM_SERVICE:deliveryLocation:DOCK_1",
+                "field:ROOM_SERVICE:deliveryLocation:DOCK_2",
+                "field:ROOM_SERVICE:deliveryLocation:POOL_1",
+                "field:ROOM_SERVICE:deliveryLocation:POOL_2",
+            ],
+            [option["id"] for option in message["interaction"]["options"]],
+        )
+
+    def test_delivery_selection_advances_to_catalog_items_with_visible_url(self):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_room_service_offering()]
+        request_payload["conversation"]["recentMessages"][0].update({
+            "text": "Muelle 1",
+            "interactionReplyId": "field:ROOM_SERVICE:deliveryLocation:DOCK_1",
+        })
+        request = AgentTurnRequest.model_validate(request_payload)
+
+        normalized = _normalize_guest_experience(request, {
+            "disposition": "RESPONSE_READY",
+            "messages": [{
+                "messageDraftId": "81000000-0000-0000-0000-000000000041",
+                "purpose": "CLARIFICATION",
+                "text": "Selecciona productos",
+                "language": "es-MX",
+                "operationIds": [],
+                "conversationTaskIds": [],
+                "interaction": {
+                    "type": "BUTTONS",
+                    "title": "Menu",
+                    "body": "Selecciona productos",
+                    "buttonText": "Abrir menu",
+                    "options": [{"id": "open-menu", "label": "Abrir menu"}],
+                },
+            }],
+        })
+
+        message = normalized["messages"][0]
+        self.assertIn("https://hotel.example/menu", message["text"])
+        self.assertIsNone(message["interaction"])
+
+    def test_rejects_start_service_with_unknown_configured_option(self):
+        request_payload = payload()
+        offering_payload = guided_room_service_offering()
+        request_payload["availableOfferings"] = [offering_payload]
+        request_payload["toolPolicy"] = {"allowedTools": ["START_SERVICE"], "maxToolCalls": 2}
+        request = AgentTurnRequest.model_validate(request_payload)
+        response = tool_response({
+            "toolCallId": "80000000-0000-0000-0000-000000000042",
+            "toolName": "START_SERVICE",
+            "arguments": {
+                "offeringCode": "ROOM_SERVICE",
+                "input": {
+                    "deliveryLocation": "BEACH",
+                    "items": [{"name": "Hamburguesa", "quantity": 1}],
+                },
+                "guestConfirmationEvidenceMessageId": MESSAGE_ID,
+            },
+            "confidence": 1,
+            "evidenceMessageIds": [MESSAGE_ID],
+        })
+
+        with self.assertRaisesRegex(AgentModelError, "configured option code"):
+            _validate_plan(request, response)
+
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
     def test_greeting_cannot_start_service_from_historical_maintenance_context(self, openai_call):
         operation_id = "90000000-0000-0000-0000-000000000030"
@@ -692,6 +779,66 @@ def offering():
         "description": "Alimentos y bebidas",
         "executionMode": "PROCESS",
         "inputSchema": {"type": "object"},
+        "requiresExplicitGuestConfirmation": True,
+    }
+
+
+def guided_room_service_offering():
+    delivery_options = [
+        {"id": "1", "code": "ROOM", "label": "Habitacion"},
+        {"id": "2", "code": "DOCK_1", "label": "Muelle 1"},
+        {"id": "3", "code": "DOCK_2", "label": "Muelle 2"},
+        {"id": "4", "code": "POOL_1", "label": "Alberca 1"},
+        {"id": "5", "code": "POOL_2", "label": "Alberca 2"},
+    ]
+    return {
+        "offeringCode": "ROOM_SERVICE",
+        "name": "Servicio a la habitacion",
+        "description": "Alimentos y bebidas",
+        "executionMode": "PROCESS",
+        "inputSchema": {
+            "type": "object",
+            "required": ["deliveryLocation", "items"],
+            "properties": {
+                "deliveryLocation": {
+                    "type": "string",
+                    "title": "Lugar de entrega",
+                    "x-source": "GUEST",
+                    "x-chatbotinn-capture": {
+                        "inputMode": "SINGLE_SELECT",
+                        "displayOrder": 10,
+                        "introMessage": "¿Dónde deseas recibir tu pedido?",
+                        "catalog": {
+                            "code": "ROOM_SERVICE_DELIVERY_LOCATIONS",
+                            "name": "Lugares de entrega",
+                            "type": "OPTION_LIST",
+                            "options": delivery_options,
+                        },
+                    },
+                },
+                "items": {
+                    "type": "array",
+                    "items": {"type": "object"},
+                    "title": "Productos",
+                    "x-source": "GUEST",
+                    "x-chatbotinn-capture": {
+                        "inputMode": "CATALOG_ITEMS",
+                        "displayOrder": 20,
+                        "introMessage": (
+                            "Consulta el menú digital e indica productos, cantidades y modificaciones."
+                        ),
+                        "catalog": {
+                            "code": "ROOM_SERVICE_MENU",
+                            "name": "Menu",
+                            "type": "MENU",
+                            "externalUrl": "https://hotel.example/menu",
+                            "options": [],
+                        },
+                    },
+                },
+            },
+            "additionalProperties": False,
+        },
         "requiresExplicitGuestConfirmation": True,
     }
 

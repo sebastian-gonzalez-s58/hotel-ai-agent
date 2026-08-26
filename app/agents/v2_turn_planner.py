@@ -293,6 +293,21 @@ def _validate_schema_value(value, schema: dict, field: str) -> None:
     if not valid:
         raise AgentModelError(f"START_SERVICE offering field {field} must be {expected}")
 
+    capture = schema.get("x-chatbotinn-capture")
+    if not isinstance(capture, dict):
+        return
+    input_mode = str(capture.get("inputMode") or "AUTO").upper()
+    allowed_codes = _capture_option_codes(capture)
+    if input_mode == "SINGLE_SELECT" and allowed_codes and value not in allowed_codes:
+        raise AgentModelError(
+            f"START_SERVICE offering field {field} must use a configured option code"
+        )
+    if input_mode == "MULTI_SELECT" and allowed_codes:
+        if not isinstance(value, list) or any(item not in allowed_codes for item in value):
+            raise AgentModelError(
+                f"START_SERVICE offering field {field} must use configured option codes"
+            )
+
 
 def _is_missing_required_value(value) -> bool:
     return value is None or (isinstance(value, str) and not value.strip()) or (
@@ -322,6 +337,8 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
     messages = [dict(message) for message in normalized.get("messages", []) if isinstance(message, dict)]
     normalized["messages"] = messages
     _remove_maintenance_issue_interactions(request, messages)
+    if _ensure_configured_field_capture(request, normalized, messages):
+        return normalized
     if _is_greeting_turn(request) and not request.previousToolResults:
         # A greeting opens a navigation turn. Historical operations remain available
         # for later status questions, but they can never trigger side effects here.
@@ -342,6 +359,205 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
         if messages:
             normalized["disposition"] = "RESPONSE_READY"
     return normalized
+
+
+def _ensure_configured_field_capture(
+    request: AgentTurnRequest,
+    normalized: dict,
+    messages: list[dict],
+) -> bool:
+    latest_inbound = _latest_inbound_message(request)
+    if latest_inbound is None or request.previousToolResults:
+        return False
+
+    selection = _capture_selection(request, latest_inbound)
+    if selection is None:
+        return False
+    offering, completed_field = selection
+    fields = _ordered_guest_capture_fields(offering)
+    if not fields:
+        return False
+
+    field_index = 0
+    if completed_field is not None:
+        matching_index = next(
+            (index for index, (code, _) in enumerate(fields) if code == completed_field),
+            None,
+        )
+        if matching_index is None or matching_index + 1 >= len(fields):
+            return False
+        field_index = matching_index + 1
+
+    field_code, field_schema = fields[field_index]
+    capture = field_schema.get("x-chatbotinn-capture")
+    if not isinstance(capture, dict):
+        return False
+    message = _capture_message(request, offering.offeringCode, field_code, field_schema, capture)
+    if message is None:
+        return False
+
+    messages[:] = [message]
+    normalized["disposition"] = "RESPONSE_READY"
+    normalized["toolCalls"] = []
+    return True
+
+
+def _capture_selection(request: AgentTurnRequest, latest_inbound):
+    reply_id = (latest_inbound.interactionReplyId or "").strip()
+    offerings = {offering.offeringCode: offering for offering in request.availableOfferings}
+    if reply_id.startswith("offering:"):
+        offering_code = reply_id.split(":", 1)[1]
+        offering = offerings.get(offering_code)
+        return (offering, None) if offering is not None else None
+
+    if reply_id.startswith("field:"):
+        parts = reply_id.split(":", 3)
+        if len(parts) != 4:
+            return None
+        _, offering_code, field_code, option_code = parts
+        offering = offerings.get(offering_code)
+        if offering is None:
+            return None
+        properties = offering.inputSchema.get("properties")
+        field_schema = properties.get(field_code) if isinstance(properties, dict) else None
+        if not isinstance(field_schema, dict):
+            return None
+        capture = field_schema.get("x-chatbotinn-capture")
+        if not isinstance(capture, dict) or option_code not in _capture_option_codes(capture):
+            return None
+        return offering, field_code
+
+    normalized_text = _normalized_phrase(latest_inbound.text)
+    for offering in request.availableOfferings:
+        if normalized_text in {
+            _normalized_phrase(offering.offeringCode.replace("_", " ")),
+            _normalized_phrase(offering.name),
+        }:
+            return offering, None
+    return None
+
+
+def _ordered_guest_capture_fields(offering) -> list[tuple[str, dict]]:
+    schema = offering.inputSchema
+    properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+    required = schema.get("required") if isinstance(schema.get("required"), list) else []
+    fields = []
+    for position, field_code in enumerate(required):
+        field_schema = properties.get(field_code)
+        if not isinstance(field_schema, dict):
+            continue
+        source = str(field_schema.get("x-source") or "GUEST").upper()
+        capture = field_schema.get("x-chatbotinn-capture")
+        if source == "STAY" or not isinstance(capture, dict):
+            continue
+        order = capture.get("displayOrder")
+        fields.append(
+            (order if isinstance(order, int) else position, position, field_code, field_schema)
+        )
+    fields.sort(key=lambda item: (item[0], item[1]))
+    return [(field_code, field_schema) for _, _, field_code, field_schema in fields]
+
+
+def _capture_message(
+    request: AgentTurnRequest,
+    offering_code: str,
+    field_code: str,
+    field_schema: dict,
+    capture: dict,
+) -> dict | None:
+    input_mode = str(capture.get("inputMode") or "AUTO").upper()
+    if input_mode == "AUTO":
+        return None
+    spanish = request.guest.preferredLanguage.lower().startswith("es")
+    title = str(field_schema.get("title") or field_code).strip()
+    text = str(
+        capture.get("introMessage")
+        or field_schema.get("description")
+        or (
+            f"Por favor, indica {title.lower()}."
+            if spanish
+            else f"Please provide {title.lower()}."
+        )
+    ).strip()
+    interaction = None
+
+    if input_mode == "SINGLE_SELECT":
+        options = _capture_options(capture)
+        if not options:
+            return None
+        interaction_options = [
+            {
+                "id": f"field:{offering_code}:{field_code}:{option['code']}",
+                "label": str(option["label"])[:24],
+            }
+            for option in options[:10]
+        ]
+        interaction = {
+            "type": "BUTTONS" if len(interaction_options) <= 3 else "LIST",
+            "title": title[:60],
+            "body": text[:1024],
+            "buttonText": "Ver opciones" if spanish else "View options",
+            "options": interaction_options,
+        }
+    elif input_mode == "MULTI_SELECT":
+        labels = [str(option["label"]) for option in _capture_options(capture)]
+        if labels:
+            choices = ", ".join(labels)
+            suffix = (
+                f" Opciones disponibles: {choices}. Indica todas las que deseas."
+                if spanish
+                else f" Available options: {choices}. Tell us every option you want."
+            )
+            text = (text + suffix)[:20000]
+    elif input_mode == "CATALOG_ITEMS":
+        catalog = capture.get("catalog")
+        external_url = catalog.get("externalUrl") if isinstance(catalog, dict) else None
+        if isinstance(external_url, str) and external_url.strip() and external_url not in text:
+            text = f"{text}\n{external_url.strip()}"
+
+    return {
+        "messageDraftId": str(uuid4()),
+        "purpose": "CLARIFICATION",
+        "text": text,
+        "language": request.guest.preferredLanguage,
+        "operationIds": [],
+        "conversationTaskIds": [],
+        "interaction": interaction,
+    }
+
+
+def _capture_options(capture: dict) -> list[dict]:
+    catalog = capture.get("catalog")
+    raw_options = catalog.get("options") if isinstance(catalog, dict) else None
+    if not isinstance(raw_options, list):
+        return []
+    return [
+        option for option in raw_options
+        if isinstance(option, dict)
+        and isinstance(option.get("code"), str)
+        and option["code"].strip()
+        and isinstance(option.get("label"), str)
+        and option["label"].strip()
+    ]
+
+
+def _capture_option_codes(capture: dict) -> set[str]:
+    return {str(option["code"]) for option in _capture_options(capture)}
+
+
+def _latest_inbound_message(request: AgentTurnRequest):
+    return next(
+        (
+            message
+            for message in reversed(request.conversation.recentMessages)
+            if message.direction == "INBOUND"
+        ),
+        None,
+    )
+
+
+def _normalized_phrase(value: str) -> str:
+    return " ".join(value.casefold().strip().replace("_", " ").split()).strip("!?., ")
 
 
 def _remove_maintenance_issue_interactions(
