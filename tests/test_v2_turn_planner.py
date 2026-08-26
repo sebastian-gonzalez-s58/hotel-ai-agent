@@ -562,6 +562,122 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertIn("https://hotel.example/menu", message["text"])
         self.assertIsNone(message["interaction"])
 
+    def test_catalog_items_answer_advances_to_order_confirmation(self):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_room_service_offering()]
+        request_payload["conversation"]["recentMessages"] = [
+            {
+                "messageId": "20000000-0000-0000-0000-000000000010",
+                "direction": "INBOUND",
+                "actor": "GUEST",
+                "text": "Servicio a la habitación",
+                "interactionReplyId": "offering:ROOM_SERVICE",
+                "createdAt": "2026-08-26T12:21:53Z",
+            },
+            {
+                "messageId": "20000000-0000-0000-0000-000000000011",
+                "direction": "INBOUND",
+                "actor": "GUEST",
+                "text": "Habitación",
+                "interactionReplyId": "field:ROOM_SERVICE:deliveryLocation:ROOM",
+                "createdAt": "2026-08-26T12:22:05Z",
+            },
+            {
+                "messageId": "20000000-0000-0000-0000-000000000012",
+                "direction": "OUTBOUND",
+                "actor": "ASSISTANT",
+                "text": (
+                    "Por favor, indícame los productos que deseas pedir, incluyendo cantidades "
+                    "y modificaciones."
+                ),
+                "createdAt": "2026-08-26T12:22:09Z",
+            },
+            {
+                "messageId": MESSAGE_ID,
+                "direction": "INBOUND",
+                "actor": "GUEST",
+                "text": "2 chilaquiles rellenos.",
+                "createdAt": "2026-08-26T12:22:43Z",
+            },
+        ]
+        request = AgentTurnRequest.model_validate(request_payload)
+
+        normalized = _normalize_guest_experience(request, {
+            "disposition": "RESPONSE_READY",
+            "messages": [{
+                "messageDraftId": "81000000-0000-0000-0000-000000000044",
+                "purpose": "CLARIFICATION",
+                "text": "Por favor, indícame los alimentos y bebidas que deseas pedir.",
+                "language": "es-MX",
+                "operationIds": [],
+                "conversationTaskIds": [],
+            }],
+            "toolCalls": [],
+        })
+
+        self.assertEqual("RESPONSE_READY", normalized["disposition"])
+        self.assertEqual([], normalized["toolCalls"])
+        message = normalized["messages"][0]
+        self.assertIn("- 2 chilaquiles rellenos", message["text"])
+        self.assertIn("Lugar de entrega: Habitacion", message["text"])
+        self.assertNotIn("indícame los alimentos", message["text"])
+        self.assertEqual("BUTTONS", message["interaction"]["type"])
+        self.assertEqual(
+            [
+                "confirmation:ROOM_SERVICE:CONFIRM",
+                "confirmation:ROOM_SERVICE:CHANGE",
+                "confirmation:ROOM_SERVICE:CANCEL",
+            ],
+            [option["id"] for option in message["interaction"]["options"]],
+        )
+        self.assertIn('"deliveryLocation":"ROOM"', normalized["updatedConversationSummary"])
+        self.assertIn('"items":"2 chilaquiles rellenos"', normalized["updatedConversationSummary"])
+
+    def test_old_catalog_capture_does_not_hijack_a_later_greeting(self):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_room_service_offering()]
+        request_payload["conversation"]["recentMessages"] = [
+            {
+                "messageId": "20000000-0000-0000-0000-000000000020",
+                "direction": "INBOUND",
+                "actor": "GUEST",
+                "text": "Habitación",
+                "interactionReplyId": "field:ROOM_SERVICE:deliveryLocation:ROOM",
+                "createdAt": "2026-08-26T12:22:05Z",
+            },
+            {
+                "messageId": "20000000-0000-0000-0000-000000000021",
+                "direction": "OUTBOUND",
+                "actor": "ASSISTANT",
+                "text": "La solicitud fue completada.",
+                "createdAt": "2026-08-26T12:30:00Z",
+            },
+            {
+                "messageId": MESSAGE_ID,
+                "direction": "INBOUND",
+                "actor": "GUEST",
+                "text": "Hola",
+                "createdAt": "2026-08-26T13:00:00Z",
+            },
+        ]
+        request = AgentTurnRequest.model_validate(request_payload)
+
+        normalized = _normalize_guest_experience(request, {
+            "disposition": "RESPONSE_READY",
+            "messages": [{
+                "messageDraftId": "81000000-0000-0000-0000-000000000045",
+                "purpose": "ANSWER",
+                "text": "Hola",
+                "language": "es-MX",
+                "operationIds": [],
+                "conversationTaskIds": [],
+            }],
+            "toolCalls": [],
+        })
+
+        self.assertIn("Hola, Sebastian", normalized["messages"][0]["text"])
+        self.assertNotIn("Confirmación de pedido", normalized["messages"][0]["text"])
+
     def test_rejects_start_service_with_unknown_configured_option(self):
         request_payload = payload()
         offering_payload = guided_room_service_offering()

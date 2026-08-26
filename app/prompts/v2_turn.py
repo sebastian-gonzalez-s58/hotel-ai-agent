@@ -45,6 +45,11 @@ Rules:
 - Never invent catalog options, external URLs, required fields, or selection codes. An inbound
   interactionReplyId beginning with field: is authoritative structured input for the referenced
   offering field, but only when its option code exists in that property's catalog metadata.
+- An inbound interactionReplyId in the form confirmation:<offeringCode>:CONFIRM is explicit guest
+  confirmation for the captured offering. CHANGE means ask what should change while preserving the
+  other captured values. CANCEL means discard that pending request without calling START_SERVICE.
+- When the latest free-text message answers the currently requested capture field, extract it as
+  that field's value. Never repeat the same field prompt after receiving a concrete non-empty answer.
 - When MAINTENANCE is selected without an issue, ask the guest to describe the problem in their
   own words. The maintenance issue is free text: do not offer categories, examples as buttons,
   or an interaction list such as air conditioning, door, plumbing, or other.

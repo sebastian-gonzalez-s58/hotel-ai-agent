@@ -20,7 +20,7 @@ MAX_PLAN_ATTEMPTS = 3
 
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     started_at = time.perf_counter()
-    prompt = build_v2_turn_prompt(request)
+    prompt = build_v2_turn_prompt(request) + _build_capture_turn_instruction(request)
     for attempt in range(1, MAX_PLAN_ATTEMPTS + 1):
         result = call_openai_json_result(
             prompt,
@@ -112,6 +112,32 @@ def _build_focused_task_repair_instruction(request: AgentTurnRequest) -> str:
         f"evidenceMessageIds=[{latest_inbound.messageId}]. "
         "Infer arguments.result from the guest's latest message and make it satisfy this exact "
         f"requiredOutputSchema: {required_schema}."
+    )
+
+
+def _build_capture_turn_instruction(request: AgentTurnRequest) -> str:
+    context = _pending_free_text_capture_context(request)
+    if context is None:
+        return ""
+
+    offering = context["offering"]
+    field_code = context["fieldCode"]
+    completed_values = json.dumps(
+        context["completedValues"],
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    latest_inbound = context["latestInbound"]
+    return (
+        "\n\nAuthoritative capture state for this turn: "
+        f"offeringCode={offering.offeringCode}, currentField={field_code}, "
+        f"completedStructuredFields={completed_values}. "
+        f"The latest inbound message {latest_inbound.messageId} is the guest's free-text answer "
+        f"for currentField={field_code}. Extract and normalize its value. Do not repeat that "
+        "field's introMessage and do not ask for information already present. If every required "
+        "field is now available and the offering requires explicit guest confirmation, return a "
+        "concise confirmation summary with Confirm, Change, and Cancel choices; do not call "
+        "START_SERVICE until the guest confirms."
     )
 
 
@@ -339,6 +365,8 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
     messages = [dict(message) for message in normalized.get("messages", []) if isinstance(message, dict)]
     normalized["messages"] = messages
     _remove_maintenance_issue_interactions(request, messages)
+    if _ensure_explicit_capture_confirmation(request, normalized, messages):
+        return normalized
     if _ensure_configured_field_capture(request, normalized, messages):
         return normalized
     if _is_greeting_turn(request) and not request.previousToolResults:
@@ -361,6 +389,231 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
         if messages:
             normalized["disposition"] = "RESPONSE_READY"
     return normalized
+
+
+def _ensure_explicit_capture_confirmation(
+    request: AgentTurnRequest,
+    normalized: dict,
+    messages: list[dict],
+) -> bool:
+    context = _pending_free_text_capture_context(request)
+    if context is None:
+        return False
+
+    offering = context["offering"]
+    field_schema = context["fieldSchema"]
+    capture = field_schema.get("x-chatbotinn-capture")
+    if (
+        not offering.requiresExplicitGuestConfirmation
+        or not isinstance(capture, dict)
+        or str(capture.get("inputMode") or "").upper() != "CATALOG_ITEMS"
+    ):
+        return False
+
+    latest_inbound = context["latestInbound"]
+    item_text = " ".join(latest_inbound.text.strip().split()).strip()
+    if not item_text:
+        return False
+    item_text = item_text.rstrip(". ")
+
+    spanish = request.guest.preferredLanguage.lower().startswith("es")
+    completed_values = context["completedValues"]
+    destination = _capture_value_label(
+        offering,
+        "deliveryLocation",
+        completed_values.get("deliveryLocation"),
+    )
+    if spanish:
+        lines = ["Confirmación de pedido", "", "Artículos:", f"- {item_text}"]
+        if destination:
+            lines.extend(["", f"Lugar de entrega: {destination}"])
+        lines.extend(["", "¿Deseas confirmar, cambiar o cancelar el pedido?"])
+        title = "Confirmación de pedido"
+        button_labels = ("Confirmar", "Cambiar", "Cancelar")
+    else:
+        lines = ["Order confirmation", "", "Items:", f"- {item_text}"]
+        if destination:
+            lines.extend(["", f"Delivery location: {destination}"])
+        lines.extend(["", "Would you like to confirm, change, or cancel the order?"])
+        title = "Order confirmation"
+        button_labels = ("Confirm", "Change", "Cancel")
+
+    text = "\n".join(lines)
+    offering_code = offering.offeringCode
+    messages[:] = [{
+        "messageDraftId": str(uuid4()),
+        "purpose": "CONFIRMATION",
+        "text": text,
+        "language": request.guest.preferredLanguage,
+        "operationIds": [],
+        "conversationTaskIds": [],
+        "interaction": {
+            "type": "BUTTONS",
+            "title": title,
+            "body": text[:1024],
+            "buttonText": "",
+            "options": [
+                {
+                    "id": f"confirmation:{offering_code}:CONFIRM",
+                    "label": button_labels[0],
+                },
+                {
+                    "id": f"confirmation:{offering_code}:CHANGE",
+                    "label": button_labels[1],
+                },
+                {
+                    "id": f"confirmation:{offering_code}:CANCEL",
+                    "label": button_labels[2],
+                },
+            ],
+        },
+    }]
+    normalized["disposition"] = "RESPONSE_READY"
+    normalized["toolCalls"] = []
+    capture_summary = json.dumps(
+        {
+            "pendingOffering": offering_code,
+            "capturedFields": {
+                **completed_values,
+                context["fieldCode"]: item_text,
+            },
+            "awaitingExplicitConfirmation": True,
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+    existing_summary = request.conversation.summary.strip()
+    normalized["updatedConversationSummary"] = (
+        f"{existing_summary}\n{capture_summary}" if existing_summary else capture_summary
+    )
+    return True
+
+
+def _pending_free_text_capture_context(request: AgentTurnRequest) -> dict | None:
+    latest_inbound = _latest_inbound_message(request)
+    if latest_inbound is None or (latest_inbound.interactionReplyId or "").strip():
+        return None
+    if not latest_inbound.text.strip():
+        return None
+
+    selected_offering = None
+    selected_at = -1
+    completed_values: dict[str, str] = {}
+    for index, message in enumerate(request.conversation.recentMessages):
+        if message.direction != "INBOUND":
+            continue
+        selection = _capture_selection(request, message)
+        if selection is None:
+            continue
+        offering, field_code = selection
+        if offering is None:
+            continue
+        if field_code is None:
+            selected_offering = offering
+            selected_at = index
+            completed_values = {}
+            continue
+        if selected_offering is None or selected_offering.offeringCode != offering.offeringCode:
+            selected_offering = offering
+            selected_at = index
+            completed_values = {}
+        field_value = _structured_capture_value(message.interactionReplyId)
+        if field_value is not None:
+            completed_values[field_code] = field_value
+
+    if selected_offering is None:
+        return None
+    latest_index = next(
+        (
+            index
+            for index in range(len(request.conversation.recentMessages) - 1, -1, -1)
+            if request.conversation.recentMessages[index].messageId == latest_inbound.messageId
+        ),
+        -1,
+    )
+    if latest_index <= selected_at:
+        return None
+
+    for field_code, field_schema in _ordered_guest_capture_fields(selected_offering):
+        if field_code in completed_values:
+            continue
+        capture = field_schema.get("x-chatbotinn-capture")
+        input_mode = str(capture.get("inputMode") or "AUTO").upper() if isinstance(capture, dict) else "AUTO"
+        if input_mode not in {"FREE_TEXT", "DATE", "TIME", "MULTI_SELECT", "CATALOG_ITEMS"}:
+            return None
+        previous_message = next(
+            (
+                request.conversation.recentMessages[index]
+                for index in range(latest_index - 1, selected_at - 1, -1)
+                if request.conversation.recentMessages[index].direction != "INTERNAL"
+            ),
+            None,
+        )
+        if not _is_capture_prompt_message(previous_message, field_schema):
+            return None
+        return {
+            "offering": selected_offering,
+            "fieldCode": field_code,
+            "fieldSchema": field_schema,
+            "completedValues": completed_values,
+            "latestInbound": latest_inbound,
+        }
+    return None
+
+
+def _is_capture_prompt_message(message, field_schema: dict) -> bool:
+    if message is None or message.direction != "OUTBOUND":
+        return False
+    prompt_text = _normalized_phrase(message.text)
+    if not prompt_text:
+        return False
+    capture = field_schema.get("x-chatbotinn-capture")
+    if not isinstance(capture, dict):
+        return False
+    intro_message = capture.get("introMessage")
+    if isinstance(intro_message, str):
+        normalized_intro = _normalized_phrase(intro_message)
+        if normalized_intro and normalized_intro in prompt_text:
+            return True
+        intro_tokens = {
+            token.strip("!?.,;:")
+            for token in normalized_intro.split()
+            if len(token.strip("!?.,;:")) >= 4
+        }
+        prompt_tokens = {
+            token.strip("!?.,;:")
+            for token in prompt_text.split()
+            if len(token.strip("!?.,;:")) >= 4
+        }
+        smaller_count = min(len(intro_tokens), len(prompt_tokens))
+        if smaller_count and len(intro_tokens & prompt_tokens) / smaller_count >= 0.4:
+            return True
+    catalog = capture.get("catalog")
+    external_url = catalog.get("externalUrl") if isinstance(catalog, dict) else None
+    return isinstance(external_url, str) and external_url.strip() in message.text
+
+
+def _structured_capture_value(reply_id: str | None) -> str | None:
+    if not reply_id or not reply_id.startswith("field:"):
+        return None
+    parts = reply_id.split(":", 3)
+    return parts[3] if len(parts) == 4 and parts[3] else None
+
+
+def _capture_value_label(offering, field_code: str, value: str | None) -> str | None:
+    if not value:
+        return None
+    properties = offering.inputSchema.get("properties")
+    field_schema = properties.get(field_code) if isinstance(properties, dict) else None
+    capture = field_schema.get("x-chatbotinn-capture") if isinstance(field_schema, dict) else None
+    if isinstance(capture, dict):
+        option = next(
+            (option for option in _capture_options(capture) if option["code"] == value),
+            None,
+        )
+        if option is not None:
+            return str(option["label"])
+    return value
 
 
 def _ensure_configured_field_capture(
