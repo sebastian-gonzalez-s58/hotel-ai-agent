@@ -448,6 +448,55 @@ class V2TurnPlannerTest(unittest.TestCase):
             message["interaction"]["options"],
         )
 
+    def test_maintenance_selection_collects_issue_as_free_text(self):
+        request_payload = payload()
+        maintenance = offering()
+        maintenance.update({
+            "offeringCode": "MAINTENANCE",
+            "name": "Mantenimiento",
+            "inputSchema": {
+                "type": "object",
+                "required": ["issue"],
+                "properties": {"issue": {"type": "string"}},
+            },
+            "requiresExplicitGuestConfirmation": False,
+        })
+        request_payload["availableOfferings"] = [maintenance]
+        request_payload["conversation"]["recentMessages"][0]["text"] = "Mantenimiento"
+        request_payload["conversation"]["recentMessages"][0][
+            "interactionReplyId"
+        ] = "offering:MAINTENANCE"
+        request = AgentTurnRequest.model_validate(request_payload)
+
+        normalized = _normalize_guest_experience(request, {
+            "disposition": "RESPONSE_READY",
+            "messages": [{
+                "messageDraftId": "81000000-0000-0000-0000-000000000040",
+                "purpose": "CLARIFICATION",
+                "text": "Por favor, describe el problema de mantenimiento.",
+                "language": "es-MX",
+                "operationIds": [],
+                "conversationTaskIds": [],
+                "interaction": {
+                    "type": "LIST",
+                    "title": "Tipo de problema",
+                    "body": "Selecciona una opción",
+                    "buttonText": "Ver opciones",
+                    "options": [
+                        {"id": "ac", "label": "Aire acondicionado"},
+                        {"id": "door", "label": "Puerta"},
+                        {"id": "other", "label": "Otro problema"},
+                    ],
+                },
+            }],
+        })
+
+        self.assertEqual(
+            "Por favor, describe el problema de mantenimiento.",
+            normalized["messages"][0]["text"],
+        )
+        self.assertIsNone(normalized["messages"][0]["interaction"])
+
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
     def test_greeting_cannot_start_service_from_historical_maintenance_context(self, openai_call):
         operation_id = "90000000-0000-0000-0000-000000000030"

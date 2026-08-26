@@ -321,6 +321,7 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
     normalized = dict(payload)
     messages = [dict(message) for message in normalized.get("messages", []) if isinstance(message, dict)]
     normalized["messages"] = messages
+    _remove_maintenance_issue_interactions(request, messages)
     if _is_greeting_turn(request) and not request.previousToolResults:
         # A greeting opens a navigation turn. Historical operations remain available
         # for later status questions, but they can never trigger side effects here.
@@ -341,6 +342,37 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
         if messages:
             normalized["disposition"] = "RESPONSE_READY"
     return normalized
+
+
+def _remove_maintenance_issue_interactions(
+    request: AgentTurnRequest,
+    messages: list[dict],
+) -> None:
+    latest_inbound = next(
+        (
+            message
+            for message in reversed(request.conversation.recentMessages)
+            if message.direction == "INBOUND"
+        ),
+        None,
+    )
+    if latest_inbound is None:
+        return
+
+    reply_id = (latest_inbound.interactionReplyId or "").strip().casefold()
+    normalized_text = " ".join(latest_inbound.text.casefold().strip().split()).strip("!?., ")
+    selected_maintenance = reply_id == "offering:maintenance" or normalized_text in {
+        "maintenance",
+        "mantenimiento",
+        "servicio de mantenimiento",
+    }
+    if not selected_maintenance:
+        return
+
+    # The issue is an unconstrained guest description. Model-generated categories
+    # would discard useful details and can route the request incorrectly.
+    for message in messages:
+        message["interaction"] = None
 
 
 def _ensure_personalized_service_menu(request: AgentTurnRequest, messages: list[dict]) -> None:
