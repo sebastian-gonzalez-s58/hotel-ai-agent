@@ -584,6 +584,42 @@ class V2TurnPlannerTest(unittest.TestCase):
         with self.assertRaisesRegex(AgentModelError, "configured option code"):
             _validate_plan(request, response)
 
+    def test_accepts_one_confirmed_room_service_start_with_configured_input(self):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_room_service_offering()]
+        request_payload["toolPolicy"] = {"allowedTools": ["START_SERVICE"], "maxToolCalls": 2}
+        request_payload["conversation"]["recentMessages"][0].update({
+            "text": "Confirmar",
+            "interactionReplyId": "room-service:confirm",
+        })
+        request = AgentTurnRequest.model_validate(request_payload)
+        response = tool_response({
+            "toolCallId": "80000000-0000-0000-0000-000000000043",
+            "toolName": "START_SERVICE",
+            "arguments": {
+                "offeringCode": "ROOM_SERVICE",
+                "input": {
+                    "deliveryLocation": "DOCK_2",
+                    "items": [
+                        {"name": "Barbacoa ancestral", "quantity": 1},
+                        {"name": "Cerveza Indio", "quantity": 2},
+                    ],
+                },
+                "guestConfirmationEvidenceMessageId": MESSAGE_ID,
+            },
+            "confidence": 1,
+            "evidenceMessageIds": [MESSAGE_ID],
+        })
+
+        _validate_plan(request, response)
+        self.assertEqual(1, len(response.toolCalls))
+        self.assertEqual("START_SERVICE", response.toolCalls[0].toolName)
+        self.assertEqual(
+            "DOCK_2",
+            response.toolCalls[0].arguments["input"]["deliveryLocation"],
+        )
+        self.assertEqual(2, len(response.toolCalls[0].arguments["input"]["items"]))
+
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
     def test_greeting_cannot_start_service_from_historical_maintenance_context(self, openai_call):
         operation_id = "90000000-0000-0000-0000-000000000030"
