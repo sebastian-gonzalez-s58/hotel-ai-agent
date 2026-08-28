@@ -1062,8 +1062,13 @@ class V2TurnPlannerTest(unittest.TestCase):
         openai_call.assert_not_called()
 
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
-    def test_rewrites_approved_faq_answer_and_adds_follow_up(self, openai_call):
+    def test_known_faq_starts_counted_process_then_answers_without_folio(self, openai_call):
         request_payload = payload()
+        request_payload["availableOfferings"] = [guided_faq_offering()]
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["SEARCH_KNOWLEDGE", "START_SERVICE"],
+            "maxToolCalls": 2,
+        }
         request_payload["guest"]["preferredLanguage"] = "es-MX"
         request_payload["previousToolResults"] = [{
             "toolCallId": "80000000-0000-0000-0000-000000000150",
@@ -1071,68 +1076,91 @@ class V2TurnPlannerTest(unittest.TestCase):
             "status": "SUCCEEDED",
             "result": {
                 "query": "¿A qué hora cierra la alberca?",
-                "catalogs": [{
-                    "catalog": {
-                        "items": [{
-                            "faqConfiguration": {
-                                "question": "¿A qué hora cierra la alberca?",
-                                "answer": (
-                                    "La alberca está abierta todos los días de 8:00 a 22:00 "
-                                    "y cierra a las 22:00."
-                                ),
-                                "approved": True,
-                            },
-                        }],
-                    },
+                "matchStatus": "EXACT_MATCH",
+                "confidence": 1.0,
+                "matches": [{
+                    "catalogItemId": "90000000-0000-0000-0000-000000000150",
+                    "question": "¿A qué hora cierra la alberca?",
+                    "answer": "La alberca está abierta todos los días de 8:00 a 22:00.",
+                    "sourceReference": None,
+                    "confidence": 1.0,
                 }],
             },
         }]
-        copied = OpenAiJsonResult(
-            payload={
-                "disposition": "RESPONSE_READY",
-                "messages": [{
-                    "purpose": "ANSWER",
-                    "text": (
-                        "La alberca está abierta todos los días de 8:00 a 22:00 y cierra "
-                        "a las 22:00. ¿Hay algo más en lo que pueda ayudarte?"
-                    ),
-                    "language": "es-MX",
-                    "operationIds": [],
-                    "conversationTaskIds": [],
-                }],
-            },
-            usage=OpenAiTokenUsage(input_tokens=10, output_tokens=10, total_tokens=20),
-            response_id="resp-faq-copied",
-        )
-        rewritten = OpenAiJsonResult(
-            payload={
-                "disposition": "RESPONSE_READY",
-                "messages": [{
-                    "purpose": "ANSWER",
-                    "text": (
-                        "La alberca cierra todos los días a las 22:00."
-                    ),
-                    "language": "es-MX",
-                    "operationIds": [],
-                    "conversationTaskIds": [],
-                }],
-            },
-            usage=OpenAiTokenUsage(input_tokens=12, output_tokens=9, total_tokens=21),
-            response_id="resp-faq-rewritten",
-        )
-        openai_call.side_effect = [copied, rewritten]
+        first = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
 
-        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+        self.assertEqual("TOOL_CALLS_REQUIRED", first.disposition)
+        self.assertEqual("START_SERVICE", first.toolCalls[0].toolName)
+        self.assertEqual("FAQ", first.toolCalls[0].arguments["offeringCode"])
+        self.assertEqual("AUTOMATIC", first.toolCalls[0].arguments["input"]["resolutionMode"])
 
-        self.assertEqual("RESPONSE_READY", response.disposition)
+        operation_id = "91000000-0000-0000-0000-000000000150"
+        request_payload["previousToolResults"].append({
+            "toolCallId": str(first.toolCalls[0].toolCallId),
+            "toolName": "START_SERVICE",
+            "status": "SUCCEEDED",
+            "result": {
+                "operationId": operation_id,
+                "referenceCode": "FAQ-20260828-ABC12345",
+                "offeringCode": "FAQ",
+            },
+        })
+        second = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("RESPONSE_READY", second.disposition)
         self.assertEqual(
-            "La alberca cierra todos los días a las 22:00. "
+            "La alberca cierra todos los días a las 10:00 p.m. "
             "¿Hay algo más en lo que pueda ayudarte?",
-            response.messages[0].text,
+            second.messages[0].text,
         )
-        self.assertEqual(2, openai_call.call_count)
-        repair_prompt = openai_call.call_args_list[1].args[0]
-        self.assertIn("instead of copying the catalog answer verbatim", repair_prompt)
+        self.assertEqual([UUID(operation_id)], second.messages[0].operationIds)
+        self.assertNotIn("FAQ-20260828-ABC12345", second.messages[0].text)
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_unknown_faq_starts_human_process_and_explains_handoff(self, openai_call):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_faq_offering()]
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["SEARCH_KNOWLEDGE", "START_SERVICE"],
+            "maxToolCalls": 2,
+        }
+        request_payload["previousToolResults"] = [{
+            "toolCallId": "80000000-0000-0000-0000-000000000151",
+            "toolName": "SEARCH_KNOWLEDGE",
+            "status": "SUCCEEDED",
+            "result": {
+                "query": "¿A qué hora cierra el hotel?",
+                "matchStatus": "NO_MATCH",
+                "confidence": 0.0,
+                "matches": [],
+            },
+        }]
+
+        first = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", first.disposition)
+        self.assertEqual("HUMAN_REQUIRED", first.toolCalls[0].arguments["input"]["resolutionMode"])
+
+        operation_id = "91000000-0000-0000-0000-000000000151"
+        request_payload["previousToolResults"].append({
+            "toolCallId": str(first.toolCalls[0].toolCallId),
+            "toolName": "START_SERVICE",
+            "status": "SUCCEEDED",
+            "result": {
+                "operationId": operation_id,
+                "referenceCode": "FAQ-20260828-DEF67890",
+                "offeringCode": "FAQ",
+            },
+        })
+        second = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("RESPONSE_READY", second.disposition)
+        self.assertEqual("HANDOFF", second.messages[0].purpose)
+        self.assertIn("no tengo información suficiente", second.messages[0].text)
+        self.assertIn("equipo del hotel", second.messages[0].text)
+        self.assertNotIn("FAQ-20260828-DEF67890", second.messages[0].text)
+        openai_call.assert_not_called()
 
     def test_old_catalog_capture_does_not_hijack_a_later_greeting(self):
         request_payload = payload()

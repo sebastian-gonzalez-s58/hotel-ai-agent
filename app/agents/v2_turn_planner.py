@@ -31,6 +31,12 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     deterministic = _faq_knowledge_lookup_plan(request, started_at)
     if deterministic is not None:
         return deterministic
+    deterministic = _faq_service_start_plan(request, started_at)
+    if deterministic is not None:
+        return deterministic
+    deterministic = _faq_started_response_plan(request, started_at)
+    if deterministic is not None:
+        return deterministic
     deterministic = _configured_capture_plan(request, started_at)
     if deterministic is not None:
         return deterministic
@@ -460,6 +466,214 @@ def _deterministic_turn_response(
     return response
 
 
+def _faq_service_start_plan(
+    request: AgentTurnRequest,
+    started_at: float,
+) -> AgentTurnResponse | None:
+    if DomainToolName.START_SERVICE not in request.toolPolicy.allowedTools:
+        return None
+    search_result = _successful_faq_search_result(request)
+    if search_result is None or _successful_faq_start_result(request) is not None:
+        return None
+
+    latest_inbound = _latest_inbound_message(request)
+    if latest_inbound is None:
+        return None
+    question = " ".join(str(search_result.get("query") or latest_inbound.text).split()).strip()
+    if not question:
+        return None
+
+    match = _exact_faq_match(search_result)
+    service_input = {
+        "question": question,
+        "resolutionMode": "AUTOMATIC" if match is not None else "HUMAN_REQUIRED",
+    }
+    if match is not None:
+        service_input.update({
+            "knowledgeAnswer": str(match["answer"]).strip(),
+            "knowledgeQuestion": str(match.get("question") or question).strip(),
+            "knowledgeItemId": str(match.get("catalogItemId") or "").strip(),
+        })
+
+    payload = _normalize_response_envelope(request, {
+        "disposition": "TOOL_CALLS_REQUIRED",
+        "messages": [],
+        "toolCalls": [{
+            "toolName": DomainToolName.START_SERVICE.value,
+            "targetOperationId": None,
+            "targetConversationTaskId": None,
+            "arguments": {
+                "offeringCode": "FAQ",
+                "input": service_input,
+            },
+            "confidence": float(search_result.get("confidence") or 0.0),
+            "evidenceMessageIds": [str(latest_inbound.messageId)],
+        }],
+        "updatedConversationSummary": _capture_summary(
+            request,
+            "FAQ",
+            {"question": question},
+            False,
+        ),
+        "warnings": [],
+    })
+    return _zero_usage_response(request, payload, started_at)
+
+
+def _faq_started_response_plan(
+    request: AgentTurnRequest,
+    started_at: float,
+) -> AgentTurnResponse | None:
+    operation = _successful_faq_start_result(request)
+    search_result = _successful_faq_search_result(request)
+    if operation is None or search_result is None:
+        return None
+
+    operation_id = str(operation.get("operationId") or "").strip()
+    match = _exact_faq_match(search_result)
+    spanish = request.guest.preferredLanguage.lower().startswith("es")
+    if match is not None:
+        text = _compose_known_faq_answer(
+            str(search_result.get("query") or ""),
+            str(match["answer"]),
+            request.guest.preferredLanguage,
+        )
+        purpose = "ANSWER"
+    else:
+        text = (
+            "Lo siento, como asistente virtual no tengo información suficiente para responder "
+            "tu pregunta. La compartiré con el equipo del hotel para que te respondan a la brevedad."
+            if spanish
+            else "I’m sorry, but I do not have enough information to answer your question. "
+            "I’ll share it with the hotel team so they can reply shortly."
+        )
+        purpose = "HANDOFF"
+
+    payload = _normalize_response_envelope(request, {
+        "disposition": "RESPONSE_READY",
+        "messages": [{
+            "purpose": purpose,
+            "text": text,
+            "language": request.guest.preferredLanguage,
+            "operationIds": [operation_id] if operation_id else [],
+            "conversationTaskIds": [],
+            "interaction": None,
+        }],
+        "toolCalls": [],
+        "updatedConversationSummary": "{}",
+        "warnings": [],
+    })
+    return _zero_usage_response(request, payload, started_at)
+
+
+def _zero_usage_response(
+    request: AgentTurnRequest,
+    payload: dict,
+    started_at: float,
+) -> AgentTurnResponse:
+    payload["usage"] = {
+        "model": settings.openai_model,
+        "inputTokens": 0,
+        "cachedInputTokens": 0,
+        "outputTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 0,
+        "latencyMs": round((time.perf_counter() - started_at) * 1000),
+    }
+    response = AgentTurnResponse.model_validate(payload)
+    _validate_plan(request, response)
+    return response
+
+
+def _successful_faq_search_result(request: AgentTurnRequest) -> dict | None:
+    return next((
+        result.result
+        for result in reversed(request.previousToolResults)
+        if result.status == "SUCCEEDED"
+        and result.toolName == DomainToolName.SEARCH_KNOWLEDGE.value
+        and isinstance(result.result, dict)
+    ), None)
+
+
+def _successful_faq_start_result(request: AgentTurnRequest) -> dict | None:
+    return next((
+        result.result
+        for result in reversed(request.previousToolResults)
+        if result.status == "SUCCEEDED"
+        and result.toolName == DomainToolName.START_SERVICE.value
+        and isinstance(result.result, dict)
+        and result.result.get("offeringCode") == "FAQ"
+    ), None)
+
+
+def _exact_faq_match(search_result: dict) -> dict | None:
+    if str(search_result.get("matchStatus") or "").upper() != "EXACT_MATCH":
+        return None
+    matches = search_result.get("matches")
+    if not isinstance(matches, list) or not matches or not isinstance(matches[0], dict):
+        return None
+    answer = matches[0].get("answer")
+    return matches[0] if isinstance(answer, str) and answer.strip() else None
+
+
+def _compose_known_faq_answer(question: str, source_answer: str, language: str) -> str:
+    answer = " ".join(source_answer.replace("\n", " ").split()).strip()
+    answer = re.sub(r"^(?:respuesta|answer)\s*:\s*", "", answer, flags=re.IGNORECASE)
+    spanish = language.lower().startswith("es")
+    folded_question = _fold_text(question)
+
+    if spanish and any(word in folded_question for word in ("cierra", "cierre", "cierran")):
+        times = re.findall(r"\b(?:[01]?\d|2[0-3]):[0-5]\d\b", answer)
+        subject = _spanish_faq_subject(question, ("cierra", "cierre", "cierran"))
+        if times and subject:
+            cadence = " todos los días" if "todos los dias" in _fold_text(answer) else ""
+            answer = f"{subject} cierra{cadence} a las {_display_time(times[-1])}"
+    elif spanish and any(word in folded_question for word in ("abre", "abren", "apertura")):
+        times = re.findall(r"\b(?:[01]?\d|2[0-3]):[0-5]\d\b", answer)
+        subject = _spanish_faq_subject(question, ("abre", "abren"))
+        if times and subject:
+            cadence = " todos los días" if "todos los dias" in _fold_text(answer) else ""
+            answer = f"{subject} abre{cadence} a las {_display_time(times[0])}"
+
+    answer = _deduplicate_sentences(answer)
+    follow_up = (
+        "¿Hay algo más en lo que pueda ayudarte?"
+        if spanish
+        else "Is there anything else I can help you with?"
+    )
+    if not _contains_faq_follow_up(answer, language):
+        answer = f"{answer.rstrip()} {follow_up}"
+    return answer
+
+
+def _spanish_faq_subject(question: str, verbs: tuple[str, ...]) -> str | None:
+    pattern = r"\b(?:" + "|".join(re.escape(verb) for verb in verbs) + r")\s+((?:el|la|los|las)\s+[^?.,]+)"
+    match = re.search(pattern, question, flags=re.IGNORECASE)
+    if not match:
+        return None
+    subject = " ".join(match.group(1).split()).strip()
+    return subject[:1].upper() + subject[1:]
+
+
+def _display_time(value: str) -> str:
+    hour, minute = (int(part) for part in value.split(":", 1))
+    suffix = "a.m." if hour < 12 else "p.m."
+    display_hour = hour % 12 or 12
+    return f"{display_hour}:{minute:02d} {suffix}"
+
+
+def _deduplicate_sentences(value: str) -> str:
+    sentences = [sentence.strip() for sentence in re.split(r"(?<=[.!?])\s+", value) if sentence.strip()]
+    unique: list[str] = []
+    seen: set[str] = set()
+    for sentence in sentences:
+        normalized = _normalized_phrase(sentence)
+        if normalized and normalized not in seen:
+            unique.append(sentence)
+            seen.add(normalized)
+    return " ".join(unique).strip()
+
+
 def _build_focused_task_repair_instruction(request: AgentTurnRequest) -> str:
     focused_task_id = request.conversation.focusedConversationTaskId
     if focused_task_id is None:
@@ -677,7 +891,13 @@ def _successful_faq_source_answers(request: AgentTurnRequest) -> list[str]:
             or not isinstance(result.result, dict)
         ):
             continue
-        _collect_approved_faq_answers(result.result, answers)
+        matches = result.result.get("matches")
+        if isinstance(matches, list):
+            for match in matches:
+                if isinstance(match, dict) and isinstance(match.get("answer"), str):
+                    answers.append(match["answer"].strip())
+        else:
+            _collect_approved_faq_answers(result.result, answers)
     return list(dict.fromkeys(answers))
 
 
@@ -1845,6 +2065,8 @@ def _ensure_service_start_acknowledgements(request: AgentTurnRequest, messages: 
         reference = str(operation["referenceCode"])
         operation_id = str(operation.get("operationId") or "")
         offering_code = str(operation.get("offeringCode") or "")
+        if offering_code == "FAQ":
+            continue
         offering_name = offering_names.get(offering_code, offering_code.replace("_", " ").title())
         text = (
             f"La solicitud de {offering_name.lower()} ha sido iniciada con el folio {reference}. "
@@ -1863,7 +2085,8 @@ def _ensure_service_start_acknowledgements(request: AgentTurnRequest, messages: 
             "conversationTaskIds": [],
             "interaction": None,
         })
-    messages[:] = acknowledgements
+    if acknowledgements:
+        messages[:] = acknowledgements
 
 
 def _successful_started_operations(request: AgentTurnRequest) -> list[dict]:
