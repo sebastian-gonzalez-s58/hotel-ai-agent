@@ -19,6 +19,111 @@ from tests.test_v2_turn_endpoint import MESSAGE_ID, TURN_ID, payload
 
 class V2TurnPlannerTest(unittest.TestCase):
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_completes_kitchen_change_decision_from_button_without_openai(self, openai_call):
+        operation_id = "90000000-0000-0000-0000-000000000101"
+        task_id = "91000000-0000-0000-0000-000000000101"
+        request_payload = payload()
+        active_operation = operation(operation_id)
+        task = conversation_task(task_id, operation_id)
+        task["taskType"] = "ROOM_SERVICE_KITCHEN_CHANGE_DECISION"
+        task["requiredOutputSchema"] = {
+            "type": "object",
+            "required": ["decision"],
+            "properties": {"decision": {"type": "string", "enum": ["CHANGE", "CANCEL"]}},
+        }
+        active_operation["pendingConversationTasks"] = [task]
+        request_payload["activeOperations"] = [active_operation]
+        request_payload["conversation"]["focusedConversationTaskId"] = task_id
+        request_payload["conversation"]["recentMessages"][0]["text"] = "Hacer cambios"
+        request_payload["conversation"]["recentMessages"][0]["interactionReplyId"] = (
+            "room-service-change:CHANGE"
+        )
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["COMPLETE_CONVERSATION_TASK"],
+            "maxToolCalls": 1,
+            "allowMultipleConversationTaskCompletions": False,
+        }
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", response.disposition)
+        self.assertEqual(1, len(response.toolCalls))
+        self.assertEqual({"decision": "CHANGE"}, response.toolCalls[0].arguments["result"])
+        self.assertEqual(UUID(task_id), response.toolCalls[0].targetConversationTaskId)
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_completes_replacement_order_as_one_tool_call_without_openai(self, openai_call):
+        operation_id = "90000000-0000-0000-0000-000000000102"
+        task_id = "91000000-0000-0000-0000-000000000102"
+        request_payload = payload()
+        active_operation = operation(operation_id)
+        task = conversation_task(task_id, operation_id)
+        task["taskType"] = "ROOM_SERVICE_ORDER_CHANGE_DETAILS"
+        task["requiredOutputSchema"] = {
+            "type": "object",
+            "required": ["items"],
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "quantity"],
+                        "properties": {
+                            "name": {"type": "string"},
+                            "quantity": {"type": "integer"},
+                        },
+                    },
+                },
+            },
+        }
+        active_operation["pendingConversationTasks"] = [task]
+        request_payload["activeOperations"] = [active_operation]
+        request_payload["conversation"]["focusedConversationTaskId"] = task_id
+        request_payload["conversation"]["recentMessages"][0]["text"] = (
+            "2 hamburguesas y 1 cerveza indio"
+        )
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["COMPLETE_CONVERSATION_TASK"],
+            "maxToolCalls": 1,
+            "allowMultipleConversationTaskCompletions": False,
+        }
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", response.disposition)
+        result = response.toolCalls[0].arguments["result"]
+        self.assertEqual(
+            [
+                {"name": "hamburguesas", "quantity": 2, "modifications": []},
+                {"name": "cerveza indio", "quantity": 1, "modifications": []},
+            ],
+            result["items"],
+        )
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_stops_after_successfully_completing_room_service_change_task(self, openai_call):
+        request_payload = payload()
+        request_payload["previousToolResults"] = [{
+            "toolCallId": "80000000-0000-0000-0000-000000000103",
+            "toolName": "COMPLETE_CONVERSATION_TASK",
+            "status": "SUCCEEDED",
+            "result": {
+                "conversationTaskId": "91000000-0000-0000-0000-000000000103",
+                "taskType": "ROOM_SERVICE_ORDER_CHANGE_DETAILS",
+                "status": "COMPLETED",
+            },
+        }]
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("NO_ACTION", response.disposition)
+        self.assertEqual([], response.toolCalls)
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
     def test_requests_the_v2_response_schema_from_openai(self, openai_call):
         request = AgentTurnRequest.model_validate(payload())
         openai_call.return_value = OpenAiJsonResult(

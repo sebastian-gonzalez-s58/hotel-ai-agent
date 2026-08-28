@@ -22,6 +22,9 @@ MAX_PLAN_ATTEMPTS = 3
 
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     started_at = time.perf_counter()
+    deterministic = _room_service_operation_task_plan(request, started_at)
+    if deterministic is not None:
+        return deterministic
     deterministic = _room_service_draft_plan(request, started_at)
     if deterministic is not None:
         return deterministic
@@ -175,6 +178,148 @@ def _configured_capture_plan(
     response = AgentTurnResponse.model_validate(payload)
     _validate_plan(request, response)
     return response
+
+
+_ROOM_SERVICE_CHANGE_TASK_TYPES = {
+    "ROOM_SERVICE_KITCHEN_CHANGE_DECISION",
+    "ROOM_SERVICE_ORDER_CHANGE_DETAILS",
+}
+
+
+def _room_service_operation_task_plan(
+    request: AgentTurnRequest,
+    started_at: float,
+) -> AgentTurnResponse | None:
+    """Resolve kitchen-requested order changes without a multi-tool model loop."""
+    completed_result = next(
+        (
+            result.result
+            for result in request.previousToolResults
+            if result.status == "SUCCEEDED"
+            and result.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK.value
+            and isinstance(result.result, dict)
+            and result.result.get("taskType") in _ROOM_SERVICE_CHANGE_TASK_TYPES
+        ),
+        None,
+    )
+    if completed_result is not None:
+        return _deterministic_turn_response(
+            request,
+            started_at,
+            disposition="NO_ACTION",
+            messages=[],
+            updated_summary=request.conversation.summary,
+        )
+    if request.previousToolResults:
+        return None
+    if DomainToolName.COMPLETE_CONVERSATION_TASK not in request.toolPolicy.allowedTools:
+        return None
+
+    focused_id = request.conversation.focusedConversationTaskId
+    candidates = [
+        task
+        for operation in request.activeOperations
+        for task in operation.pendingConversationTasks
+        if task.taskType in _ROOM_SERVICE_CHANGE_TASK_TYPES
+    ]
+    task = next(
+        (candidate for candidate in candidates if candidate.conversationTaskId == focused_id),
+        candidates[0] if len(candidates) == 1 else None,
+    )
+    latest_inbound = _latest_inbound_message(request)
+    if task is None or latest_inbound is None:
+        return None
+
+    if task.taskType == "ROOM_SERVICE_KITCHEN_CHANGE_DECISION":
+        decision = _room_service_confirmation_action(latest_inbound)
+        if decision not in {"CHANGE", "CANCEL"}:
+            if _is_free_text_change(latest_inbound.text):
+                decision = "CHANGE"
+            elif _is_free_text_cancel(latest_inbound.text):
+                decision = "CANCEL"
+        if decision not in {"CHANGE", "CANCEL"}:
+            return _deterministic_turn_response(
+                request,
+                started_at,
+                disposition="RESPONSE_READY",
+                messages=[_room_service_kitchen_change_decision_message(request, task)],
+                updated_summary=request.conversation.summary,
+            )
+        result = {"decision": decision}
+    else:
+        items = _parse_order_items(latest_inbound.text, [])
+        if not items:
+            return _deterministic_turn_response(
+                request,
+                started_at,
+                disposition="RESPONSE_READY",
+                messages=[_room_service_replacement_order_prompt(request, task)],
+                updated_summary=request.conversation.summary,
+            )
+        result = {"items": items}
+
+    evidence_message_id = str(latest_inbound.messageId)
+    return _deterministic_turn_response(
+        request,
+        started_at,
+        disposition="TOOL_CALLS_REQUIRED",
+        messages=[],
+        tool_calls=[{
+            "toolCallId": str(uuid4()),
+            "toolName": DomainToolName.COMPLETE_CONVERSATION_TASK.value,
+            "targetOperationId": str(task.operationId),
+            "targetConversationTaskId": str(task.conversationTaskId),
+            "arguments": {
+                "conversationTaskId": str(task.conversationTaskId),
+                "expectedVersion": task.version,
+                "result": result,
+            },
+            "confidence": 1.0,
+            "evidenceMessageIds": [evidence_message_id],
+        }],
+        updated_summary=request.conversation.summary,
+    )
+
+
+def _room_service_kitchen_change_decision_message(request, task) -> dict:
+    text = (
+        "Cocina solicitó un cambio en tu pedido. Consulta nuevamente el menú digital: "
+        "https://hotelcristalino.menudigitalonline.com/ "
+        "Puedes modificar el pedido o cancelarlo por completo."
+    )
+    return {
+        "messageDraftId": str(uuid4()),
+        "purpose": "CLARIFICATION",
+        "text": text,
+        "language": request.guest.preferredLanguage,
+        "operationIds": [str(task.operationId)],
+        "conversationTaskIds": [],
+        "interaction": {
+            "type": "BUTTONS",
+            "title": "Cambio solicitado",
+            "body": text,
+            "buttonText": "Elegir opción",
+            "options": [
+                {"id": "room-service-change:CHANGE", "label": "Hacer cambios"},
+                {"id": "room-service-change:CANCEL", "label": "Cancelar pedido"},
+            ],
+        },
+    }
+
+
+def _room_service_replacement_order_prompt(request, task) -> dict:
+    return {
+        "messageDraftId": str(uuid4()),
+        "purpose": "CLARIFICATION",
+        "text": (
+            "Por favor indica nuevamente tu pedido completo con los cambios. "
+            "Incluye todos los productos, cantidades y modificaciones."
+        ),
+        "language": request.guest.preferredLanguage,
+        "operationIds": [str(task.operationId)],
+        "conversationTaskIds": [],
+        "interaction": None,
+    }
 
 
 def _room_service_draft_plan(
