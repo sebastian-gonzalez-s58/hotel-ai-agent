@@ -51,7 +51,7 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         }
         try:
             response = AgentTurnResponse.model_validate(payload)
-            _validate_plan(request, response)
+            _validate_plan(request, response, enforce_faq_rewrite=attempt == 1)
             return response
         except ValidationError as exc:
             error = AgentModelError(
@@ -565,7 +565,12 @@ def _normalize_response_envelope(
     return payload
 
 
-def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> None:
+def _validate_plan(
+    request: AgentTurnRequest,
+    response: AgentTurnResponse,
+    *,
+    enforce_faq_rewrite: bool = False,
+) -> None:
     if response.agentTurnId != request.agentTurnId:
         raise AgentModelError("Agent turn ID does not match the request")
 
@@ -593,7 +598,7 @@ def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> No
     if response.disposition == "NO_ACTION" and response.messages:
         raise AgentModelError("NO_ACTION cannot contain messages")
 
-    _validate_faq_answer_style(request, response)
+    _validate_faq_answer_style(request, response, enforce_rewrite=enforce_faq_rewrite)
 
     completed_tasks: set[UUID] = set()
     for call in response.toolCalls:
@@ -637,6 +642,8 @@ def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> No
 def _validate_faq_answer_style(
     request: AgentTurnRequest,
     response: AgentTurnResponse,
+    *,
+    enforce_rewrite: bool,
 ) -> None:
     source_answers = _successful_faq_source_answers(request)
     if not source_answers or response.disposition != "RESPONSE_READY":
@@ -651,18 +658,14 @@ def _validate_faq_answer_style(
         raise AgentModelError("An approved FAQ result requires a guest-facing answer")
 
     answer_text = " ".join(message.text.strip() for message in answer_messages).strip()
-    normalized_answer = _normalized_phrase(answer_text)
-    for source_answer in source_answers:
-        normalized_source = _normalized_phrase(source_answer)
-        if len(normalized_source.split()) >= 7 and normalized_source in normalized_answer:
-            raise AgentModelError(
-                "Rewrite the approved FAQ facts naturally instead of copying the catalog answer verbatim"
-            )
-
-    if not _contains_faq_follow_up(answer_text, request.guest.preferredLanguage):
-        raise AgentModelError(
-            "End the FAQ answer with one brief invitation asking whether the guest needs more help"
-        )
+    if enforce_rewrite:
+        normalized_answer = _normalized_phrase(answer_text)
+        for source_answer in source_answers:
+            normalized_source = _normalized_phrase(source_answer)
+            if len(normalized_source.split()) >= 7 and normalized_source in normalized_answer:
+                raise AgentModelError(
+                    "Rewrite the approved FAQ facts naturally instead of copying the catalog answer verbatim"
+                )
 
 
 def _successful_faq_source_answers(request: AgentTurnRequest) -> list[str]:
@@ -695,17 +698,46 @@ def _collect_approved_faq_answers(value, answers: list[str]) -> None:
 def _contains_faq_follow_up(text: str, language: str) -> bool:
     normalized = _fold_text(text)
     if language.lower().startswith("es"):
-        return "algo mas" in normalized and (
-            "ayudarte" in normalized
-            or "ayudarle" in normalized
-            or "necesitas" in normalized
-            or "necesita" in normalized
+        return (
+            "algo mas" in normalized
+            or "otra cosa" in normalized
+            or "alguna otra" in normalized
+        ) and (
+            "ayud" in normalized
+            or "necesit" in normalized
+            or "gustaria" in normalized
         )
     if language.lower().startswith("en"):
-        return "anything else" in normalized and (
+        return ("anything else" in normalized or "something else" in normalized) and (
             "help" in normalized or "need" in normalized
         )
     return text.rstrip().endswith("?")
+
+
+def _ensure_faq_follow_up(request: AgentTurnRequest, messages: list[dict]) -> None:
+    if not _successful_faq_source_answers(request):
+        return
+
+    answer = next(
+        (message for message in messages if message.get("purpose") == "ANSWER"),
+        None,
+    )
+    if answer is None:
+        return
+
+    text = " ".join(str(answer.get("text") or "").strip().split()).strip()
+    if not text:
+        return
+    if _contains_faq_follow_up(text, request.guest.preferredLanguage) or text.endswith("?"):
+        answer["text"] = text
+        return
+
+    follow_up = (
+        "¿Hay algo más en lo que pueda ayudarte?"
+        if request.guest.preferredLanguage.lower().startswith("es")
+        else "Is there anything else I can help you with?"
+    )
+    answer["text"] = f"{text} {follow_up}"
 
 
 def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
@@ -841,6 +873,7 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
     messages = [dict(message) for message in normalized.get("messages", []) if isinstance(message, dict)]
     normalized["messages"] = messages
     _remove_maintenance_issue_interactions(request, messages)
+    _ensure_faq_follow_up(request, messages)
     if _ensure_explicit_capture_confirmation(request, normalized, messages):
         return normalized
     if _ensure_sequential_field_capture(request, normalized, messages):

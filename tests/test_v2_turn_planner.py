@@ -1110,8 +1110,7 @@ class V2TurnPlannerTest(unittest.TestCase):
                 "messages": [{
                     "purpose": "ANSWER",
                     "text": (
-                        "La alberca cierra todos los días a las 22:00. "
-                        "¿Hay algo más en lo que pueda ayudarte?"
+                        "La alberca cierra todos los días a las 22:00."
                     ),
                     "language": "es-MX",
                     "operationIds": [],
