@@ -5,6 +5,7 @@ from uuid import UUID
 from app.core.errors import AgentModelError
 from app.agents.v2_turn_planner import (
     AGENT_TURN_RESPONSE_SCHEMA,
+    _build_focused_task_repair_instruction,
     _normalize_response_envelope,
     _normalize_guest_experience,
     _validate_plan,
@@ -410,6 +411,59 @@ class V2TurnPlannerTest(unittest.TestCase):
         })
 
         _validate_plan(request, response)
+
+    def test_rejects_progress_that_already_satisfies_task_schema(self):
+        operation_id = "90000000-0000-0000-0000-000000000001"
+        task_id = "91000000-0000-0000-0000-000000000001"
+        request_payload = payload()
+        active_operation = operation(operation_id)
+        active_operation["pendingConversationTasks"] = [conversation_task(task_id, operation_id)]
+        request_payload["activeOperations"] = [active_operation]
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["SAVE_CONVERSATION_TASK_PROGRESS", "COMPLETE_CONVERSATION_TASK"],
+            "maxToolCalls": 2,
+        }
+        request = AgentTurnRequest.model_validate(request_payload)
+        response = tool_response({
+            "toolCallId": "80000000-0000-0000-0000-000000000008",
+            "toolName": "SAVE_CONVERSATION_TASK_PROGRESS",
+            "targetConversationTaskId": task_id,
+            "arguments": {
+                "conversationTaskId": task_id,
+                "expectedVersion": 4,
+                "partialResult": {"confirmed": True},
+            },
+            "confidence": 1,
+            "evidenceMessageIds": [MESSAGE_ID],
+        })
+
+        with self.assertRaisesRegex(
+            AgentModelError,
+            "use COMPLETE_CONVERSATION_TASK",
+        ):
+            _validate_plan(request, response)
+
+    def test_does_not_repair_an_already_completed_focused_task(self):
+        operation_id = "90000000-0000-0000-0000-000000000001"
+        task_id = "91000000-0000-0000-0000-000000000001"
+        request_payload = payload()
+        active_operation = operation(operation_id)
+        active_operation["pendingConversationTasks"] = [conversation_task(task_id, operation_id)]
+        request_payload["activeOperations"] = [active_operation]
+        request_payload["conversation"]["focusedConversationTaskId"] = task_id
+        request_payload["previousToolResults"] = [{
+            "toolCallId": "80000000-0000-0000-0000-000000000009",
+            "toolName": "COMPLETE_CONVERSATION_TASK",
+            "status": "SUCCEEDED",
+            "result": {
+                "conversationTaskId": task_id,
+                "operationId": operation_id,
+                "status": "COMPLETED",
+            },
+        }]
+        request = AgentTurnRequest.model_validate(request_payload)
+
+        self.assertEqual("", _build_focused_task_repair_instruction(request))
 
     def test_personalizes_greeting_and_builds_menu_from_available_offerings(self):
         request_payload = payload()

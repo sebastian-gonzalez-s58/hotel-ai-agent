@@ -319,6 +319,14 @@ def _build_focused_task_repair_instruction(request: AgentTurnRequest) -> str:
     focused_task_id = request.conversation.focusedConversationTaskId
     if focused_task_id is None:
         return ""
+    if any(
+        result.status == "SUCCEEDED"
+        and result.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK.value
+        and isinstance(result.result, dict)
+        and str(result.result.get("conversationTaskId")) == str(focused_task_id)
+        for result in request.previousToolResults
+    ):
+        return ""
 
     focused_task = next(
         (
@@ -1657,8 +1665,66 @@ def _validate_conversation_task_call(call, tasks_by_id) -> None:
         if call.toolName == DomainToolName.SAVE_CONVERSATION_TASK_PROGRESS
         else "result"
     )
-    if not isinstance(call.arguments.get(payload_name), dict):
+    payload = call.arguments.get(payload_name)
+    if not isinstance(payload, dict):
         raise AgentModelError(f"{call.toolName.value} {payload_name} must be an object")
+    if call.toolName == DomainToolName.SAVE_CONVERSATION_TASK_PROGRESS:
+        accumulated = dict(task.partialResult)
+        accumulated.update(payload)
+        if _satisfies_required_output_schema(accumulated, task.requiredOutputSchema):
+            raise AgentModelError(
+                "Conversation-task progress already satisfies the required output schema; "
+                "use COMPLETE_CONVERSATION_TASK"
+            )
+
+
+def _satisfies_required_output_schema(value, schema: dict) -> bool:
+    if not isinstance(schema, dict):
+        return False
+    expected_type = schema.get("type")
+    if expected_type == "object":
+        if not isinstance(value, dict):
+            return False
+        required = schema.get("required") if isinstance(schema.get("required"), list) else []
+        properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
+        for field in required:
+            if field not in value or _is_missing_required_value(value[field]):
+                return False
+            field_schema = properties.get(field)
+            if isinstance(field_schema, dict) and not _satisfies_required_output_schema(
+                value[field], field_schema
+            ):
+                return False
+        return True
+    if expected_type == "array":
+        if not isinstance(value, list):
+            return False
+        if len(value) < int(schema.get("minItems") or 0):
+            return False
+        item_schema = schema.get("items")
+        return not isinstance(item_schema, dict) or all(
+            _satisfies_required_output_schema(item, item_schema) for item in value
+        )
+    if expected_type == "string":
+        if not isinstance(value, str):
+            return False
+        if len(value.strip()) < int(schema.get("minLength") or 0):
+            return False
+    elif expected_type == "integer":
+        if not isinstance(value, int) or isinstance(value, bool):
+            return False
+        if "minimum" in schema and value < schema["minimum"]:
+            return False
+    elif expected_type == "number":
+        if not isinstance(value, (int, float)) or isinstance(value, bool):
+            return False
+        if "minimum" in schema and value < schema["minimum"]:
+            return False
+    elif expected_type == "boolean" and not isinstance(value, bool):
+        return False
+    if "enum" in schema and value not in schema["enum"]:
+        return False
+    return True
 
 
 def _argument_uuid(value, field: str) -> UUID:
