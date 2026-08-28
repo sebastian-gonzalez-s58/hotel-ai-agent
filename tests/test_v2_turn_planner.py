@@ -1061,6 +1061,80 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertIn('"question":"¿A qué hora es el check-out?"', second.updatedConversationSummary)
         openai_call.assert_not_called()
 
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_rewrites_approved_faq_answer_and_adds_follow_up(self, openai_call):
+        request_payload = payload()
+        request_payload["guest"]["preferredLanguage"] = "es-MX"
+        request_payload["previousToolResults"] = [{
+            "toolCallId": "80000000-0000-0000-0000-000000000150",
+            "toolName": "SEARCH_KNOWLEDGE",
+            "status": "SUCCEEDED",
+            "result": {
+                "query": "¿A qué hora cierra la alberca?",
+                "catalogs": [{
+                    "catalog": {
+                        "items": [{
+                            "faqConfiguration": {
+                                "question": "¿A qué hora cierra la alberca?",
+                                "answer": (
+                                    "La alberca está abierta todos los días de 8:00 a 22:00 "
+                                    "y cierra a las 22:00."
+                                ),
+                                "approved": True,
+                            },
+                        }],
+                    },
+                }],
+            },
+        }]
+        copied = OpenAiJsonResult(
+            payload={
+                "disposition": "RESPONSE_READY",
+                "messages": [{
+                    "purpose": "ANSWER",
+                    "text": (
+                        "La alberca está abierta todos los días de 8:00 a 22:00 y cierra "
+                        "a las 22:00. ¿Hay algo más en lo que pueda ayudarte?"
+                    ),
+                    "language": "es-MX",
+                    "operationIds": [],
+                    "conversationTaskIds": [],
+                }],
+            },
+            usage=OpenAiTokenUsage(input_tokens=10, output_tokens=10, total_tokens=20),
+            response_id="resp-faq-copied",
+        )
+        rewritten = OpenAiJsonResult(
+            payload={
+                "disposition": "RESPONSE_READY",
+                "messages": [{
+                    "purpose": "ANSWER",
+                    "text": (
+                        "La alberca cierra todos los días a las 22:00. "
+                        "¿Hay algo más en lo que pueda ayudarte?"
+                    ),
+                    "language": "es-MX",
+                    "operationIds": [],
+                    "conversationTaskIds": [],
+                }],
+            },
+            usage=OpenAiTokenUsage(input_tokens=12, output_tokens=9, total_tokens=21),
+            response_id="resp-faq-rewritten",
+        )
+        openai_call.side_effect = [copied, rewritten]
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("RESPONSE_READY", response.disposition)
+        self.assertEqual(
+            "La alberca cierra todos los días a las 22:00. "
+            "¿Hay algo más en lo que pueda ayudarte?",
+            response.messages[0].text,
+        )
+        self.assertEqual(2, openai_call.call_count)
+        repair_prompt = openai_call.call_args_list[1].args[0]
+        self.assertIn("instead of copying the catalog answer verbatim", repair_prompt)
+
     def test_old_catalog_capture_does_not_hijack_a_later_greeting(self):
         request_payload = payload()
         request_payload["availableOfferings"] = [guided_room_service_offering()]

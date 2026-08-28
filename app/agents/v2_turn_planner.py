@@ -593,6 +593,8 @@ def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> No
     if response.disposition == "NO_ACTION" and response.messages:
         raise AgentModelError("NO_ACTION cannot contain messages")
 
+    _validate_faq_answer_style(request, response)
+
     completed_tasks: set[UUID] = set()
     for call in response.toolCalls:
         if call.toolName not in allowed_tools:
@@ -630,6 +632,80 @@ def _validate_plan(request: AgentTurnRequest, response: AgentTurnResponse) -> No
             raise AgentModelError(
                 "Complete the referenced conversation task before acknowledging it"
             )
+
+
+def _validate_faq_answer_style(
+    request: AgentTurnRequest,
+    response: AgentTurnResponse,
+) -> None:
+    source_answers = _successful_faq_source_answers(request)
+    if not source_answers or response.disposition != "RESPONSE_READY":
+        return
+
+    answer_messages = [
+        message
+        for message in response.messages
+        if message.purpose == "ANSWER"
+    ]
+    if not answer_messages:
+        raise AgentModelError("An approved FAQ result requires a guest-facing answer")
+
+    answer_text = " ".join(message.text.strip() for message in answer_messages).strip()
+    normalized_answer = _normalized_phrase(answer_text)
+    for source_answer in source_answers:
+        normalized_source = _normalized_phrase(source_answer)
+        if len(normalized_source.split()) >= 7 and normalized_source in normalized_answer:
+            raise AgentModelError(
+                "Rewrite the approved FAQ facts naturally instead of copying the catalog answer verbatim"
+            )
+
+    if not _contains_faq_follow_up(answer_text, request.guest.preferredLanguage):
+        raise AgentModelError(
+            "End the FAQ answer with one brief invitation asking whether the guest needs more help"
+        )
+
+
+def _successful_faq_source_answers(request: AgentTurnRequest) -> list[str]:
+    answers: list[str] = []
+    for result in request.previousToolResults:
+        if (
+            result.status != "SUCCEEDED"
+            or result.toolName != DomainToolName.SEARCH_KNOWLEDGE.value
+            or not isinstance(result.result, dict)
+        ):
+            continue
+        _collect_approved_faq_answers(result.result, answers)
+    return list(dict.fromkeys(answers))
+
+
+def _collect_approved_faq_answers(value, answers: list[str]) -> None:
+    if isinstance(value, dict):
+        configuration = value.get("faqConfiguration")
+        if isinstance(configuration, dict) and configuration.get("approved") is True:
+            answer = configuration.get("answer")
+            if isinstance(answer, str) and answer.strip():
+                answers.append(answer.strip())
+        for nested in value.values():
+            _collect_approved_faq_answers(nested, answers)
+    elif isinstance(value, list):
+        for nested in value:
+            _collect_approved_faq_answers(nested, answers)
+
+
+def _contains_faq_follow_up(text: str, language: str) -> bool:
+    normalized = _fold_text(text)
+    if language.lower().startswith("es"):
+        return "algo mas" in normalized and (
+            "ayudarte" in normalized
+            or "ayudarle" in normalized
+            or "necesitas" in normalized
+            or "necesita" in normalized
+        )
+    if language.lower().startswith("en"):
+        return "anything else" in normalized and (
+            "help" in normalized or "need" in normalized
+        )
+    return text.rstrip().endswith("?")
 
 
 def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
