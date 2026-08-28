@@ -602,7 +602,10 @@ def _successful_faq_start_result(request: AgentTurnRequest) -> dict | None:
         if result.status == "SUCCEEDED"
         and result.toolName == DomainToolName.START_SERVICE.value
         and isinstance(result.result, dict)
-        and result.result.get("offeringCode") == "FAQ"
+        and (
+            result.result.get("offeringCode") is None
+            or str(result.result.get("offeringCode")).upper() == "FAQ"
+        )
     ), None)
 
 
@@ -893,6 +896,8 @@ def _successful_faq_source_answers(request: AgentTurnRequest) -> list[str]:
             continue
         matches = result.result.get("matches")
         if isinstance(matches, list):
+            if str(result.result.get("matchStatus") or "").upper() != "EXACT_MATCH":
+                continue
             for match in matches:
                 if isinstance(match, dict) and isinstance(match.get("answer"), str):
                     answers.append(match["answer"].strip())

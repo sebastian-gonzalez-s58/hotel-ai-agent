@@ -1162,6 +1162,54 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertNotIn("FAQ-20260828-DEF67890", second.messages[0].text)
         openai_call.assert_not_called()
 
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_ambiguous_faq_candidates_are_handed_to_staff_without_answer_validation(self, openai_call):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_faq_offering()]
+        request_payload["toolPolicy"] = {
+            "allowedTools": ["SEARCH_KNOWLEDGE", "START_SERVICE"],
+            "maxToolCalls": 2,
+        }
+        request_payload["previousToolResults"] = [{
+            "toolCallId": "80000000-0000-0000-0000-000000000152",
+            "toolName": "SEARCH_KNOWLEDGE",
+            "status": "SUCCEEDED",
+            "result": {
+                "query": "¿A qué hora cierra?",
+                "matchStatus": "AMBIGUOUS",
+                "confidence": 0.6,
+                "matches": [{
+                    "catalogItemId": "90000000-0000-0000-0000-000000000152",
+                    "question": "¿A qué hora cierra la alberca?",
+                    "answer": "La alberca está abierta todos los días de 8:00 a 22:00.",
+                    "sourceReference": None,
+                    "confidence": 0.6,
+                }],
+            },
+        }]
+
+        first = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+        self.assertEqual("HUMAN_REQUIRED", first.toolCalls[0].arguments["input"]["resolutionMode"])
+
+        operation_id = "91000000-0000-0000-0000-000000000152"
+        request_payload["previousToolResults"].append({
+            "toolCallId": str(first.toolCalls[0].toolCallId),
+            "toolName": "START_SERVICE",
+            "status": "SUCCEEDED",
+            "result": {
+                "operationId": operation_id,
+                "referenceCode": "FAQ-20260828-GHI12345",
+                "offeringCode": "FAQ",
+            },
+        })
+
+        second = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("RESPONSE_READY", second.disposition)
+        self.assertEqual("HANDOFF", second.messages[0].purpose)
+        self.assertIn("no tengo información suficiente", second.messages[0].text)
+        openai_call.assert_not_called()
+
     def test_old_catalog_capture_does_not_hijack_a_later_greeting(self):
         request_payload = payload()
         request_payload["availableOfferings"] = [guided_room_service_offering()]
