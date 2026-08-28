@@ -1,6 +1,8 @@
 import json
 import logging
+import re
 import time
+import unicodedata
 from uuid import UUID, uuid4
 
 from pydantic import ValidationError
@@ -20,6 +22,9 @@ MAX_PLAN_ATTEMPTS = 3
 
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     started_at = time.perf_counter()
+    deterministic = _room_service_draft_plan(request, started_at)
+    if deterministic is not None:
+        return deterministic
     deterministic = _faq_knowledge_lookup_plan(request, started_at)
     if deterministic is not None:
         return deterministic
@@ -158,6 +163,144 @@ def _configured_capture_plan(
     payload = _normalize_guest_experience(request, payload)
     if not payload.get("messages") and not payload.get("toolCalls"):
         return None
+    payload["usage"] = {
+        "model": settings.openai_model,
+        "inputTokens": 0,
+        "cachedInputTokens": 0,
+        "outputTokens": 0,
+        "reasoningTokens": 0,
+        "totalTokens": 0,
+        "latencyMs": round((time.perf_counter() - started_at) * 1000),
+    }
+    response = AgentTurnResponse.model_validate(payload)
+    _validate_plan(request, response)
+    return response
+
+
+def _room_service_draft_plan(
+    request: AgentTurnRequest,
+    started_at: float,
+) -> AgentTurnResponse | None:
+    """Keep a room-service order draft deterministic across guest turns."""
+    if request.previousToolResults:
+        return None
+
+    latest_inbound = _latest_inbound_message(request)
+    state = _latest_capture_state(request)
+    if latest_inbound is None or state.get("pendingOffering") != "ROOM_SERVICE":
+        return None
+
+    selection = _capture_selection(request, latest_inbound)
+    if selection is not None:
+        # Configured offering and field selections are handled by the generic capture flow.
+        return None
+    if _is_greeting_turn(request):
+        return None
+
+    offering = next(
+        (
+            candidate
+            for candidate in request.availableOfferings
+            if candidate.offeringCode == "ROOM_SERVICE"
+        ),
+        None,
+    )
+    if offering is None:
+        return None
+
+    captured = state.get("capturedFields")
+    captured = dict(captured) if isinstance(captured, dict) else {}
+    action = _room_service_confirmation_action(latest_inbound)
+    awaiting_confirmation = bool(state.get("awaitingExplicitConfirmation"))
+
+    if action == "CANCEL" or _is_free_text_cancel(latest_inbound.text):
+        return _deterministic_turn_response(
+            request,
+            started_at,
+            disposition="RESPONSE_READY",
+            messages=[_room_service_cancellation_message(request)],
+            updated_summary="{}",
+        )
+
+    if action == "CHANGE" or (
+        awaiting_confirmation and _is_free_text_change(latest_inbound.text)
+    ):
+        captured.pop("items", None)
+        return _deterministic_turn_response(
+            request,
+            started_at,
+            disposition="RESPONSE_READY",
+            messages=[_room_service_change_prompt(request)],
+            updated_summary=_room_service_summary(captured, False, "CAPTURING_ITEMS"),
+        )
+
+    if action == "CONFIRM" or (
+        awaiting_confirmation and _is_free_text_confirmation(latest_inbound.text)
+    ):
+        if DomainToolName.START_SERVICE not in request.toolPolicy.allowedTools:
+            return None
+        items = _coerce_order_items(captured.get("items"))
+        delivery_location = captured.get("deliveryLocation")
+        if not items or not isinstance(delivery_location, str) or not delivery_location:
+            return None
+        evidence_message_id = str(latest_inbound.messageId)
+        return _deterministic_turn_response(
+            request,
+            started_at,
+            disposition="TOOL_CALLS_REQUIRED",
+            messages=[],
+            tool_calls=[{
+                "toolCallId": str(uuid4()),
+                "toolName": DomainToolName.START_SERVICE.value,
+                "targetOperationId": None,
+                "targetConversationTaskId": None,
+                "arguments": {
+                    "offeringCode": offering.offeringCode,
+                    "input": {
+                        "deliveryLocation": delivery_location,
+                        "items": items,
+                    },
+                    "guestConfirmationEvidenceMessageId": evidence_message_id,
+                },
+                "confidence": 1.0,
+                "evidenceMessageIds": [evidence_message_id],
+            }],
+            updated_summary=_room_service_summary(captured, True, "STARTING"),
+        )
+
+    if (latest_inbound.interactionReplyId or "").strip():
+        return None
+
+    existing_items = _coerce_order_items(captured.get("items"))
+    items = _parse_order_items(latest_inbound.text, existing_items)
+    if not items:
+        return None
+    captured["items"] = items
+    return _deterministic_turn_response(
+        request,
+        started_at,
+        disposition="RESPONSE_READY",
+        messages=[_room_service_confirmation_message(request, offering, captured)],
+        updated_summary=_room_service_summary(captured, True, "AWAITING_CONFIRMATION"),
+    )
+
+
+def _deterministic_turn_response(
+    request: AgentTurnRequest,
+    started_at: float,
+    *,
+    disposition: str,
+    messages: list[dict],
+    updated_summary: str,
+    tool_calls: list[dict] | None = None,
+) -> AgentTurnResponse:
+    payload = _normalize_response_envelope(request, {
+        "disposition": disposition,
+        "messages": messages,
+        "toolCalls": tool_calls or [],
+        "updatedConversationSummary": updated_summary,
+        "warnings": [],
+    })
     payload["usage"] = {
         "model": settings.openai_model,
         "inputTokens": 0,
@@ -480,6 +623,7 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
         # for later status questions, but they can never trigger side effects here.
         normalized["disposition"] = "RESPONSE_READY"
         normalized["toolCalls"] = []
+        normalized["updatedConversationSummary"] = "{}"
         _ensure_personalized_service_menu(request, messages)
         return normalized
     if _successful_started_operations(request):
@@ -487,6 +631,7 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dic
         # acknowledge it instead of proposing START_SERVICE again.
         normalized["disposition"] = "RESPONSE_READY"
         normalized["toolCalls"] = []
+        normalized["updatedConversationSummary"] = "{}"
         _ensure_service_start_acknowledgements(request, messages)
         return normalized
     if normalized.get("disposition") == "RESPONSE_READY":
@@ -600,6 +745,306 @@ def _capture_summary(
     return f"{existing}\n{state}" if existing else state
 
 
+def _latest_capture_state(request: AgentTurnRequest) -> dict:
+    summary = request.conversation.summary.strip()
+    if not summary:
+        return {}
+    for candidate in reversed(summary.splitlines()):
+        try:
+            value = json.loads(candidate.strip())
+        except (TypeError, ValueError):
+            continue
+        if isinstance(value, dict):
+            return value
+    try:
+        value = json.loads(summary)
+    except (TypeError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def _room_service_summary(
+    captured_fields: dict,
+    awaiting_confirmation: bool,
+    phase: str,
+) -> str:
+    return json.dumps(
+        {
+            "pendingOffering": "ROOM_SERVICE",
+            "phase": phase,
+            "capturedFields": captured_fields,
+            "awaitingExplicitConfirmation": awaiting_confirmation,
+        },
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
+
+
+def _room_service_confirmation_action(latest_inbound) -> str | None:
+    reply_id = (latest_inbound.interactionReplyId or "").strip().upper()
+    for action in ("CONFIRM", "CHANGE", "CANCEL"):
+        if reply_id.endswith(f":{action}"):
+            return action
+    legacy = {
+        "ROOM-SERVICE:CONFIRM": "CONFIRM",
+        "ROOM-SERVICE:CHANGE": "CHANGE",
+        "ROOM-SERVICE:CANCEL": "CANCEL",
+    }
+    return legacy.get(reply_id)
+
+
+def _fold_text(value: str) -> str:
+    decomposed = unicodedata.normalize("NFKD", value.casefold())
+    without_accents = "".join(char for char in decomposed if not unicodedata.combining(char))
+    return " ".join(without_accents.strip().split()).strip("!?., ")
+
+
+def _is_free_text_cancel(value: str) -> bool:
+    text = _fold_text(value)
+    return text in {
+        "cancelar",
+        "cancela",
+        "cancelalo",
+        "cancela mi pedido",
+        "cancelar mi pedido",
+        "ya no quiero el pedido",
+        "cancel",
+        "cancel order",
+        "cancel my order",
+    }
+
+
+def _is_free_text_change(value: str) -> bool:
+    text = _fold_text(value)
+    return text in {
+        "cambiar",
+        "cambia",
+        "cambiar pedido",
+        "cambiar mi pedido",
+        "quiero cambiar",
+        "quiero cambiar el pedido",
+        "modificar",
+        "change",
+        "change order",
+    }
+
+
+def _is_free_text_confirmation(value: str) -> bool:
+    text = _fold_text(value)
+    return text in {
+        "confirmar",
+        "confirmo",
+        "confirmado",
+        "si",
+        "si confirmo",
+        "es correcto",
+        "correcto",
+        "confirm",
+        "confirmed",
+        "yes",
+    }
+
+
+def _coerce_order_items(value) -> list[dict]:
+    if isinstance(value, str):
+        return _parse_order_items(value, [])
+    if not isinstance(value, list):
+        return []
+    items = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        name = " ".join(str(item.get("name") or "").split()).strip(" .,;")
+        quantity = item.get("quantity", 1)
+        if not name or not isinstance(quantity, int) or isinstance(quantity, bool) or quantity < 1:
+            continue
+        modifications = item.get("modifications")
+        if not isinstance(modifications, list):
+            modifications = []
+        items.append({
+            "name": name,
+            "quantity": quantity,
+            "modifications": [str(entry) for entry in modifications if str(entry).strip()],
+        })
+    return items
+
+
+_QUANTITY_WORDS = {
+    "un": 1,
+    "una": 1,
+    "uno": 1,
+    "unos": 1,
+    "unas": 1,
+    "one": 1,
+    "dos": 2,
+    "two": 2,
+    "tres": 3,
+    "three": 3,
+    "cuatro": 4,
+    "four": 4,
+    "cinco": 5,
+    "five": 5,
+}
+
+
+def _parse_order_items(value: str, existing_items: list[dict]) -> list[dict]:
+    text = " ".join(value.strip().split()).strip(" .,;")
+    if not text:
+        return []
+
+    folded = _fold_text(text)
+    if existing_items and "cada uno" in folded:
+        quantities = _extract_quantities(folded)
+        quantity = quantities[0] if quantities else 1
+        return [{**item, "quantity": quantity} for item in existing_items]
+
+    quantity_only_parts = re.split(r"\s*(?:,|\by\b|\band\b)\s*", folded)
+    if existing_items and len(quantity_only_parts) == len(existing_items):
+        quantities = [_parse_quantity(part) for part in quantity_only_parts]
+        if all(quantity is not None for quantity in quantities):
+            return [
+                {**item, "quantity": int(quantity)}
+                for item, quantity in zip(existing_items, quantities)
+            ]
+
+    text = re.sub(r"^trame\s+(?:mejor\s+)?", "", text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"^(?:(?:por favor|please)\s+)?(?:trae(?:me)?|tráe(?:me)?|quiero|quisiera|"
+        r"dame|ponme|mejor|cambia(?:me)?(?:\s+mejor)?)(?:\s+por favor)?\s+",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(r"^mejor\s+", "", text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"\s+con\s+(?=(?:\d+|un|una|uno|unos|unas|one|two|dos|tres|three)\b)",
+        " y ",
+        text,
+        flags=re.IGNORECASE,
+    )
+    parts = [
+        part.strip(" .,;")
+        for part in re.split(r"\s*(?:,|\by\b|\band\b)\s*", text, flags=re.IGNORECASE)
+        if part.strip(" .,;")
+    ]
+    items = []
+    quantity_pattern = "|".join(sorted(_QUANTITY_WORDS, key=len, reverse=True))
+    for part in parts:
+        part = re.sub(r"^(?:por favor|please)\s+", "", part, flags=re.IGNORECASE)
+        part = re.sub(r"\s+(?:por favor|please)$", "", part, flags=re.IGNORECASE)
+        match = re.match(
+            rf"^(?P<quantity>\d+|{quantity_pattern})\s+(?:de\s+)?(?P<name>.+)$",
+            part,
+            flags=re.IGNORECASE,
+        )
+        if match:
+            quantity = _parse_quantity(match.group("quantity")) or 1
+            name = match.group("name").strip(" .,;")
+        else:
+            quantity = 1
+            name = part.strip(" .,;")
+        if name:
+            items.append({"name": name, "quantity": quantity, "modifications": []})
+    return items
+
+
+def _parse_quantity(value: str) -> int | None:
+    folded = _fold_text(value)
+    if folded.isdigit():
+        quantity = int(folded)
+        return quantity if quantity > 0 else None
+    return _QUANTITY_WORDS.get(folded)
+
+
+def _extract_quantities(value: str) -> list[int]:
+    return [
+        quantity
+        for token in re.findall(r"\d+|[a-záéíóúñ]+", value.casefold())
+        if (quantity := _parse_quantity(token)) is not None
+    ]
+
+
+def _room_service_confirmation_message(request: AgentTurnRequest, offering, captured: dict) -> dict:
+    spanish = request.guest.preferredLanguage.lower().startswith("es")
+    items = _coerce_order_items(captured.get("items"))
+    destination = _capture_value_label(
+        offering,
+        "deliveryLocation",
+        captured.get("deliveryLocation"),
+    )
+    if spanish:
+        lines = ["Confirmación de pedido", "", "Artículos:"]
+        lines.extend(f"- {item['quantity']} x {item['name']}" for item in items)
+        if destination:
+            lines.extend(["", f"Lugar de entrega: {destination}"])
+        lines.extend(["", "¿Deseas confirmar, cambiar o cancelar el pedido?"])
+        title = "Confirmación de pedido"
+        labels = ("Confirmar", "Cambiar", "Cancelar")
+    else:
+        lines = ["Order confirmation", "", "Items:"]
+        lines.extend(f"- {item['quantity']} x {item['name']}" for item in items)
+        if destination:
+            lines.extend(["", f"Delivery location: {destination}"])
+        lines.extend(["", "Would you like to confirm, change, or cancel the order?"])
+        title = "Order confirmation"
+        labels = ("Confirm", "Change", "Cancel")
+    text = "\n".join(lines)
+    return {
+        "messageDraftId": str(uuid4()),
+        "purpose": "CONFIRMATION",
+        "text": text,
+        "language": request.guest.preferredLanguage,
+        "operationIds": [],
+        "conversationTaskIds": [],
+        "interaction": {
+            "type": "BUTTONS",
+            "title": title,
+            "body": text[:1024],
+            "buttonText": "",
+            "options": [
+                {"id": "confirmation:ROOM_SERVICE:CONFIRM", "label": labels[0]},
+                {"id": "confirmation:ROOM_SERVICE:CHANGE", "label": labels[1]},
+                {"id": "confirmation:ROOM_SERVICE:CANCEL", "label": labels[2]},
+            ],
+        },
+    }
+
+
+def _room_service_change_prompt(request: AgentTurnRequest) -> dict:
+    spanish = request.guest.preferredLanguage.lower().startswith("es")
+    text = (
+        "Indícame nuevamente el pedido completo, incluyendo productos, cantidades y modificaciones."
+        if spanish
+        else "Please provide the complete order again, including items, quantities, and changes."
+    )
+    return {
+        "messageDraftId": str(uuid4()),
+        "purpose": "CLARIFICATION",
+        "text": text,
+        "language": request.guest.preferredLanguage,
+        "operationIds": [],
+        "conversationTaskIds": [],
+        "interaction": None,
+    }
+
+
+def _room_service_cancellation_message(request: AgentTurnRequest) -> dict:
+    spanish = request.guest.preferredLanguage.lower().startswith("es")
+    return {
+        "messageDraftId": str(uuid4()),
+        "purpose": "ANSWER",
+        "text": (
+            "El pedido de servicio a la habitación fue cancelado."
+            if spanish
+            else "The room-service order was cancelled."
+        ),
+        "language": request.guest.preferredLanguage,
+        "operationIds": [],
+        "conversationTaskIds": [],
+        "interaction": None,
+    }
+
+
 def _ensure_explicit_capture_confirmation(
     request: AgentTurnRequest,
     normalized: dict,
@@ -616,84 +1061,28 @@ def _ensure_explicit_capture_confirmation(
         not offering.requiresExplicitGuestConfirmation
         or not isinstance(capture, dict)
         or str(capture.get("inputMode") or "").upper() != "CATALOG_ITEMS"
+        or offering.offeringCode != "ROOM_SERVICE"
     ):
         return False
 
     latest_inbound = context["latestInbound"]
-    item_text = " ".join(latest_inbound.text.strip().split()).strip()
-    if not item_text:
-        return False
-    item_text = item_text.rstrip(". ")
-
-    spanish = request.guest.preferredLanguage.lower().startswith("es")
-    completed_values = context["completedValues"]
-    destination = _capture_value_label(
-        offering,
-        "deliveryLocation",
-        completed_values.get("deliveryLocation"),
+    items = _parse_order_items(
+        latest_inbound.text,
+        _coerce_order_items(context["completedValues"].get(context["fieldCode"])),
     )
-    if spanish:
-        lines = ["Confirmación de pedido", "", "Artículos:", f"- {item_text}"]
-        if destination:
-            lines.extend(["", f"Lugar de entrega: {destination}"])
-        lines.extend(["", "¿Deseas confirmar, cambiar o cancelar el pedido?"])
-        title = "Confirmación de pedido"
-        button_labels = ("Confirmar", "Cambiar", "Cancelar")
-    else:
-        lines = ["Order confirmation", "", "Items:", f"- {item_text}"]
-        if destination:
-            lines.extend(["", f"Delivery location: {destination}"])
-        lines.extend(["", "Would you like to confirm, change, or cancel the order?"])
-        title = "Order confirmation"
-        button_labels = ("Confirm", "Change", "Cancel")
-
-    text = "\n".join(lines)
-    offering_code = offering.offeringCode
-    messages[:] = [{
-        "messageDraftId": str(uuid4()),
-        "purpose": "CONFIRMATION",
-        "text": text,
-        "language": request.guest.preferredLanguage,
-        "operationIds": [],
-        "conversationTaskIds": [],
-        "interaction": {
-            "type": "BUTTONS",
-            "title": title,
-            "body": text[:1024],
-            "buttonText": "",
-            "options": [
-                {
-                    "id": f"confirmation:{offering_code}:CONFIRM",
-                    "label": button_labels[0],
-                },
-                {
-                    "id": f"confirmation:{offering_code}:CHANGE",
-                    "label": button_labels[1],
-                },
-                {
-                    "id": f"confirmation:{offering_code}:CANCEL",
-                    "label": button_labels[2],
-                },
-            ],
-        },
-    }]
+    if not items:
+        return False
+    completed_values = {
+        **context["completedValues"],
+        context["fieldCode"]: items,
+    }
+    messages[:] = [_room_service_confirmation_message(request, offering, completed_values)]
     normalized["disposition"] = "RESPONSE_READY"
     normalized["toolCalls"] = []
-    capture_summary = json.dumps(
-        {
-            "pendingOffering": offering_code,
-            "capturedFields": {
-                **completed_values,
-                context["fieldCode"]: item_text,
-            },
-            "awaitingExplicitConfirmation": True,
-        },
-        ensure_ascii=False,
-        separators=(",", ":"),
-    )
-    existing_summary = request.conversation.summary.strip()
-    normalized["updatedConversationSummary"] = (
-        f"{existing_summary}\n{capture_summary}" if existing_summary else capture_summary
+    normalized["updatedConversationSummary"] = _room_service_summary(
+        completed_values,
+        True,
+        "AWAITING_CONFIRMATION",
     )
     return True
 
@@ -704,6 +1093,38 @@ def _pending_free_text_capture_context(request: AgentTurnRequest) -> dict | None
         return None
     if not latest_inbound.text.strip():
         return None
+
+    state = _latest_capture_state(request)
+    pending_offering_code = state.get("pendingOffering")
+    captured_state = state.get("capturedFields")
+    if isinstance(pending_offering_code, str) and isinstance(captured_state, dict):
+        offering = next(
+            (
+                candidate
+                for candidate in request.availableOfferings
+                if candidate.offeringCode == pending_offering_code
+            ),
+            None,
+        )
+        if offering is not None and not state.get("awaitingExplicitConfirmation"):
+            for field_code, field_schema in _ordered_guest_capture_fields(offering):
+                if field_code in captured_state:
+                    continue
+                capture = field_schema.get("x-chatbotinn-capture")
+                input_mode = (
+                    str(capture.get("inputMode") or "AUTO").upper()
+                    if isinstance(capture, dict)
+                    else "AUTO"
+                )
+                if input_mode in {"FREE_TEXT", "DATE", "TIME", "MULTI_SELECT", "CATALOG_ITEMS"}:
+                    return {
+                        "offering": offering,
+                        "fieldCode": field_code,
+                        "fieldSchema": field_schema,
+                        "completedValues": dict(captured_state),
+                        "latestInbound": latest_inbound,
+                    }
+                break
 
     selected_offering = None
     selected_at = -1
@@ -905,6 +1326,17 @@ def _ensure_configured_field_capture(
     messages[:] = [message]
     normalized["disposition"] = "RESPONSE_READY"
     normalized["toolCalls"] = []
+    completed_values = {}
+    if completed_field is not None:
+        completed_value = _structured_capture_value(latest_inbound.interactionReplyId)
+        if completed_value is not None:
+            completed_values[completed_field] = completed_value
+    normalized["updatedConversationSummary"] = _capture_summary(
+        request,
+        offering.offeringCode,
+        completed_values,
+        False,
+    )
     return True
 
 

@@ -529,6 +529,10 @@ class V2TurnPlannerTest(unittest.TestCase):
             ],
             [option["id"] for option in message["interaction"]["options"]],
         )
+        self.assertIn(
+            '"pendingOffering":"ROOM_SERVICE"',
+            normalized["updatedConversationSummary"],
+        )
 
     def test_delivery_selection_advances_to_catalog_items_with_visible_url(self):
         request_payload = payload()
@@ -561,6 +565,10 @@ class V2TurnPlannerTest(unittest.TestCase):
         message = normalized["messages"][0]
         self.assertIn("https://hotel.example/menu", message["text"])
         self.assertIsNone(message["interaction"])
+        self.assertIn(
+            '"deliveryLocation":"DOCK_1"',
+            normalized["updatedConversationSummary"],
+        )
 
     def test_catalog_items_answer_advances_to_order_confirmation(self):
         request_payload = payload()
@@ -618,7 +626,7 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertEqual("RESPONSE_READY", normalized["disposition"])
         self.assertEqual([], normalized["toolCalls"])
         message = normalized["messages"][0]
-        self.assertIn("- 2 chilaquiles rellenos", message["text"])
+        self.assertIn("- 2 x chilaquiles rellenos", message["text"])
         self.assertIn("Lugar de entrega: Habitacion", message["text"])
         self.assertNotIn("indícame los alimentos", message["text"])
         self.assertEqual("BUTTONS", message["interaction"]["type"])
@@ -631,7 +639,122 @@ class V2TurnPlannerTest(unittest.TestCase):
             [option["id"] for option in message["interaction"]["options"]],
         )
         self.assertIn('"deliveryLocation":"ROOM"', normalized["updatedConversationSummary"])
-        self.assertIn('"items":"2 chilaquiles rellenos"', normalized["updatedConversationSummary"])
+        self.assertIn('"name":"chilaquiles rellenos"', normalized["updatedConversationSummary"])
+        self.assertIn('"quantity":2', normalized["updatedConversationSummary"])
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_room_service_draft_normalizes_items_without_reasking_quantities(self, openai_call):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_room_service_offering()]
+        request_payload["toolPolicy"] = {"allowedTools": ["START_SERVICE"], "maxToolCalls": 2}
+        request_payload["conversation"]["summary"] = (
+            '{"pendingOffering":"ROOM_SERVICE","phase":"CAPTURING_ITEMS",'
+            '"capturedFields":{"deliveryLocation":"DOCK_1"},'
+            '"awaitingExplicitConfirmation":false}'
+        )
+        request_payload["conversation"]["recentMessages"] = [{
+            "messageId": MESSAGE_ID,
+            "direction": "INBOUND",
+            "actor": "GUEST",
+            "text": "Traeme mejor unas enchiladas con un refresco",
+            "createdAt": "2026-08-27T18:10:00Z",
+        }]
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("RESPONSE_READY", response.disposition)
+        self.assertIn("- 1 x enchiladas", response.messages[0].text)
+        self.assertIn("- 1 x refresco", response.messages[0].text)
+        self.assertIn("Lugar de entrega: Muelle 1", response.messages[0].text)
+        self.assertNotIn("indícame las cantidades", response.messages[0].text.casefold())
+        self.assertEqual("BUTTONS", response.messages[0].interaction.type)
+        self.assertIn('"awaitingExplicitConfirmation":true', response.updatedConversationSummary)
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_room_service_change_preserves_destination_and_clears_old_items(self, openai_call):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_room_service_offering()]
+        request_payload["toolPolicy"] = {"allowedTools": ["START_SERVICE"], "maxToolCalls": 2}
+        request_payload["conversation"]["summary"] = (
+            '{"pendingOffering":"ROOM_SERVICE","phase":"AWAITING_CONFIRMATION",'
+            '"capturedFields":{"deliveryLocation":"POOL_2","items":['
+            '{"name":"pozole","quantity":1,"modifications":[]}]},'
+            '"awaitingExplicitConfirmation":true}'
+        )
+        request_payload["conversation"]["recentMessages"] = [{
+            "messageId": MESSAGE_ID,
+            "direction": "INBOUND",
+            "actor": "GUEST",
+            "text": "Cambiar",
+            "interactionReplyId": "confirmation:ROOM_SERVICE:CHANGE",
+            "createdAt": "2026-08-27T18:11:00Z",
+        }]
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("RESPONSE_READY", response.disposition)
+        self.assertIn("pedido completo", response.messages[0].text)
+        self.assertIn('"deliveryLocation":"POOL_2"', response.updatedConversationSummary)
+        self.assertNotIn('"items"', response.updatedConversationSummary)
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_room_service_confirmation_starts_once_with_authoritative_draft(self, openai_call):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_room_service_offering()]
+        request_payload["toolPolicy"] = {"allowedTools": ["START_SERVICE"], "maxToolCalls": 2}
+        request_payload["conversation"]["summary"] = (
+            '{"pendingOffering":"ROOM_SERVICE","phase":"AWAITING_CONFIRMATION",'
+            '"capturedFields":{"deliveryLocation":"ROOM","items":['
+            '{"name":"enchiladas","quantity":1,"modifications":[]},'
+            '{"name":"refresco","quantity":1,"modifications":[]}]},'
+            '"awaitingExplicitConfirmation":true}'
+        )
+        request_payload["conversation"]["recentMessages"] = [{
+            "messageId": MESSAGE_ID,
+            "direction": "INBOUND",
+            "actor": "GUEST",
+            "text": "Confirmar",
+            "interactionReplyId": "confirmation:ROOM_SERVICE:CONFIRM",
+            "createdAt": "2026-08-27T18:12:00Z",
+        }]
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", response.disposition)
+        self.assertEqual(1, len(response.toolCalls))
+        self.assertEqual("START_SERVICE", response.toolCalls[0].toolName)
+        self.assertEqual("ROOM", response.toolCalls[0].arguments["input"]["deliveryLocation"])
+        self.assertEqual(2, len(response.toolCalls[0].arguments["input"]["items"]))
+        self.assertEqual(UUID(MESSAGE_ID), response.toolCalls[0].evidenceMessageIds[0])
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_room_service_free_text_cancel_clears_pending_draft(self, openai_call):
+        request_payload = payload()
+        request_payload["availableOfferings"] = [guided_room_service_offering()]
+        request_payload["conversation"]["summary"] = (
+            '{"pendingOffering":"ROOM_SERVICE","phase":"AWAITING_CONFIRMATION",'
+            '"capturedFields":{"deliveryLocation":"ROOM","items":['
+            '{"name":"pozole","quantity":1,"modifications":[]}]},'
+            '"awaitingExplicitConfirmation":true}'
+        )
+        request_payload["conversation"]["recentMessages"] = [{
+            "messageId": MESSAGE_ID,
+            "direction": "INBOUND",
+            "actor": "GUEST",
+            "text": "Cancela mi pedido",
+            "createdAt": "2026-08-27T18:13:00Z",
+        }]
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("RESPONSE_READY", response.disposition)
+        self.assertIn("fue cancelado", response.messages[0].text)
+        self.assertEqual("{}", response.updatedConversationSummary)
+        self.assertEqual([], response.toolCalls)
+        openai_call.assert_not_called()
 
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
     def test_spa_capture_collects_service_date_and_time_before_starting(self, openai_call):
