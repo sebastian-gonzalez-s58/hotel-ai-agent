@@ -55,11 +55,13 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
 
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
                      scope: ScopeDecision | None = None) -> AgentTurnResponse:
-    if any(result.get("offeringCode") == "SPA" for result in _successful_started_operations(request)):
+    started = _acknowledgeable_service_starts(request)
+    if started:
         messages = []
         _ensure_service_start_acknowledgements(request, messages)
         return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
-                                            messages=messages, updated_summary=started_spa_summary(request))
+                                            messages=messages,
+                                            updated_summary=_started_service_summary(request, started))
     latest = _latest_inbound_message(request)
     greeting = (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
                 and latest is not None and not latest.interactionReplyId and _is_greeting_turn(request))
@@ -1269,12 +1271,13 @@ def _normalize_guest_experience(request: AgentTurnRequest, payload: dict,
         normalized["updatedConversationSummary"] = "{}"
         _ensure_personalized_service_menu(request, messages)
         return normalized
-    if _successful_started_operations(request):
+    started = _acknowledgeable_service_starts(request)
+    if started:
         # A successful lifecycle result is authoritative. The same guest turn must
         # acknowledge it instead of proposing START_SERVICE again.
         normalized["disposition"] = "RESPONSE_READY"
         normalized["toolCalls"] = []
-        normalized["updatedConversationSummary"] = "{}"
+        normalized["updatedConversationSummary"] = _started_service_summary(request, started)
         _ensure_service_start_acknowledgements(request, messages)
         return normalized
     if normalized.get("disposition") == "RESPONSE_READY":
@@ -2223,7 +2226,7 @@ def _ensure_personalized_service_menu(request: AgentTurnRequest, messages: list[
 
 
 def _ensure_service_start_acknowledgements(request: AgentTurnRequest, messages: list[dict]) -> None:
-    started = _successful_started_operations(request)
+    started = _acknowledgeable_service_starts(request)
     if not started:
         return
     spanish = request.guest.preferredLanguage.lower().startswith("es")
@@ -2259,13 +2262,73 @@ def _ensure_service_start_acknowledgements(request: AgentTurnRequest, messages: 
         messages[:] = acknowledgements
 
 
-def _successful_started_operations(request: AgentTurnRequest) -> list[dict]:
-    return [
-        result.result
-        for result in request.previousToolResults
-        if result.status == "SUCCEEDED" and result.toolName == DomainToolName.START_SERVICE.value
-        and isinstance(result.result, dict) and result.result.get("referenceCode")
-    ]
+def _acknowledgeable_service_starts(request: AgentTurnRequest) -> list[dict]:
+    # Do not hide failures, FAQ responses, or other mutations behind a start-only reply.
+    supporting_tools = {DomainToolName.LIST_AVAILABLE_OFFERINGS.value,
+                        DomainToolName.GET_OFFERING_DEFINITION.value,
+                        DomainToolName.SEARCH_CATALOG.value}
+    started = []
+    seen_operations: set[UUID] = set()
+    for result in request.previousToolResults:
+        if result.status != "SUCCEEDED" or result.error is not None:
+            return []
+        if result.toolName in supporting_tools:
+            continue
+        if result.toolName != DomainToolName.START_SERVICE.value:
+            return []
+        operation = result.result
+        if not isinstance(operation, dict) or any(
+            not isinstance(operation.get(key), str) or not operation[key].strip()
+            for key in ("offeringCode", "referenceCode", "operationId")
+        ):
+            return []
+        if operation["offeringCode"].strip().upper() == "FAQ":
+            return []
+        try:
+            operation_id = UUID(operation["operationId"])
+        except ValueError:
+            return []
+        if operation_id in seen_operations:
+            continue
+        seen_operations.add(operation_id)
+        started.append(operation)
+    return started if len(started) <= 10 else []
+
+
+def _started_service_summary(request: AgentTurnRequest, started: list[dict]) -> str:
+    offering_codes = {operation["offeringCode"] for operation in started}
+    if "SPA" in offering_codes:
+        request = request.model_copy(deep=True)
+        request.conversation.summary = started_spa_summary(request)
+    summary = request.conversation.summary
+    try:
+        state = json.loads(summary)
+        structured_summary = True
+    except ValueError:
+        state = _latest_capture_state(request)
+        structured_summary = False
+    if not isinstance(state, dict):
+        return summary
+    pending_offering = state.get("pendingOffering")
+    submitted = state.get("phase") == "STARTING" or state.get("readyToStart") is True
+    if not isinstance(pending_offering, str) or pending_offering not in offering_codes or not submitted:
+        return summary
+    for key in ("pendingOffering", "capturedFields", "awaitingExplicitConfirmation",
+                "readyToStart", "phase"):
+        state.pop(key, None)
+    encoded = json.dumps(state, ensure_ascii=False, separators=(",", ":"))
+    if structured_summary:
+        return encoded
+    # Replace only the latest capture snapshot, keeping prose and independent state.
+    lines = summary.splitlines()
+    for index in range(len(lines) - 1, -1, -1):
+        try:
+            if isinstance(json.loads(lines[index]), dict):
+                lines[index] = encoded
+                break
+        except ValueError:
+            continue
+    return "\n".join(lines)
 
 
 def _is_greeting_turn(request: AgentTurnRequest) -> bool:

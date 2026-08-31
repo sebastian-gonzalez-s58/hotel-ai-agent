@@ -258,7 +258,7 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertIn('"confirmed":{"type":"boolean"}', repair_prompt)
 
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
-    def test_converts_repeated_start_service_after_success_into_acknowledgement(self, openai_call):
+    def test_acknowledges_success_before_model_can_repeat_start_service(self, openai_call):
         operation_id = "90000000-0000-0000-0000-000000000020"
         request_payload = payload()
         request_payload["availableOfferings"] = [offering()]
@@ -305,7 +305,8 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertEqual(1, len(response.messages))
         self.assertIn("REQ-20260825-ABC12345", response.messages[0].text)
         self.assertEqual([UUID(operation_id)], response.messages[0].operationIds)
-        self.assertEqual(1, openai_call.call_count)
+        self.assertEqual(0, response.usage.totalTokens)
+        openai_call.assert_not_called()
 
     def test_normalizes_server_owned_response_envelope(self):
         request = AgentTurnRequest.model_validate(payload())
