@@ -10,6 +10,8 @@ from pydantic import ValidationError
 from app.core.config import settings
 from app.core.errors import AgentModelError
 from app.agents.v2_scope_router import ScopeDecision, classify_hotel_scope
+from app.agents.schema_validation import satisfies_schema
+from app.agents.spa_turns import plan_spa_turn, preserve_spa_state, started_spa_summary, validate_spa_call
 from app.prompts.v2_turn import build_v2_turn_prompt
 from app.schemas.v2_turns import AgentTurnRequest, AgentTurnResponse
 from app.schemas.v2_turns import DomainToolName
@@ -47,12 +49,23 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         for name, count in scope_usage.as_api_dict().items():
             setattr(response.usage, name, getattr(response.usage, name) + count)
         response.usage.latencyMs = round((time.perf_counter() - started_at) * 1000)
-        return response
-    return _plan_hotel_turn(request, started_at, scope)
+        return preserve_spa_state(request, response, scope)
+    return preserve_spa_state(request, _plan_hotel_turn(request, started_at, scope))
 
 
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
                      scope: ScopeDecision | None = None) -> AgentTurnResponse:
+    if any(result.get("offeringCode") == "SPA" for result in _successful_started_operations(request)):
+        messages = []
+        _ensure_service_start_acknowledgements(request, messages)
+        return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                                            messages=messages, updated_summary=started_spa_summary(request))
+    latest = _latest_inbound_message(request)
+    greeting = (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
+                and latest is not None and not latest.interactionReplyId and _is_greeting_turn(request))
+    spa_plan = None if greeting else plan_spa_turn(request, scope)
+    if spa_plan is not None:
+        return _deterministic_turn_response(request, started_at, **spa_plan)
     if scope is not None and scope.kind == "NAVIGATION":
         if not request.availableOfferings:
             return _scope_clarification(request, "UNCLEAR", started_at)
@@ -582,6 +595,7 @@ def _deterministic_turn_response(
     messages: list[dict],
     updated_summary: str,
     tool_calls: list[dict] | None = None,
+    usage: dict | None = None,
 ) -> AgentTurnResponse:
     payload = _normalize_response_envelope(request, {
         "disposition": disposition,
@@ -599,6 +613,8 @@ def _deterministic_turn_response(
         "totalTokens": 0,
         "latencyMs": round((time.perf_counter() - started_at) * 1000),
     }
+    if usage:
+        payload["usage"].update(usage)
     response = AgentTurnResponse.model_validate(payload)
     _validate_plan(request, response)
     return response
@@ -968,6 +984,7 @@ def _validate_plan(
         _validate_lifecycle_call(call, offerings, operations_by_id)
         _validate_status_call(call, offerings)
         _validate_conversation_task_call(call, tasks_by_id)
+        validate_spa_call(request, call, tasks_by_id)
         if call.toolName.value == "COMPLETE_CONVERSATION_TASK" and call.targetConversationTaskId:
             completed_tasks.add(call.targetConversationTaskId)
 
@@ -2303,55 +2320,12 @@ def _validate_conversation_task_call(call, tasks_by_id) -> None:
                 "Conversation-task progress already satisfies the required output schema; "
                 "use COMPLETE_CONVERSATION_TASK"
             )
+    elif not _satisfies_required_output_schema(payload, task.requiredOutputSchema):
+        raise AgentModelError("Conversation-task result does not satisfy requiredOutputSchema")
 
 
 def _satisfies_required_output_schema(value, schema: dict) -> bool:
-    if not isinstance(schema, dict):
-        return False
-    expected_type = schema.get("type")
-    if expected_type == "object":
-        if not isinstance(value, dict):
-            return False
-        required = schema.get("required") if isinstance(schema.get("required"), list) else []
-        properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
-        for field in required:
-            if field not in value or _is_missing_required_value(value[field]):
-                return False
-            field_schema = properties.get(field)
-            if isinstance(field_schema, dict) and not _satisfies_required_output_schema(
-                value[field], field_schema
-            ):
-                return False
-        return True
-    if expected_type == "array":
-        if not isinstance(value, list):
-            return False
-        if len(value) < int(schema.get("minItems") or 0):
-            return False
-        item_schema = schema.get("items")
-        return not isinstance(item_schema, dict) or all(
-            _satisfies_required_output_schema(item, item_schema) for item in value
-        )
-    if expected_type == "string":
-        if not isinstance(value, str):
-            return False
-        if len(value.strip()) < int(schema.get("minLength") or 0):
-            return False
-    elif expected_type == "integer":
-        if not isinstance(value, int) or isinstance(value, bool):
-            return False
-        if "minimum" in schema and value < schema["minimum"]:
-            return False
-    elif expected_type == "number":
-        if not isinstance(value, (int, float)) or isinstance(value, bool):
-            return False
-        if "minimum" in schema and value < schema["minimum"]:
-            return False
-    elif expected_type == "boolean" and not isinstance(value, bool):
-        return False
-    if "enum" in schema and value not in schema["enum"]:
-        return False
-    return True
+    return satisfies_schema(value, schema)
 
 
 def _argument_uuid(value, field: str) -> UUID:

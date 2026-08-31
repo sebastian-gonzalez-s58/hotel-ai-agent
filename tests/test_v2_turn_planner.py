@@ -926,9 +926,17 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertEqual([], response.toolCalls)
         openai_call.assert_not_called()
 
+    @patch("app.agents.spa_turns.call_openai_json_result")
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
-    def test_spa_capture_collects_service_date_and_time_before_starting(self, openai_call):
+    def test_spa_capture_collects_service_date_and_time_before_starting(self, openai_call, spa_extract):
+        from tests.test_spa_turns import extraction, follow_up
+        spa_extract.side_effect = [
+            extraction("Masaje relajante", {"serviceName": "Masaje relajante"}),
+            extraction("30 de agosto", {"reservationDate": "2026-08-30"}),
+            extraction("5 de la tarde", {"reservationTime": "17:00"}),
+        ]
         request_payload = payload()
+        request_payload["createdAt"] = "2026-08-26T14:00:00Z"
         request_payload["availableOfferings"] = [guided_spa_offering()]
         request_payload["toolPolicy"] = {"allowedTools": ["START_SERVICE"], "maxToolCalls": 2}
         request_payload["conversation"]["recentMessages"] = [
@@ -945,6 +953,7 @@ class V2TurnPlannerTest(unittest.TestCase):
         first = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
         self.assertIn("https://spa.example/catalog", first.messages[0].text)
         self.assertIn("cuál deseas reservar", first.messages[0].text)
+        request_payload["conversation"]["summary"] = first.updatedConversationSummary
 
         request_payload["conversation"]["recentMessages"].extend([
             {
@@ -1007,17 +1016,22 @@ class V2TurnPlannerTest(unittest.TestCase):
         request_payload["trigger"]["messageId"] = MESSAGE_ID
         fourth = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
 
-        self.assertEqual("TOOL_CALLS_REQUIRED", fourth.disposition)
-        self.assertEqual([], fourth.messages)
-        self.assertEqual(1, len(fourth.toolCalls))
-        call = fourth.toolCalls[0]
+        self.assertEqual("RESPONSE_READY", fourth.disposition)
+        self.assertEqual([], fourth.toolCalls)
+        confirmed = follow_up(AgentTurnRequest.model_validate(request_payload), fourth, "Confirmar",
+                              fourth.messages[0].interaction.options[0].id)
+        fifth = plan_v2_turn(confirmed)
+        self.assertEqual("TOOL_CALLS_REQUIRED", fifth.disposition)
+        self.assertEqual([], fifth.messages)
+        self.assertEqual(1, len(fifth.toolCalls))
+        call = fifth.toolCalls[0]
         self.assertEqual("START_SERVICE", call.toolName)
         self.assertEqual("SPA", call.arguments["offeringCode"])
         self.assertEqual(
             {
                 "serviceName": "Masaje relajante",
-                "reservationDate": "30 de agosto",
-                "reservationTime": "5 de la tarde",
+                "reservationDate": "2026-08-30",
+                "reservationTime": "17:00",
             },
             call.arguments["input"],
         )
