@@ -65,6 +65,9 @@ def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
     latest = _latest_inbound_message(request)
     greeting = (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
                 and latest is not None and not latest.interactionReplyId and _is_greeting_turn(request))
+    front_desk_plan = _front_desk_start_plan(request, started_at, scope)
+    if front_desk_plan is not None:
+        return front_desk_plan
     spa_plan = None if greeting else plan_spa_turn(request, scope)
     if spa_plan is not None:
         return _deterministic_turn_response(request, started_at, **spa_plan)
@@ -216,6 +219,37 @@ def _scope_clarification(request: AgentTurnRequest, kind: str,
         "language": request.guest.preferredLanguage,
         "operationIds": [], "conversationTaskIds": [], "interaction": None,
     }], updated_summary=request.conversation.summary)
+
+
+def _front_desk_start_plan(request: AgentTurnRequest, started_at: float,
+                           scope: ScopeDecision | None) -> AgentTurnResponse | None:
+    if request.trigger.type != "INBOUND_MESSAGE" or request.previousToolResults:
+        return None
+    latest = _latest_inbound_message(request)
+    if latest is None:
+        return None
+    selection = _capture_selection(request, latest)
+    selected = selection is not None and selection[0].offeringCode == "FRONT_DESK" and selection[1] is None
+    requested = scope is not None and scope.kind == "SERVICE_REQUEST" and scope.offeringCode == "FRONT_DESK"
+    if not selected and not requested:
+        return None
+    offering = next((o for o in request.availableOfferings if o.offeringCode == "FRONT_DESK"), None)
+    if (offering is None or offering.executionMode != "PROCESS"
+            or offering.requiresExplicitGuestConfirmation
+            or not satisfies_schema({}, offering.inputSchema)
+            or DomainToolName.START_SERVICE not in request.toolPolicy.allowedTools
+            or request.toolPolicy.maxToolCalls < 1):
+        return None
+    # The current selection is the evidence. Other service drafts/tasks stay intact.
+    return _deterministic_turn_response(
+        request, started_at, disposition="TOOL_CALLS_REQUIRED", messages=[],
+        tool_calls=[{
+            "toolCallId": str(uuid4()), "toolName": DomainToolName.START_SERVICE.value,
+            "targetOperationId": None, "targetConversationTaskId": None,
+            "arguments": {"offeringCode": "FRONT_DESK", "input": {}},
+            "confidence": 1.0, "evidenceMessageIds": [str(latest.messageId)],
+        }], updated_summary=request.conversation.summary,
+    )
 
 
 def _initial_offering_capture_plan(request: AgentTurnRequest, offering,
@@ -2248,6 +2282,14 @@ def _ensure_service_start_acknowledgements(request: AgentTurnRequest, messages: 
             else f"The {offering_name.lower()} request has been started with reference {reference}. "
             "We will send updates through this channel; please keep an eye on your messages."
         )
+        if offering_code == "FRONT_DESK":
+            text = (
+                f"Hemos avisado a recepción. Tu solicitud quedó registrada con el folio {reference}. "
+                "El equipo se pondrá en contacto contigo directamente para ayudarte."
+                if spanish else
+                f"We have notified the front desk. Your request reference is {reference}. "
+                "The team will contact you directly to help."
+            )
         linked_operations = [operation_id] if operation_id else []
         acknowledgements.append({
             "messageDraftId": str(uuid4()),
@@ -2310,7 +2352,8 @@ def _started_service_summary(request: AgentTurnRequest, started: list[dict]) -> 
     if not isinstance(state, dict):
         return summary
     pending_offering = state.get("pendingOffering")
-    submitted = state.get("phase") == "STARTING" or state.get("readyToStart") is True
+    submitted = (state.get("phase") == "STARTING" or state.get("readyToStart") is True
+                 or pending_offering == "FRONT_DESK")
     if not isinstance(pending_offering, str) or pending_offering not in offering_codes or not submitted:
         return summary
     for key in ("pendingOffering", "capturedFields", "awaitingExplicitConfirmation",

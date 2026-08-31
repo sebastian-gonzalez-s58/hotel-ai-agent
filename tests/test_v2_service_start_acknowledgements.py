@@ -102,7 +102,10 @@ class ServiceStartAcknowledgementsTest(unittest.TestCase):
                         self.assertIsNone(message.interaction)
                         self.assertEqual(language, message.language)
                         self.assertIn(result["result"]["referenceCode"], message.text)
-                        self.assertIn("Recibir" if language == "es-MX" else "We will send updates", message.text)
+                        expected = ("contacto contigo directamente" if language == "es-MX" else "contact you directly"
+                                    ) if code == "FRONT_DESK" else (
+                                        "Recibir" if language == "es-MX" else "We will send updates")
+                        self.assertIn(expected, message.text)
 
     def test_future_offering_does_not_require_catalog_presence(self):
         request = request_for([start_result("FUTURE_SERVICE")])
