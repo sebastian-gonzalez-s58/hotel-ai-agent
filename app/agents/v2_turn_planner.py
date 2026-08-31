@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from app.core.config import settings
 from app.core.errors import AgentModelError
+from app.agents.v2_scope_router import ScopeDecision, classify_hotel_scope
 from app.prompts.v2_turn import build_v2_turn_prompt
 from app.schemas.v2_turns import AgentTurnRequest, AgentTurnResponse
 from app.schemas.v2_turns import DomainToolName
@@ -22,13 +23,70 @@ MAX_PLAN_ATTEMPTS = 3
 
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     started_at = time.perf_counter()
-    deterministic = _room_service_operation_task_plan(request, started_at)
+    # Bind every helper (including deterministic captures) to the triggering inbound message.
+    request = _request_for_trigger(request)
+    latest = _latest_inbound_message(request)
+    scope = None
+    scope_usage = None
+    if (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
+            and latest is not None and not latest.interactionReplyId
+            and not _is_greeting_turn(request) and _capture_selection(request, latest) is None):
+        scope, scope_usage = classify_hotel_scope(request, latest, _latest_capture_state(request))
+        if scope.kind in {"OUT_OF_SCOPE", "UNCLEAR"}:
+            response = _scope_clarification(request, scope.kind, started_at)
+        else:
+            scoped = request.model_copy(deep=True)
+            _latest_inbound_message(scoped).text = scope.relevantText
+            response = _plan_hotel_turn(scoped, started_at, scope)
+        if (scope.containsUnrelatedTopic and scope.kind not in {"OUT_OF_SCOPE", "UNCLEAR"}
+                and response.messages):
+            notice = _scope_refusal(request)
+            response.messages[0].text = notice + "\n\n" + response.messages[0].text
+            if response.messages[0].interaction is not None:
+                response.messages[0].interaction.body = response.messages[0].text[:1024]
+        for name, count in scope_usage.as_api_dict().items():
+            setattr(response.usage, name, getattr(response.usage, name) + count)
+        response.usage.latencyMs = round((time.perf_counter() - started_at) * 1000)
+        return response
+    return _plan_hotel_turn(request, started_at, scope)
+
+
+def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
+                     scope: ScopeDecision | None = None) -> AgentTurnResponse:
+    if scope is not None and scope.kind == "NAVIGATION":
+        if not request.availableOfferings:
+            return _scope_clarification(request, "UNCLEAR", started_at)
+        messages = []
+        _ensure_personalized_service_menu(request, messages, force=True)
+        return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                                            messages=messages, updated_summary=request.conversation.summary)
+    if scope is not None and scope.kind == "HOTEL_QUESTION":
+        deterministic = _faq_knowledge_lookup_plan(request, started_at, direct_question=True)
+        if deterministic is not None:
+            return deterministic
+        return _scope_clarification(request, "UNCLEAR", started_at)
+    if scope is not None and scope.kind == "SERVICE_REQUEST":
+        offering = next(o for o in request.availableOfferings
+                        if o.offeringCode == scope.offeringCode)
+        if not scope.hasRequestDetails:
+            deterministic = _initial_offering_capture_plan(request, offering, started_at)
+            if deterministic is not None:
+                return deterministic
+        # A new explicit request must not be consumed as an answer to an older task/draft.
+        if _latest_capture_state(request).get("pendingOffering") != offering.offeringCode:
+            request = request.model_copy(deep=True)
+            request.conversation.summary = _capture_summary(request, offering.offeringCode, {}, False)
+    skip_capture = (not request.previousToolResults and _is_greeting_turn(request)) or (
+        scope is not None and scope.kind in {
+        "SERVICE_REQUEST", "STATUS_REQUEST", "NAVIGATION", "SOCIAL"
+    })
+    deterministic = None if skip_capture else _room_service_operation_task_plan(request, started_at)
     if deterministic is not None:
         return deterministic
-    deterministic = _room_service_draft_plan(request, started_at)
+    deterministic = None if skip_capture else _room_service_draft_plan(request, started_at)
     if deterministic is not None:
         return deterministic
-    deterministic = _faq_knowledge_lookup_plan(request, started_at)
+    deterministic = None if skip_capture else _faq_knowledge_lookup_plan(request, started_at)
     if deterministic is not None:
         return deterministic
     deterministic = _faq_service_start_plan(request, started_at)
@@ -37,10 +95,20 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     deterministic = _faq_started_response_plan(request, started_at)
     if deterministic is not None:
         return deterministic
-    deterministic = _configured_capture_plan(request, started_at)
+    deterministic = None if skip_capture else _configured_capture_plan(request, started_at)
     if deterministic is not None:
         return deterministic
-    prompt = build_v2_turn_prompt(request) + _build_capture_turn_instruction(request)
+    prompt = build_v2_turn_prompt(request)
+    if not skip_capture:
+        prompt += _build_capture_turn_instruction(request)
+    if scope is not None:
+        prompt += ("\nThe hotel scope router classified this current message as "
+                   + scope.model_dump_json() + ". Respect that route. A specific request is not "
+                   "a greeting or a request for the main menu. Ask only for missing service data. "
+                   "Do not turn a status question or a thank-you into a capture field.")
+    accumulated_usage = {name: 0 for name in (
+        "inputTokens", "cachedInputTokens", "outputTokens", "reasoningTokens", "totalTokens"
+    )}
     for attempt in range(1, MAX_PLAN_ATTEMPTS + 1):
         result = call_openai_json_result(
             prompt,
@@ -49,15 +117,22 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
             response_schema_name="agent_turn_response_v2",
         )
         payload = _normalize_response_envelope(request, result.payload)
-        payload = _normalize_guest_experience(request, payload)
+        payload = _normalize_guest_experience(request, payload, skip_capture=skip_capture)
+        for name, count in result.usage.as_api_dict().items():
+            accumulated_usage[name] += count
         payload["usage"] = {
             "model": settings.openai_model,
-            **result.usage.as_api_dict(),
+            **accumulated_usage,
             "latencyMs": round((time.perf_counter() - started_at) * 1000),
         }
         try:
             response = AgentTurnResponse.model_validate(payload)
             _validate_plan(request, response, enforce_faq_rewrite=attempt == 1)
+            if scope is not None and scope.kind == "SERVICE_REQUEST" and any(
+                m.interaction and any(o.id.startswith("offering:") for o in m.interaction.options)
+                for m in response.messages
+            ):
+                raise AgentModelError("A specific service request must not return the main service menu")
             return response
         except ValidationError as exc:
             error = AgentModelError(
@@ -88,14 +163,77 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     raise AgentModelError("OpenAI did not return a valid V2 agent plan")
 
 
+def _request_for_trigger(request: AgentTurnRequest) -> AgentTurnRequest:
+    message_id = request.trigger.messageId
+    if message_id is None:
+        return request
+    index = next((i for i, m in enumerate(request.conversation.recentMessages)
+                  if m.messageId == message_id and m.direction == "INBOUND"), None)
+    if index is None:
+        if request.trigger.type == "INBOUND_MESSAGE":
+            raise AgentModelError("Trigger message is missing from the turn context")
+        return request
+    scoped = request.model_copy(deep=True)
+    scoped.conversation.recentMessages = [
+        m for i, m in enumerate(scoped.conversation.recentMessages)
+        if i <= index or m.direction != "INBOUND"
+    ]
+    return scoped
+
+
+def _scope_refusal(request: AgentTurnRequest) -> str:
+    return ("Lo siento, solo puedo ayudarte con los servicios del hotel y tu estancia."
+            if request.guest.preferredLanguage.lower().startswith("es") else
+            "Sorry, I can only help with hotel services and your stay.")
+
+
+def _scope_clarification(request: AgentTurnRequest, kind: str,
+                         started_at: float) -> AgentTurnResponse:
+    spanish = request.guest.preferredLanguage.lower().startswith("es")
+    text = (_scope_refusal(request) if kind == "OUT_OF_SCOPE" else
+            "¿En qué servicio del hotel necesitas ayuda?" if spanish else
+            "Which hotel service do you need help with?")
+    if kind == "OUT_OF_SCOPE":
+        text += (" ¿Necesitas ayuda con algún servicio?" if spanish else
+                 " Do you need help with a hotel service?")
+    return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY", messages=[{
+        "purpose": "CLARIFICATION", "text": text,
+        "language": request.guest.preferredLanguage,
+        "operationIds": [], "conversationTaskIds": [], "interaction": None,
+    }], updated_summary=request.conversation.summary)
+
+
+def _initial_offering_capture_plan(request: AgentTurnRequest, offering,
+                                  started_at: float) -> AgentTurnResponse | None:
+    fields = _ordered_guest_capture_fields(offering)
+    if not fields:
+        return None
+    field_code, field_schema = fields[0]
+    capture = field_schema.get("x-chatbotinn-capture")
+    if not isinstance(capture, dict):
+        return None
+    message = _capture_message(request, offering.offeringCode, field_code, field_schema, capture)
+    if message is None:
+        return None
+    return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                                       messages=[message], updated_summary=_capture_summary(
+                                           request, offering.offeringCode, {}, False))
+
+
 def _faq_knowledge_lookup_plan(
     request: AgentTurnRequest,
     started_at: float,
+    direct_question: bool = False,
 ) -> AgentTurnResponse | None:
     if request.previousToolResults or DomainToolName.SEARCH_KNOWLEDGE not in request.toolPolicy.allowedTools:
         return None
 
-    context = _pending_free_text_capture_context(request)
+    if direct_question:
+        offering = next((o for o in request.availableOfferings if o.offeringCode == "FAQ"), None)
+        latest = _latest_inbound_message(request)
+        context = {"offering": offering, "latestInbound": latest} if offering and latest else None
+    else:
+        context = _pending_free_text_capture_context(request)
     if context is None or context["offering"].offeringCode != "FAQ":
         return None
 
@@ -1093,17 +1231,18 @@ def _all_operations(request: AgentTurnRequest):
     return list(operations.values())
 
 
-def _normalize_guest_experience(request: AgentTurnRequest, payload: dict) -> dict:
+def _normalize_guest_experience(request: AgentTurnRequest, payload: dict,
+                                skip_capture: bool = False) -> dict:
     normalized = dict(payload)
     messages = [dict(message) for message in normalized.get("messages", []) if isinstance(message, dict)]
     normalized["messages"] = messages
     _remove_maintenance_issue_interactions(request, messages)
     _ensure_faq_follow_up(request, messages)
-    if _ensure_explicit_capture_confirmation(request, normalized, messages):
+    if not skip_capture and _ensure_explicit_capture_confirmation(request, normalized, messages):
         return normalized
-    if _ensure_sequential_field_capture(request, normalized, messages):
+    if not skip_capture and _ensure_sequential_field_capture(request, normalized, messages):
         return normalized
-    if _ensure_configured_field_capture(request, normalized, messages):
+    if not skip_capture and _ensure_configured_field_capture(request, normalized, messages):
         return normalized
     if _is_greeting_turn(request) and not request.previousToolResults:
         # A greeting opens a navigation turn. Historical operations remain available
@@ -1613,6 +1752,9 @@ def _pending_free_text_capture_context(request: AgentTurnRequest) -> dict | None
                     }
                 break
 
+        # Explicit draft state takes precedence over an older menu selection in history.
+        return None
+
     selected_offering = None
     selected_at = -1
     completed_values: dict[str, str] = {}
@@ -1971,6 +2113,11 @@ def _capture_option_codes(capture: dict) -> set[str]:
 
 
 def _latest_inbound_message(request: AgentTurnRequest):
+    if request.trigger.messageId is not None:
+        message = next((m for m in request.conversation.recentMessages
+                        if m.messageId == request.trigger.messageId and m.direction == "INBOUND"), None)
+        if message is not None:
+            return message
     return next(
         (
             message
@@ -2016,8 +2163,9 @@ def _remove_maintenance_issue_interactions(
         message["interaction"] = None
 
 
-def _ensure_personalized_service_menu(request: AgentTurnRequest, messages: list[dict]) -> None:
-    if not request.availableOfferings or not _is_greeting_turn(request):
+def _ensure_personalized_service_menu(request: AgentTurnRequest, messages: list[dict],
+                                      force: bool = False) -> None:
+    if not request.availableOfferings or (not force and not _is_greeting_turn(request)):
         return
     if not messages:
         messages.append({
@@ -2104,13 +2252,10 @@ def _successful_started_operations(request: AgentTurnRequest) -> list[dict]:
 
 
 def _is_greeting_turn(request: AgentTurnRequest) -> bool:
-    inbound = [
-        message for message in request.conversation.recentMessages
-        if message.direction == "INBOUND"
-    ]
-    if not inbound:
+    inbound = _latest_inbound_message(request)
+    if inbound is None:
         return False
-    text = " ".join(inbound[-1].text.casefold().strip().split()).strip("!?., ")
+    text = " ".join(inbound.text.casefold().strip().split()).strip("!?., ")
     return text in {
         "hola", "hello", "hi", "hey", "buen dia", "buen día", "buenos dias",
         "buenos días", "buenas tardes", "buenas noches", "que tal", "qué tal",

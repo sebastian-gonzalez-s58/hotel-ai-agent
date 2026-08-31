@@ -47,6 +47,7 @@ def call_openai_json_result(
     purpose: str | None = None,
     response_schema: dict[str, Any] | None = None,
     response_schema_name: str = "json_response",
+    strict_schema: bool = False,
 ) -> OpenAiJsonResult:
     started_at = time.perf_counter()
     tracking_context = get_agent_tracking_context()
@@ -55,7 +56,7 @@ def call_openai_json_result(
             model=settings.openai_model,
             input=prompt,
             temperature=0,
-            text={"format": _response_format(response_schema, response_schema_name)},
+            text={"format": _response_format(response_schema, response_schema_name, strict_schema)},
         )
     except APITimeoutError as exc:
         _record_failure(started_at, tracking_context, purpose, "OpenAI request timed out")
@@ -106,6 +107,7 @@ def call_openai_json(prompt: str) -> dict[str, Any]:
 def _response_format(
     response_schema: dict[str, Any] | None,
     response_schema_name: str,
+    strict_schema: bool = False,
 ) -> dict[str, Any]:
     if response_schema is None:
         return {"type": "json_object"}
@@ -113,9 +115,8 @@ def _response_format(
         "type": "json_schema",
         "name": response_schema_name,
         "schema": response_schema,
-        # Tool arguments and interaction payloads intentionally contain
-        # offering-specific fields, so they cannot use strict schema mode.
-        "strict": False,
+        # Dynamic service tool arguments keep their existing format; fixed routing schemas opt in.
+        "strict": strict_schema,
     }
 
 

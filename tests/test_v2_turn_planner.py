@@ -3,6 +3,7 @@ from unittest.mock import patch
 from uuid import UUID
 
 from app.core.errors import AgentModelError
+from app.agents.v2_scope_router import ScopeDecision
 from app.agents.v2_turn_planner import (
     AGENT_TURN_RESPONSE_SCHEMA,
     _build_focused_task_repair_instruction,
@@ -18,6 +19,16 @@ from tests.test_v2_turn_endpoint import MESSAGE_ID, TURN_ID, payload
 
 
 class V2TurnPlannerTest(unittest.TestCase):
+    def setUp(self):
+        # These regressions isolate the service planner; scope routing has its own contract tests.
+        scope = patch("app.agents.v2_turn_planner.classify_hotel_scope", side_effect=lambda r, m, s: (
+            ScopeDecision(kind="CONTEXT_REPLY", offeringCode=None, relevantText=m.text,
+                          hasRequestDetails=True, containsUnrelatedTopic=False, confidence=1),
+            OpenAiTokenUsage(),
+        ))
+        scope.start()
+        self.addCleanup(scope.stop)
+
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
     def test_completes_kitchen_change_decision_from_button_without_openai(self, openai_call):
         operation_id = "90000000-0000-0000-0000-000000000101"
@@ -930,6 +941,7 @@ class V2TurnPlannerTest(unittest.TestCase):
                 "createdAt": "2026-08-26T14:00:00Z",
             },
         ]
+        request_payload["trigger"]["messageId"] = "20000000-0000-0000-0000-000000000030"
         first = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
         self.assertIn("https://spa.example/catalog", first.messages[0].text)
         self.assertIn("cuál deseas reservar", first.messages[0].text)
@@ -950,6 +962,7 @@ class V2TurnPlannerTest(unittest.TestCase):
                 "createdAt": "2026-08-26T14:01:00Z",
             },
         ])
+        request_payload["trigger"]["messageId"] = "20000000-0000-0000-0000-000000000032"
         second = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
         self.assertEqual("¿Para qué fecha deseas hacer la reservación?", second.messages[0].text)
 
@@ -970,6 +983,7 @@ class V2TurnPlannerTest(unittest.TestCase):
                 "createdAt": "2026-08-26T14:02:00Z",
             },
         ])
+        request_payload["trigger"]["messageId"] = "20000000-0000-0000-0000-000000000034"
         third = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
         self.assertEqual("¿A qué hora deseas la reservación?", third.messages[0].text)
 
@@ -990,6 +1004,7 @@ class V2TurnPlannerTest(unittest.TestCase):
                 "createdAt": "2026-08-26T14:03:00Z",
             },
         ])
+        request_payload["trigger"]["messageId"] = MESSAGE_ID
         fourth = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
 
         self.assertEqual("TOOL_CALLS_REQUIRED", fourth.disposition)
@@ -1025,6 +1040,7 @@ class V2TurnPlannerTest(unittest.TestCase):
             "createdAt": "2026-08-26T15:00:00Z",
         }]
 
+        request_payload["trigger"]["messageId"] = "20000000-0000-0000-0000-000000000050"
         first = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
 
         self.assertEqual("RESPONSE_READY", first.disposition)
@@ -1048,6 +1064,7 @@ class V2TurnPlannerTest(unittest.TestCase):
             },
         ])
 
+        request_payload["trigger"]["messageId"] = MESSAGE_ID
         second = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
 
         self.assertEqual("TOOL_CALLS_REQUIRED", second.disposition)
