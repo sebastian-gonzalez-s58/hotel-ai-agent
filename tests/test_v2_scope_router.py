@@ -127,16 +127,50 @@ class ScopeRoutingTest(unittest.TestCase):
         text = "Ayuda, hay una fuga de agua en mi cuarto"
         request = request_for(text)
         request.availableOfferings.append(OfferingCapability.model_validate(maintenance_offering()))
-        self.planner.return_value = OpenAiJsonResult(payload={
-            "disposition": "TOOL_CALLS_REQUIRED", "messages": [], "warnings": [],
-            "toolCalls": [{"toolName": "START_SERVICE", "arguments": {
-                "offeringCode": "MAINTENANCE", "input": {"issue": "fuga de agua en mi cuarto"},
-            }, "confidence": 1, "evidenceMessageIds": [MESSAGE_ID]}],
-        }, usage=OpenAiTokenUsage(input_tokens=10, output_tokens=5, total_tokens=15), response_id="start-test")
         response = self.route(request, decision("SERVICE_REQUEST", text, "MAINTENANCE"))
         self.assertEqual("START_SERVICE", response.toolCalls[0].toolName)
         self.assertEqual("MAINTENANCE", response.toolCalls[0].arguments["offeringCode"])
-        self.assertEqual(40, response.usage.totalTokens)
+        self.assertEqual(text, response.toolCalls[0].arguments["input"]["issue"])
+        self.assertEqual(25, response.usage.totalTokens)
+        self.planner.assert_not_called()
+
+    def test_pending_maintenance_reply_starts_without_a_second_model_call(self):
+        from app.schemas.v2_turns import OfferingCapability
+        text = "La puerta del baño está atorada"
+        request = request_for(text)
+        request.availableOfferings.append(OfferingCapability.model_validate(maintenance_offering()))
+        request.conversation.summary = json.dumps({
+            "pendingOffering": "MAINTENANCE",
+            "capturedFields": {},
+            "readyToStart": False,
+        })
+
+        response = self.route(request, decision("CONTEXT_REPLY", text))
+
+        self.assertEqual("START_SERVICE", response.toolCalls[0].toolName)
+        self.assertEqual({"issue": text}, response.toolCalls[0].arguments["input"])
+        self.assertEqual([UUID(MESSAGE_ID)], response.toolCalls[0].evidenceMessageIds)
+        self.planner.assert_not_called()
+
+    def test_pending_maintenance_reply_is_safe_when_scope_calls_it_same_service(self):
+        from app.schemas.v2_turns import OfferingCapability
+        text = "La puerta del baño está atorada"
+        request = request_for(text)
+        request.availableOfferings.append(OfferingCapability.model_validate(maintenance_offering()))
+        request.conversation.summary = json.dumps({
+            "pendingOffering": "MAINTENANCE",
+            "capturedFields": {},
+            "readyToStart": False,
+        })
+
+        response = self.route(
+            request,
+            decision("SERVICE_REQUEST", text, "MAINTENANCE", details=True),
+        )
+
+        self.assertEqual("START_SERVICE", response.toolCalls[0].toolName)
+        self.assertEqual({"issue": text}, response.toolCalls[0].arguments["input"])
+        self.planner.assert_not_called()
 
     def test_bare_maintenance_request_asks_for_issue_without_options_or_start(self):
         from app.schemas.v2_turns import OfferingCapability

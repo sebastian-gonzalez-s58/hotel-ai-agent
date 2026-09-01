@@ -86,6 +86,14 @@ def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
     if scope is not None and scope.kind == "SERVICE_REQUEST":
         offering = next(o for o in request.availableOfferings
                         if o.offeringCode == scope.offeringCode)
+        deterministic = _single_free_text_service_start_plan(
+            request,
+            offering,
+            scope,
+            started_at,
+        )
+        if deterministic is not None:
+            return deterministic
         if not scope.hasRequestDetails:
             deterministic = _initial_offering_capture_plan(request, offering, started_at)
             if deterministic is not None:
@@ -267,6 +275,67 @@ def _initial_offering_capture_plan(request: AgentTurnRequest, offering,
     return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
                                        messages=[message], updated_summary=_capture_summary(
                                            request, offering.offeringCode, {}, False))
+
+
+def _single_free_text_service_start_plan(
+    request: AgentTurnRequest,
+    offering,
+    scope: ScopeDecision,
+    started_at: float,
+) -> AgentTurnResponse | None:
+    """Start a one-field service without asking the model to rebuild known input."""
+    if (
+        not scope.hasRequestDetails
+        or request.previousToolResults
+        or offering.executionMode != "PROCESS"
+        or offering.requiresExplicitGuestConfirmation
+        or DomainToolName.START_SERVICE not in request.toolPolicy.allowedTools
+        or request.toolPolicy.maxToolCalls < 1
+    ):
+        return None
+
+    fields = _ordered_guest_capture_fields(offering)
+    if len(fields) != 1:
+        return None
+    field_code, field_schema = fields[0]
+    capture = field_schema.get("x-chatbotinn-capture")
+    if (
+        not isinstance(capture, dict)
+        or str(capture.get("inputMode") or "AUTO").upper() != "FREE_TEXT"
+    ):
+        return None
+
+    latest = _latest_inbound_message(request)
+    value = " ".join(scope.relevantText.strip().split()).strip()
+    service_input = {field_code: value}
+    if latest is None or not value or not satisfies_schema(service_input, offering.inputSchema):
+        return None
+
+    evidence_message_id = str(latest.messageId)
+    return _deterministic_turn_response(
+        request,
+        started_at,
+        disposition="TOOL_CALLS_REQUIRED",
+        messages=[],
+        tool_calls=[{
+            "toolCallId": str(uuid4()),
+            "toolName": DomainToolName.START_SERVICE.value,
+            "targetOperationId": None,
+            "targetConversationTaskId": None,
+            "arguments": {
+                "offeringCode": offering.offeringCode,
+                "input": service_input,
+            },
+            "confidence": scope.confidence,
+            "evidenceMessageIds": [evidence_message_id],
+        }],
+        updated_summary=_capture_summary(
+            request,
+            offering.offeringCode,
+            service_input,
+            True,
+        ),
+    )
 
 
 def _faq_knowledge_lookup_plan(
@@ -1397,7 +1466,7 @@ def _ensure_sequential_field_capture(
 
 def _supports_sequential_capture(offering) -> bool:
     fields = _ordered_guest_capture_fields(offering)
-    if len(fields) < 2:
+    if not fields:
         return False
     modes = {
         str(field_schema.get("x-chatbotinn-capture", {}).get("inputMode") or "AUTO").upper()
