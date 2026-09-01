@@ -7,6 +7,7 @@ from app.agents.v2_scope_router import ScopeDecision
 from app.agents.v2_turn_planner import (
     AGENT_TURN_RESPONSE_SCHEMA,
     _build_focused_task_repair_instruction,
+    _maintenance_resolution_task_plan,
     _normalize_response_envelope,
     _normalize_guest_experience,
     _validate_plan,
@@ -28,6 +29,109 @@ class V2TurnPlannerTest(unittest.TestCase):
         ))
         scope.start()
         self.addCleanup(scope.stop)
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_completes_maintenance_resolution_from_task_scoped_button(self, openai_call):
+        request_payload, operation_id, task_id = maintenance_resolution_payload()
+        request_payload["conversation"]["recentMessages"][0]["text"] = "Sí, quedó resuelto"
+        request_payload["conversation"]["recentMessages"][0]["interactionReplyId"] = (
+            f"maintenance-resolution:{task_id}:RESOLVED"
+        )
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", response.disposition)
+        self.assertEqual(1, len(response.toolCalls))
+        self.assertEqual({"resolved": True}, response.toolCalls[0].arguments["result"])
+        self.assertEqual(UUID(operation_id), response.toolCalls[0].targetOperationId)
+        self.assertEqual(UUID(task_id), response.toolCalls[0].targetConversationTaskId)
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_completes_unresolved_maintenance_from_task_scoped_button(self, openai_call):
+        request_payload, _, task_id = maintenance_resolution_payload()
+        request_payload["conversation"]["recentMessages"][0]["text"] = "No, sigue sin resolver"
+        request_payload["conversation"]["recentMessages"][0]["interactionReplyId"] = (
+            f"maintenance-resolution:{task_id}:NOT_RESOLVED"
+        )
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", response.disposition)
+        self.assertEqual({"resolved": False}, response.toolCalls[0].arguments["result"])
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_completes_maintenance_resolution_from_free_text_without_openai(self, openai_call):
+        request_payload, _, _ = maintenance_resolution_payload()
+        request_payload["conversation"]["recentMessages"][0]["text"] = (
+            "El proclema quedó solucionado"
+        )
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", response.disposition)
+        self.assertEqual({"resolved": True}, response.toolCalls[0].arguments["result"])
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_keeps_negative_free_text_from_being_read_as_resolved(self, openai_call):
+        request_payload, _, _ = maintenance_resolution_payload()
+        request_payload["conversation"]["recentMessages"][0]["text"] = (
+            "No, todavía no quedó solucionado"
+        )
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("TOOL_CALLS_REQUIRED", response.disposition)
+        self.assertEqual({"resolved": False}, response.toolCalls[0].arguments["result"])
+        openai_call.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    def test_acknowledges_completed_maintenance_task_without_starting_service(self, openai_call):
+        request_payload = payload()
+        operation_id = "90000000-0000-0000-0000-000000000104"
+        task_id = "91000000-0000-0000-0000-000000000104"
+        request_payload["conversation"]["summary"] = "stable conversation state"
+        request_payload["previousToolResults"] = [{
+            "toolCallId": "80000000-0000-0000-0000-000000000104",
+            "toolName": "COMPLETE_CONVERSATION_TASK",
+            "status": "SUCCEEDED",
+            "result": {
+                "conversationTaskId": task_id,
+                "operationId": operation_id,
+                "taskType": "MAINTENANCE_RESOLUTION_CONFIRMATION",
+                "status": "COMPLETED",
+                "completionResult": {"resolved": True},
+            },
+        }]
+
+        response = plan_v2_turn(AgentTurnRequest.model_validate(request_payload))
+
+        self.assertEqual("RESPONSE_READY", response.disposition)
+        self.assertEqual([], response.toolCalls)
+        self.assertIn("problema quedó resuelto", response.messages[0].text)
+        self.assertEqual([UUID(operation_id)], response.messages[0].operationIds)
+        self.assertEqual([UUID(task_id)], response.messages[0].conversationTaskIds)
+        self.assertEqual("stable conversation state", response.updatedConversationSummary)
+        openai_call.assert_not_called()
+
+    def test_explicit_new_service_is_not_consumed_by_open_maintenance_task(self):
+        request_payload, _, _ = maintenance_resolution_payload()
+        request_payload["conversation"]["recentMessages"][0]["text"] = "Quiero room service"
+        request = AgentTurnRequest.model_validate(request_payload)
+        scope = ScopeDecision(
+            kind="SERVICE_REQUEST",
+            offeringCode="ROOM_SERVICE",
+            relevantText="Quiero room service",
+            hasRequestDetails=False,
+            containsUnrelatedTopic=False,
+            confidence=1,
+        )
+
+        response = _maintenance_resolution_task_plan(request, 0.0, scope)
+
+        self.assertIsNone(response)
 
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
     def test_completes_kitchen_change_decision_from_button_without_openai(self, openai_call):
@@ -1729,6 +1833,30 @@ def conversation_task(task_id, operation_id):
         "version": 4,
         "createdAt": "2026-08-20T18:00:00Z",
     }
+
+
+def maintenance_resolution_payload():
+    operation_id = "90000000-0000-0000-0000-000000000105"
+    task_id = "91000000-0000-0000-0000-000000000105"
+    request_payload = payload()
+    active_operation = operation(operation_id)
+    active_operation["offeringCode"] = "MAINTENANCE"
+    task = conversation_task(task_id, operation_id)
+    task["taskType"] = "MAINTENANCE_RESOLUTION_CONFIRMATION"
+    task["requiredOutputSchema"] = {
+        "type": "object",
+        "required": ["resolved"],
+        "properties": {"resolved": {"type": "boolean"}},
+    }
+    active_operation["pendingConversationTasks"] = [task]
+    request_payload["activeOperations"] = [active_operation]
+    request_payload["conversation"]["focusedConversationTaskId"] = task_id
+    request_payload["toolPolicy"] = {
+        "allowedTools": ["COMPLETE_CONVERSATION_TASK", "START_SERVICE"],
+        "maxToolCalls": 2,
+        "allowMultipleConversationTaskCompletions": False,
+    }
+    return request_payload, operation_id, task_id
 
 
 if __name__ == "__main__":

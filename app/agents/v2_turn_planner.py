@@ -32,6 +32,8 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     scope_usage = None
     if (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
             and latest is not None and not latest.interactionReplyId
+            and not (_has_pending_maintenance_resolution_task(request)
+                     and _maintenance_resolution_value(latest) is not None)
             and not _is_greeting_turn(request) and _capture_selection(request, latest) is None):
         scope, scope_usage = classify_hotel_scope(request, latest, _latest_capture_state(request))
         if scope.kind in {"OUT_OF_SCOPE", "UNCLEAR"}:
@@ -55,6 +57,9 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
 
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
                      scope: ScopeDecision | None = None) -> AgentTurnResponse:
+    maintenance_resolution = _maintenance_resolution_task_plan(request, started_at, scope)
+    if maintenance_resolution is not None:
+        return maintenance_resolution
     started = _acknowledgeable_service_starts(request)
     if started:
         messages = []
@@ -446,6 +451,183 @@ _ROOM_SERVICE_CHANGE_TASK_TYPES = {
     "ROOM_SERVICE_KITCHEN_CHANGE_DECISION",
     "ROOM_SERVICE_ORDER_CHANGE_DETAILS",
 }
+
+_MAINTENANCE_RESOLUTION_TASK_TYPE = "MAINTENANCE_RESOLUTION_CONFIRMATION"
+_MAINTENANCE_RESOLUTION_REPLY = re.compile(
+    r"^maintenance-resolution:([0-9a-f-]{36}):(RESOLVED|NOT_RESOLVED)$",
+    re.IGNORECASE,
+)
+
+
+def _maintenance_resolution_task_plan(
+    request: AgentTurnRequest,
+    started_at: float,
+    scope: ScopeDecision | None,
+) -> AgentTurnResponse | None:
+    """Consume a maintenance resolution reply once and keep it out of service capture."""
+    completed_result = next(
+        (
+            result.result
+            for result in request.previousToolResults
+            if result.status == "SUCCEEDED"
+            and result.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK.value
+            and isinstance(result.result, dict)
+            and result.result.get("taskType") == _MAINTENANCE_RESOLUTION_TASK_TYPE
+        ),
+        None,
+    )
+    if completed_result is not None:
+        completion = completed_result.get("completionResult")
+        resolved = completion.get("resolved") if isinstance(completion, dict) else None
+        if resolved is not True:
+            return _deterministic_turn_response(
+                request,
+                started_at,
+                disposition="NO_ACTION",
+                messages=[],
+                updated_summary=request.conversation.summary,
+            )
+        task_id = str(completed_result.get("conversationTaskId") or "")
+        operation_id = str(completed_result.get("operationId") or "")
+        spanish = request.guest.preferredLanguage.lower().startswith("es")
+        text = (
+            "Gracias por confirmar. Nos alegra saber que el problema quedó resuelto. "
+            "¿Hay algo más en lo que podamos ayudarte?"
+            if spanish else
+            "Thank you for confirming. We are glad the issue was resolved. "
+            "Is there anything else we can help you with?"
+        )
+        return _deterministic_turn_response(
+            request,
+            started_at,
+            disposition="RESPONSE_READY",
+            messages=[{
+                "messageDraftId": str(uuid4()),
+                "purpose": "CLOSURE",
+                "text": text,
+                "language": request.guest.preferredLanguage,
+                "operationIds": [operation_id] if operation_id else [],
+                "conversationTaskIds": [task_id] if task_id else [],
+                "interaction": None,
+            }],
+            updated_summary=request.conversation.summary,
+        )
+
+    if request.previousToolResults:
+        return None
+    if DomainToolName.COMPLETE_CONVERSATION_TASK not in request.toolPolicy.allowedTools:
+        return None
+
+    latest = _latest_inbound_message(request)
+    if latest is None:
+        return None
+    candidates = _maintenance_resolution_tasks(request)
+    if not candidates:
+        return None
+
+    reply_match = _MAINTENANCE_RESOLUTION_REPLY.fullmatch(
+        (latest.interactionReplyId or "").strip()
+    )
+    task = None
+    resolved = None
+    if reply_match is not None:
+        reply_task_id = UUID(reply_match.group(1))
+        task = next(
+            (candidate for candidate in candidates
+             if candidate.conversationTaskId == reply_task_id),
+            None,
+        )
+        if task is None:
+            return None
+        resolved = reply_match.group(2).upper() == "RESOLVED"
+    else:
+        # An explicit request for another service remains independent of this open task.
+        if scope is not None and scope.kind == "SERVICE_REQUEST":
+            return None
+        resolved = _maintenance_resolution_value(latest)
+        if resolved is None:
+            return None
+        focused_id = request.conversation.focusedConversationTaskId
+        task = next(
+            (candidate for candidate in candidates
+             if candidate.conversationTaskId == focused_id),
+            candidates[0] if len(candidates) == 1 else None,
+        )
+        if task is None:
+            return None
+
+    evidence_message_id = str(latest.messageId)
+    return _deterministic_turn_response(
+        request,
+        started_at,
+        disposition="TOOL_CALLS_REQUIRED",
+        messages=[],
+        tool_calls=[{
+            "toolCallId": str(uuid4()),
+            "toolName": DomainToolName.COMPLETE_CONVERSATION_TASK.value,
+            "targetOperationId": str(task.operationId),
+            "targetConversationTaskId": str(task.conversationTaskId),
+            "arguments": {
+                "conversationTaskId": str(task.conversationTaskId),
+                "expectedVersion": task.version,
+                "result": {"resolved": resolved},
+            },
+            "confidence": 1.0,
+            "evidenceMessageIds": [evidence_message_id],
+        }],
+        updated_summary=request.conversation.summary,
+    )
+
+
+def _maintenance_resolution_tasks(request: AgentTurnRequest) -> list:
+    return [
+        task
+        for operation in request.activeOperations
+        for task in operation.pendingConversationTasks
+        if task.taskType == _MAINTENANCE_RESOLUTION_TASK_TYPE
+    ]
+
+
+def _has_pending_maintenance_resolution_task(request: AgentTurnRequest) -> bool:
+    return bool(_maintenance_resolution_tasks(request))
+
+
+def _maintenance_resolution_value(message) -> bool | None:
+    reply_match = _MAINTENANCE_RESOLUTION_REPLY.fullmatch(
+        (message.interactionReplyId or "").strip()
+    )
+    if reply_match is not None:
+        return reply_match.group(2).upper() == "RESOLVED"
+
+    text = _fold_text(message.text)
+    negative_phrases = {
+        "no", "no se resolvio", "no se soluciono", "no quedo resuelto",
+        "no quedo solucionado", "no esta resuelto", "no esta solucionado", "sigue sin resolver",
+        "todavia no", "aun no", "no funciona", "sigue igual",
+        "el problema continua", "el problema sigue",
+    }
+    if text in negative_phrases or any(
+        phrase in text for phrase in (
+            "sigue sin resolver", "no se resolvio", "no se soluciono",
+            "no quedo resuelto", "no quedo solucionado",
+            "todavia no funciona", "aun no funciona",
+        )
+    ):
+        return False
+
+    positive_phrases = {
+        "si", "confirmo", "resuelto", "solucionado", "ya quedo",
+        "ya funciona", "todo bien", "quedo resuelto", "quedo solucionado",
+        "el problema quedo resuelto", "el problema quedo solucionado",
+    }
+    if text in positive_phrases or any(
+        phrase in text for phrase in (
+            "quedo resuelto", "quedo solucionado", "ya se resolvio",
+            "ya esta resuelto", "ya esta solucionado",
+        )
+    ):
+        return True
+    return None
 
 
 def _room_service_operation_task_plan(
@@ -1104,9 +1286,10 @@ def _validate_plan(
         and isinstance(result.result, dict)
         and result.result.get("conversationTaskId")
     }
+    known_task_ids = task_ids | successfully_completed_tasks
     for message in response.messages:
         referenced_tasks = set(message.conversationTaskIds)
-        if not referenced_tasks.issubset(task_ids):
+        if not referenced_tasks.issubset(known_task_ids):
             raise AgentModelError(
                 "Agent message references a conversation task outside the turn context"
             )
