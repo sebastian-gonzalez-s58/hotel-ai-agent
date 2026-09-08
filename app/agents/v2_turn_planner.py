@@ -16,10 +16,13 @@ from app.prompts.v2_turn import build_v2_turn_prompt
 from app.schemas.v2_turns import AgentTurnRequest, AgentTurnResponse
 from app.schemas.v2_turns import DomainToolName
 from app.services.openai_client import call_openai_json_result
+from app.services.conversation_language import language_enabled, greeting_language, resolve_language
+from app.services.localized_content import localize_response, template
 
 
 logger = logging.getLogger("chatbotinn-agent.v2-turn-planner")
 AGENT_TURN_RESPONSE_SCHEMA = AgentTurnResponse.model_json_schema()
+AGENT_TURN_RESPONSE_SCHEMA["properties"].pop("languageDecision", None)
 MAX_PLAN_ATTEMPTS = 3
 
 
@@ -28,6 +31,10 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     # Bind every helper (including deterministic captures) to the triggering inbound message.
     request = _request_for_trigger(request)
     latest = _latest_inbound_message(request)
+    original_request = request
+    language_decision = None
+    if language_enabled(request):
+        request, language_decision = resolve_language(request, latest)
     scope = None
     scope_usage = None
     if (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
@@ -36,8 +43,15 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
                      and _maintenance_resolution_value(latest) is not None)
             and not _is_greeting_turn(request) and _capture_selection(request, latest) is None):
         scope, scope_usage = classify_hotel_scope(request, latest, _latest_capture_state(request))
+        if language_enabled(request):
+            request, language_decision = resolve_language(original_request, latest, scope)
         scoped = request
-        if scope.kind in {"OUT_OF_SCOPE", "UNCLEAR"}:
+        if language_enabled(request) and scope.languageChangeOnly and language_decision is not None:
+            response = _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY", messages=[{
+                "purpose": "ANSWER", "text": template("language.changed", request.guest.preferredLanguage),
+                "language": request.guest.preferredLanguage, "operationIds": [], "conversationTaskIds": [],
+            }], updated_summary=request.conversation.summary)
+        elif scope.kind in {"OUT_OF_SCOPE", "UNCLEAR"}:
             response = _scope_clarification(request, scope.kind, started_at)
         else:
             scoped = request.model_copy(deep=True)
@@ -53,10 +67,23 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         for name, count in scope_usage.as_api_dict().items():
             setattr(response.usage, name, getattr(response.usage, name) + count)
         response.usage.latencyMs = round((time.perf_counter() - started_at) * 1000)
-        return preserve_spa_state(scoped, _preserve_room_service_draft(scoped, response, scope), scope)
-    request, scope = _room_service_capture_request(request, scope)
-    response = _plan_hotel_turn(request, started_at, scope)
-    return preserve_spa_state(request, _preserve_room_service_draft(request, response, scope))
+        response = preserve_spa_state(scoped, _preserve_room_service_draft(scoped, response, scope), scope)
+    else:
+        if language_enabled(request) and _is_greeting_turn(request) and request.availableOfferings and not request.previousToolResults:
+            messages = []
+            _ensure_personalized_service_menu(request, messages, force=True)
+            response = _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                                                    messages=messages, updated_summary=request.conversation.summary)
+        else:
+            request, scope = _room_service_capture_request(request, scope)
+            response = _plan_hotel_turn(request, started_at, scope)
+            response = preserve_spa_state(request, _preserve_room_service_draft(request, response, scope))
+    # Language is runtime-owned metadata; a planner may not invent a preference change.
+    response.languageDecision = language_decision
+    if language_enabled(request):
+        response.detectedLanguage = language_decision.locale if language_decision else None
+        response = localize_response(request, response, started_at)
+    return response
 
 
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
@@ -152,6 +179,7 @@ def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
             response_schema_name="agent_turn_response_v2",
         )
         payload = _normalize_response_envelope(request, result.payload)
+        payload["languageDecision"] = None
         payload = _normalize_guest_experience(request, payload, skip_capture=skip_capture)
         for name, count in result.usage.as_api_dict().items():
             accumulated_usage[name] += count
@@ -303,6 +331,8 @@ def _request_for_trigger(request: AgentTurnRequest) -> AgentTurnRequest:
 
 
 def _scope_refusal(request: AgentTurnRequest) -> str:
+    if language_enabled(request):
+        return template("scope.refusal", request.guest.preferredLanguage)
     return ("Lo siento, solo puedo ayudarte con los servicios del hotel y tu estancia."
             if request.guest.preferredLanguage.lower().startswith("es") else
             "Sorry, I can only help with hotel services and your stay.")
@@ -317,6 +347,10 @@ def _scope_clarification(request: AgentTurnRequest, kind: str,
     if kind == "OUT_OF_SCOPE":
         text += (" ¿Necesitas ayuda con algún servicio?" if spanish else
                  " Do you need help with a hotel service?")
+    if language_enabled(request):
+        locale = request.guest.preferredLanguage
+        text = (template("scope.refusal", locale) + " " + template("scope.invitation", locale)
+                if kind == "OUT_OF_SCOPE" else template("scope.clarify", locale))
     return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY", messages=[{
         "purpose": "CLARIFICATION", "text": text,
         "language": request.guest.preferredLanguage,
@@ -2484,6 +2518,9 @@ def _capture_message(
     ).strip()
     interaction = None
 
+    if language_enabled(request) and not capture.get("introMessage") and not field_schema.get("description"):
+        text = template("capture.required", request.guest.preferredLanguage, field=title.lower())
+
     if input_mode == "SINGLE_SELECT":
         options = _capture_options(capture)
         if not options:
@@ -2499,7 +2536,7 @@ def _capture_message(
             "type": "BUTTONS" if len(interaction_options) <= 3 else "LIST",
             "title": title[:60],
             "body": text[:1024],
-            "buttonText": "Ver opciones" if spanish else "View options",
+            "buttonText": template("options.open", request.guest.preferredLanguage) if language_enabled(request) else "Ver opciones" if spanish else "View options",
             "options": interaction_options,
         }
     elif input_mode == "MULTI_SELECT":
@@ -2631,12 +2668,15 @@ def _ensure_personalized_service_menu(request: AgentTurnRequest, messages: list[
         {"id": f"offering:{offering.offeringCode}", "label": offering.name[:24]}
         for offering in request.availableOfferings[:10]
     ]
+    if language_enabled(request):
+        text = (template("greeting.named", request.guest.preferredLanguage, name=first_name)
+                if first_name else template("greeting", request.guest.preferredLanguage))
     message["text"] = text
     message["interaction"] = {
         "type": "BUTTONS" if len(options) <= 3 else "LIST",
-        "title": "Servicios del hotel" if spanish else "Hotel services",
+        "title": template("menu.title", request.guest.preferredLanguage) if language_enabled(request) else "Servicios del hotel" if spanish else "Hotel services",
         "body": text,
-        "buttonText": "Ver servicios" if spanish else "View services",
+        "buttonText": template("menu.open", request.guest.preferredLanguage) if language_enabled(request) else "Ver servicios" if spanish else "View services",
         "options": options,
     }
 
@@ -2672,6 +2712,11 @@ def _ensure_service_start_acknowledgements(request: AgentTurnRequest, messages: 
                 f"We have notified the front desk. Your request reference is {reference}. "
                 "The team will contact you directly to help."
             )
+        if language_enabled(request):
+            text = (template("frontdesk.started", request.guest.preferredLanguage, reference=reference)
+                    if offering_code == "FRONT_DESK" else
+                    template("service.started", request.guest.preferredLanguage,
+                             service=offering_name.lower(), reference=reference))
         linked_operations = [operation_id] if operation_id else []
         acknowledgements.append({
             "messageDraftId": str(uuid4()),
@@ -2761,6 +2806,8 @@ def _is_greeting_turn(request: AgentTurnRequest) -> bool:
     if inbound is None:
         return False
     text = " ".join(inbound.text.casefold().strip().split()).strip("!?., ")
+    if language_enabled(request) and greeting_language(text):
+        return True
     return text in {
         "hola", "hello", "hi", "hey", "buen dia", "buen día", "buenos dias",
         "buenos días", "buenas tardes", "buenas noches", "que tal", "qué tal",
