@@ -18,6 +18,7 @@ from app.schemas.v2_turns import DomainToolName
 from app.services.openai_client import call_openai_json_result
 from app.services.conversation_language import language_enabled, greeting_language, resolve_language
 from app.services.localized_content import localize_response, template
+from app.services.faq_grounding import is_semantic_search, resolve_semantic_faq, restore_grounded_faq
 from app.services.input_understanding import (
     understanding_turn, understanding_enabled, record_scope_action, semantic_action, understand_order,
 )
@@ -91,7 +92,8 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     response.languageDecision = language_decision
     if language_enabled(request):
         response.detectedLanguage = language_decision.locale if language_decision else None
-        response = localize_response(request, response, started_at)
+        if not _is_verified_faq_response(request, response):
+            response = localize_response(request, response, started_at)
     return response
 
 
@@ -428,6 +430,7 @@ def _faq_knowledge_lookup_plan(
             "arguments": {
                 "offeringCode": "FAQ",
                 "query": question,
+                **({"semantic": True} if language_enabled(request) else {}),
                 "limit": 10,
             },
             "confidence": 1.0,
@@ -1050,7 +1053,14 @@ def _faq_service_start_plan(
     if not question:
         return None
 
-    match = _exact_faq_match(search_result)
+    semantic = language_enabled(request) and is_semantic_search(search_result)
+    grounding, usage = None, None
+    stale_source = _has_stale_faq_source(request)
+    if semantic and not stale_source:
+        grounding, usage = resolve_semantic_faq(request, search_result, started_at)
+        match = restore_grounded_faq(request, search_result, grounding)
+    else:
+        match = None if stale_source else _exact_faq_match(search_result)
     service_input = {
         "question": question,
         "resolutionMode": "AUTOMATIC" if match is not None else "HUMAN_REQUIRED",
@@ -1062,6 +1072,8 @@ def _faq_service_start_plan(
             "knowledgeItemId": str(match.get("catalogItemId") or "").strip(),
         })
 
+    summary = (_faq_capture_summary(question, grounding) if semantic else _capture_summary(
+        request, "FAQ", {"question": question}, False))
     payload = _normalize_response_envelope(request, {
         "disposition": "TOOL_CALLS_REQUIRED",
         "messages": [],
@@ -1073,18 +1085,38 @@ def _faq_service_start_plan(
                 "offeringCode": "FAQ",
                 "input": service_input,
             },
-            "confidence": float(search_result.get("confidence") or 0.0),
+            "confidence": (float(match.get("confidence") or 0.0) if match else 0.0) if semantic
+                          else float(search_result.get("confidence") or 0.0),
             "evidenceMessageIds": [str(latest_inbound.messageId)],
         }],
-        "updatedConversationSummary": _capture_summary(
-            request,
-            "FAQ",
-            {"question": question},
-            False,
-        ),
+        "updatedConversationSummary": summary,
         "warnings": [],
     })
-    return _zero_usage_response(request, payload, started_at)
+    return _zero_usage_response(request, payload, started_at, usage)
+
+
+def _faq_capture_summary(question, grounding):
+    return json.dumps({"pendingOffering": "FAQ", "capturedFields": {"question": question},
+                       "readyToStart": False, "faqGrounding": grounding}, ensure_ascii=False)
+
+
+def _has_stale_faq_source(request):
+    return any(result.toolName == "START_SERVICE" and result.status == "REJECTED"
+               and result.error and result.error.code == "FAQ_KNOWLEDGE_STALE"
+               for result in request.previousToolResults)
+
+
+def _is_verified_faq_response(request, response):
+    search = _successful_faq_search_result(request)
+    operation = _successful_faq_start_result(request)
+    if not is_semantic_search(search) or operation is None or len(response.messages) != 1:
+        return False
+    match = restore_grounded_faq(request, search, _latest_capture_state(request).get("faqGrounding"))
+    message = response.messages[0]
+    # The checked guest-language answer must not be rewritten by presentation localization.
+    return (match is not None and message.purpose == "ANSWER" and message.interaction is None
+            and message.text == match["guestAnswer"] and message.language == request.guest.preferredLanguage
+            and [str(value) for value in message.operationIds] == [str(operation.get("operationId"))])
 
 
 def _faq_started_response_plan(
@@ -1097,10 +1129,14 @@ def _faq_started_response_plan(
         return None
 
     operation_id = str(operation.get("operationId") or "").strip()
-    match = _exact_faq_match(search_result)
+    semantic = language_enabled(request) and is_semantic_search(search_result)
+    match = (restore_grounded_faq(request, search_result, _latest_capture_state(request).get("faqGrounding"))
+             if semantic else _exact_faq_match(search_result))
+    if _has_stale_faq_source(request):
+        match = None
     spanish = request.guest.preferredLanguage.lower().startswith("es")
     if match is not None:
-        text = _compose_known_faq_answer(
+        text = match["guestAnswer"] if semantic else _compose_known_faq_answer(
             str(search_result.get("query") or ""),
             str(match["answer"]),
             request.guest.preferredLanguage,
@@ -1137,6 +1173,7 @@ def _zero_usage_response(
     request: AgentTurnRequest,
     payload: dict,
     started_at: float,
+    usage: dict | None = None,
 ) -> AgentTurnResponse:
     payload["usage"] = {
         "model": settings.openai_model,
@@ -1145,6 +1182,7 @@ def _zero_usage_response(
         "outputTokens": 0,
         "reasoningTokens": 0,
         "totalTokens": 0,
+        **(usage or {}),
         "latencyMs": round((time.perf_counter() - started_at) * 1000),
     }
     response = AgentTurnResponse.model_validate(payload)
@@ -1497,6 +1535,8 @@ def _validate_faq_answer_style(
 
 
 def _successful_faq_source_answers(request: AgentTurnRequest) -> list[str]:
+    if _has_stale_faq_source(request):
+        return []
     answers: list[str] = []
     for result in request.previousToolResults:
         if (
