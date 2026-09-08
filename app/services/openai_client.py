@@ -48,11 +48,15 @@ def call_openai_json_result(
     response_schema: dict[str, Any] | None = None,
     response_schema_name: str = "json_response",
     strict_schema: bool = False,
+    timeout_seconds: float | None = None,
 ) -> OpenAiJsonResult:
     started_at = time.perf_counter()
     tracking_context = get_agent_tracking_context()
     try:
-        response = get_openai_client().responses.create(
+        api_client = get_openai_client()
+        if timeout_seconds is not None:
+            api_client = api_client.with_options(timeout=timeout_seconds, max_retries=0)
+        response = api_client.responses.create(
             model=settings.openai_model,
             input=prompt,
             temperature=0,
