@@ -179,6 +179,8 @@ def localize_response(request, response, started_at):
     protected = [request.guest.displayName, request.guest.roomNumber or ""]
     protected.extend(request.guest.displayName.split()[:1])
     protected.extend(o.referenceCode for o in request.activeOperations + request.recentOperations)
+    # Product names and restrictions are source data, not translatable interface copy.
+    protected.extend(_captured_values(request, response))
     for tool in request.previousToolResults:
         if isinstance(tool.result, dict) and isinstance(tool.result.get("referenceCode"), str):
             protected.append(tool.result["referenceCode"])
@@ -208,3 +210,34 @@ def localize_response(request, response, started_at):
             message.language = "mul"
     result.usage.latencyMs = round((time.perf_counter() - started_at) * 1000)
     return result
+
+
+def _captured_values(request, response):
+    values = []
+
+    def collect(data):
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if key in {"name", "serviceName"} and isinstance(value, str):
+                    values.append(value)
+                elif key == "modifications" and isinstance(value, list):
+                    values.extend(item for item in value if isinstance(item, str))
+                elif isinstance(value, (dict, list)):
+                    collect(value)
+        elif isinstance(data, list):
+            for value in data:
+                collect(value)
+
+    for summary in (request.conversation.summary, response.updatedConversationSummary):
+        if not summary:
+            continue
+        for candidate in [summary, *summary.splitlines()]:
+            try:
+                collect(json.loads(candidate))
+            except (TypeError, ValueError):
+                continue
+    for operation in request.activeOperations:
+        collect(operation.input)
+        for task in operation.pendingConversationTasks:
+            collect(task.context)
+    return values
