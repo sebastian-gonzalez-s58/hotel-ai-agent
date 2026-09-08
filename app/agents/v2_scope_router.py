@@ -28,6 +28,9 @@ class ScopeDecision(BaseModel):
     requestedLanguage: str | None = None
     languageConfidence: float = Field(default=0, ge=0, le=1)
     languageChangeOnly: bool = False
+    replyAction: Literal["NONE", "CONFIRM", "CHANGE", "CANCEL", "RESOLVED", "NOT_RESOLVED", "AMBIGUOUS"] = "NONE"
+    replyActionEvidence: str | None = None
+    replyActionConfidence: float = Field(default=0, ge=0, le=1)
 
 
 def classify_hotel_scope(
@@ -68,6 +71,17 @@ Choose the intent of the current message, not an old service in the context.
   A separate order requires an explicit request for another/new independent order.
   Prefer this over a NEW service for an order replacement requested by kitchen or a SPA change.
   An unrelated question is NOT an answer to a pending field, even if one is waiting.
+  Understand decisions in any language, not only Spanish/English. replyAction is a PURE,
+  unambiguous decision about the CURRENT pending step. The evidence must be the ENTIRE
+  currentMessage verbatim. Include its negations and conditions, not just an affirmative fragment.
+  CONFIRM accepts an already presented summary/alternative. RESOLVED/NOT_RESOLVED answer
+  maintenance resolution only. CANCEL explicitly cancels the WHOLE request; 'no' or 'remove
+  the coffee' is not cancellation. CHANGE means the guest asks to edit but supplies no edits yet.
+  An actual edit ('yes, but no onions'), a condition ('if it is free'), conflicting choices,
+  uncertain or negated approval ('do not confirm') must NOT confirm or cancel: use NONE or
+  AMBIGUOUS. Use NONE when the message contains request data, rather than a pure decision.
+  A new service or hotel question must have replyAction=NONE. Do not select an operation ID.
+  replyActionConfidence is confidence in this action, independently of scope confidence.
 - STATUS_REQUEST: follow-up about an existing hotel request/folio, not a new request.
 - NAVIGATION: explicitly asks for the hotel's service menu or available services.
 - SOCIAL: a greeting, thanks or farewell with no other request.

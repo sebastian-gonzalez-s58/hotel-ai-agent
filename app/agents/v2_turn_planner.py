@@ -18,6 +18,9 @@ from app.schemas.v2_turns import DomainToolName
 from app.services.openai_client import call_openai_json_result
 from app.services.conversation_language import language_enabled, greeting_language, resolve_language
 from app.services.localized_content import localize_response, template
+from app.services.input_understanding import (
+    understanding_turn, understanding_enabled, record_scope_action, semantic_action, understand_order,
+)
 
 
 logger = logging.getLogger("chatbotinn-agent.v2-turn-planner")
@@ -27,6 +30,15 @@ MAX_PLAN_ATTEMPTS = 3
 
 
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
+    with understanding_turn(request) as understanding:
+        response = _plan_v2_turn(request)
+        for name, value in understanding.usage.items():
+            setattr(response.usage, name, getattr(response.usage, name) + value)
+        response.usage.latencyMs = round((time.perf_counter() - understanding.started_at) * 1000)
+        return response
+
+
+def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     started_at = time.perf_counter()
     # Bind every helper (including deterministic captures) to the triggering inbound message.
     request = _request_for_trigger(request)
@@ -39,10 +51,11 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     scope_usage = None
     if (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
             and latest is not None and not latest.interactionReplyId
-            and not (_has_pending_maintenance_resolution_task(request)
+            and not (not understanding_enabled() and _has_pending_maintenance_resolution_task(request)
                      and _maintenance_resolution_value(latest) is not None)
             and not _is_greeting_turn(request) and _capture_selection(request, latest) is None):
         scope, scope_usage = classify_hotel_scope(request, latest, _latest_capture_state(request))
+        record_scope_action(latest, scope)
         if language_enabled(request):
             request, language_decision = resolve_language(original_request, latest, scope)
         scoped = request
@@ -122,6 +135,13 @@ def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
     if scope is not None and scope.kind == "SERVICE_REQUEST":
         offering = next(o for o in request.availableOfferings
                         if o.offeringCode == scope.offeringCode)
+        if understanding_enabled() and offering.offeringCode == "ROOM_SERVICE" and scope.hasRequestDetails:
+            initial = _initial_offering_capture_plan(request, offering, started_at)
+            if initial is not None:
+                items = understand_order(request, latest, [])
+                initial.updatedConversationSummary = _room_service_summary(
+                    {"items": items} if items else {}, False, "CAPTURING_LOCATION")
+                return initial
         deterministic = _single_free_text_service_start_plan(
             request,
             offering,
@@ -668,15 +688,31 @@ def _maintenance_resolution_task_plan(
         # An explicit request for another service remains independent of this open task.
         if scope is not None and scope.kind == "SERVICE_REQUEST":
             return None
+        if understanding_enabled():
+            if latest.interactionReplyId:
+                return None
+            pending = _latest_capture_state(request).get("pendingOffering")
+            if pending not in {None, "MAINTENANCE"} and not (
+                    request.trigger.conversationTaskId or latest.conversationTaskIds
+                    or request.trigger.operationId or latest.operationIds):
+                return None
+            task = _select_understood_task(request, latest, candidates)
+            addressed_ids = ([request.trigger.conversationTaskId] if request.trigger.conversationTaskId else
+                             latest.conversationTaskIds or [request.conversation.focusedConversationTaskId])
+            if task is None and (any(addressed_ids) or request.trigger.operationId or latest.operationIds):
+                return None
         resolved = _maintenance_resolution_value(latest)
+        if understanding_enabled() and scope and scope.kind == "CONTEXT_REPLY":
+            if task is None or resolved is None:
+                return _task_decision_clarification(request, started_at, task)
         if resolved is None:
             return None
-        focused_id = request.conversation.focusedConversationTaskId
-        task = next(
-            (candidate for candidate in candidates
-             if candidate.conversationTaskId == focused_id),
-            candidates[0] if len(candidates) == 1 else None,
-        )
+        if not understanding_enabled():
+            focused_id = request.conversation.focusedConversationTaskId
+            task = next(
+                (candidate for candidate in candidates if candidate.conversationTaskId == focused_id),
+                candidates[0] if len(candidates) == 1 else None,
+            )
         if task is None:
             return None
 
@@ -703,6 +739,39 @@ def _maintenance_resolution_task_plan(
     )
 
 
+def _select_understood_task(request, message, candidates):
+    task_ids = ([request.trigger.conversationTaskId] if request.trigger.conversationTaskId
+                else message.conversationTaskIds)
+    operation_ids = ([request.trigger.operationId] if request.trigger.operationId else message.operationIds)
+    if task_ids:
+        selected = [task for task in candidates if task.conversationTaskId in task_ids]
+    elif operation_ids:
+        selected = [task for task in candidates if task.operationId in operation_ids]
+    elif request.conversation.focusedConversationTaskId:
+        selected = [task for task in candidates
+                    if task.conversationTaskId == request.conversation.focusedConversationTaskId]
+    else:
+        all_tasks = [task for operation in request.activeOperations for task in operation.pendingConversationTasks]
+        selected = candidates if len(all_tasks) == 1 else []
+    return selected[0] if len(selected) == 1 else None
+
+
+def _task_decision_clarification(request, started_at, task=None):
+    spanish = request.guest.preferredLanguage.lower().startswith("es")
+    text = (("¿El problema quedó resuelto o sigue pendiente?" if spanish else
+             "Was the issue resolved, or is it still unresolved?") if task else
+            ("¿A qué solicitud te refieres? Indica el folio o responde al mensaje de esa solicitud."
+             if spanish else "Which request do you mean? Provide its reference or reply to that request's message."))
+    options = ([{"id": f"maintenance-resolution:{task.conversationTaskId}:{action}", "label": label}
+                for action, label in (("RESOLVED", "Resuelto" if spanish else "Resolved"),
+                                      ("NOT_RESOLVED", "Sigue pendiente" if spanish else "Not resolved"))] if task else [])
+    return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY", messages=[{
+        "messageDraftId": str(uuid4()), "purpose": "CLARIFICATION", "text": text,
+        "language": request.guest.preferredLanguage, "operationIds": [str(task.operationId)] if task else [],
+        "conversationTaskIds": [], "interaction": {"type": "BUTTONS", "body": text, "options": options} if task else None,
+    }], updated_summary=request.conversation.summary)
+
+
 def _maintenance_resolution_tasks(request: AgentTurnRequest) -> list:
     return [
         task
@@ -722,6 +791,10 @@ def _maintenance_resolution_value(message) -> bool | None:
     )
     if reply_match is not None:
         return reply_match.group(2).upper() == "RESOLVED"
+
+    if understanding_enabled():
+        action = semantic_action(message.text)
+        return True if action in {"RESOLVED", "CONFIRM"} else False if action == "NOT_RESOLVED" else None
 
     text = _fold_text(message.text)
     negative_phrases = {
@@ -795,6 +868,13 @@ def _room_service_operation_task_plan(
         candidates[0] if len(candidates) == 1 else None,
     )
     latest_inbound = _latest_inbound_message(request)
+    if understanding_enabled() and latest_inbound:
+        reply_id = latest_inbound.interactionReplyId or ""
+        if reply_id and not reply_id.startswith("room-service-change:"):
+            return None
+        task = _select_understood_task(request, latest_inbound, candidates)
+        if candidates and task is None and not _latest_capture_state(request).get("pendingOffering"):
+            return _task_decision_clarification(request, started_at)
     if task is None or latest_inbound is None:
         return None
 
@@ -815,7 +895,8 @@ def _room_service_operation_task_plan(
             )
         result = {"decision": decision}
     else:
-        items = _parse_order_items(latest_inbound.text, [])
+        items = (understand_order(request, latest_inbound, [], require_full=True) if understanding_enabled()
+                 else _parse_order_items(latest_inbound.text, []))
         if not items:
             return _deterministic_turn_response(
                 request,
@@ -949,7 +1030,8 @@ def _room_service_draft_plan(
     if action == "CHANGE" or (
         awaiting_confirmation and _is_free_text_change(latest_inbound.text)
     ):
-        captured.pop("items", None)
+        if not understanding_enabled():
+            captured.pop("items", None)
         return _deterministic_turn_response(
             request,
             started_at,
@@ -961,6 +1043,9 @@ def _room_service_draft_plan(
     if action == "CONFIRM" or (
         awaiting_confirmation and _is_free_text_confirmation(latest_inbound.text)
     ):
+        if understanding_enabled() and not awaiting_confirmation:
+            return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                    messages=[_order_clarification_message(request)], updated_summary=request.conversation.summary)
         if DomainToolName.START_SERVICE not in request.toolPolicy.allowedTools:
             return None
         items = _coerce_order_items(captured.get("items"))
@@ -996,8 +1081,15 @@ def _room_service_draft_plan(
         return None
 
     existing_items = _coerce_order_items(captured.get("items"))
-    items = _parse_order_items(latest_inbound.text, existing_items)
+    if understanding_enabled() and not captured.get("deliveryLocation"):
+        return None
+    items = (understand_order(request, latest_inbound, existing_items) if understanding_enabled()
+             else _parse_order_items(latest_inbound.text, existing_items))
     if not items:
+        if understanding_enabled():
+            return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                    messages=[_order_clarification_message(request)],
+                    updated_summary=_room_service_summary(captured, False, "NEEDS_CLARIFICATION"))
         return None
     captured["items"] = items
     return _room_service_resume_plan(request, offering, captured, started_at)
@@ -1435,6 +1527,8 @@ def _validate_plan(
         _validate_lifecycle_call(call, offerings, operations_by_id)
         _validate_status_call(call, offerings)
         _validate_conversation_task_call(call, tasks_by_id)
+        if understanding_enabled():
+            _validate_understood_call(request, call, tasks_by_id)
         validate_spa_call(request, call, tasks_by_id)
         if call.toolName.value == "COMPLETE_CONVERSATION_TASK" and call.targetConversationTaskId:
             completed_tasks.add(call.targetConversationTaskId)
@@ -1461,6 +1555,46 @@ def _validate_plan(
             raise AgentModelError(
                 "Complete the referenced conversation task before acknowledging it"
             )
+
+
+def _validate_understood_call(request, call, tasks_by_id):
+    latest = _latest_inbound_message(request)
+    task = tasks_by_id.get(call.targetConversationTaskId)
+    room_start = call.toolName == DomainToolName.START_SERVICE and call.arguments.get("offeringCode") == "ROOM_SERVICE"
+    supported_task = (call.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK and task
+                      and task.taskType in _ROOM_SERVICE_CHANGE_TASK_TYPES | {_MAINTENANCE_RESOLUTION_TASK_TYPE})
+    if not room_start and not supported_task:
+        return
+    if latest is None or call.evidenceMessageIds != [latest.messageId]:
+        raise AgentModelError("This decision requires evidence from the current guest message")
+    if room_start:
+        state = _latest_capture_state(request)
+        if (state.get("pendingOffering") != "ROOM_SERVICE" or not state.get("awaitingExplicitConfirmation")
+                or _room_service_confirmation_action(latest) != "CONFIRM"
+                or call.arguments.get("input") != state.get("capturedFields")):
+            raise AgentModelError("Room service requires explicit confirmation of the current captured order")
+        return
+    result = call.arguments.get("result", {})
+    if task.taskType == _MAINTENANCE_RESOLUTION_TASK_TYPE:
+        expected = _maintenance_resolution_value(latest)
+        button = _MAINTENANCE_RESOLUTION_REPLY.fullmatch(latest.interactionReplyId or "")
+        selected = (str(task.conversationTaskId) == button.group(1) if button else
+                    _select_understood_task(request, latest, _maintenance_resolution_tasks(request)) == task)
+        if not selected or expected is None or result.get("resolved") is not expected:
+            raise AgentModelError("Maintenance resolution does not match the current guest decision")
+    else:
+        candidates = [t for op in request.activeOperations for t in op.pendingConversationTasks
+                      if t.taskType in _ROOM_SERVICE_CHANGE_TASK_TYPES]
+        if _select_understood_task(request, latest, candidates) != task:
+            raise AgentModelError("Room-service task target is ambiguous")
+        if task.taskType == "ROOM_SERVICE_KITCHEN_CHANGE_DECISION":
+            expected = _room_service_confirmation_action(latest)
+            if expected not in {"CHANGE", "CANCEL"} or result.get("decision") != expected:
+                raise AgentModelError("Kitchen-change decision does not match current guest evidence")
+        else:
+            items = understand_order(request, latest, [], require_full=True)
+            if items is None or result.get("items") != items:
+                raise AgentModelError("Replacement order does not match current guest evidence")
 
 
 def _validate_faq_answer_style(
@@ -1878,6 +2012,11 @@ def _room_service_summary(
 
 def _room_service_confirmation_action(latest_inbound) -> str | None:
     reply_id = (latest_inbound.interactionReplyId or "").strip().upper()
+    if understanding_enabled():
+        if not reply_id:
+            return semantic_action(latest_inbound.text)
+        if not reply_id.startswith(("CONFIRMATION:ROOM_SERVICE:", "ROOM-SERVICE:", "ROOM-SERVICE-CHANGE:")):
+            return None
     for action in ("CONFIRM", "CHANGE", "CANCEL"):
         if reply_id.endswith(f":{action}"):
             return action
@@ -1896,6 +2035,8 @@ def _fold_text(value: str) -> str:
 
 
 def _is_free_text_cancel(value: str) -> bool:
+    if understanding_enabled():
+        return semantic_action(value) == "CANCEL"
     text = _fold_text(value)
     return text in {
         "cancelar",
@@ -1911,6 +2052,8 @@ def _is_free_text_cancel(value: str) -> bool:
 
 
 def _is_free_text_change(value: str) -> bool:
+    if understanding_enabled():
+        return semantic_action(value) == "CHANGE"
     text = _fold_text(value)
     return text in {
         "cambiar",
@@ -1926,6 +2069,8 @@ def _is_free_text_change(value: str) -> bool:
 
 
 def _is_free_text_confirmation(value: str) -> bool:
+    if understanding_enabled():
+        return semantic_action(value) == "CONFIRM"
     text = _fold_text(value)
     return text in {
         "confirmar",
@@ -2063,6 +2208,9 @@ def _extract_quantities(value: str) -> list[int]:
 def _room_service_confirmation_message(request: AgentTurnRequest, offering, captured: dict) -> dict:
     spanish = request.guest.preferredLanguage.lower().startswith("es")
     items = _coerce_order_items(captured.get("items"))
+    item_lines = [f"- {item['quantity']} x {item['name']}"
+                  + (" (" + "; ".join(item["modifications"]) + ")" if item["modifications"] else "")
+                  for item in items]
     destination = _capture_value_label(
         offering,
         "deliveryLocation",
@@ -2070,7 +2218,7 @@ def _room_service_confirmation_message(request: AgentTurnRequest, offering, capt
     )
     if spanish:
         lines = ["Confirmación de pedido", "", "Artículos:"]
-        lines.extend(f"- {item['quantity']} x {item['name']}" for item in items)
+        lines.extend(item_lines)
         if destination:
             lines.extend(["", f"Lugar de entrega: {destination}"])
         lines.extend(["", "¿Deseas confirmar, cambiar o cancelar el pedido?"])
@@ -2078,7 +2226,7 @@ def _room_service_confirmation_message(request: AgentTurnRequest, offering, capt
         labels = ("Confirmar", "Cambiar", "Cancelar")
     else:
         lines = ["Order confirmation", "", "Items:"]
-        lines.extend(f"- {item['quantity']} x {item['name']}" for item in items)
+        lines.extend(item_lines)
         if destination:
             lines.extend(["", f"Delivery location: {destination}"])
         lines.extend(["", "Would you like to confirm, change, or cancel the order?"])
@@ -2092,7 +2240,7 @@ def _room_service_confirmation_message(request: AgentTurnRequest, offering, capt
         "language": request.guest.preferredLanguage,
         "operationIds": [],
         "conversationTaskIds": [],
-        "interaction": {
+        "interaction": None if understanding_enabled() and len(text) > 1024 else {
             "type": "BUTTONS",
             "title": title,
             "body": text[:1024],
@@ -2106,6 +2254,17 @@ def _room_service_confirmation_message(request: AgentTurnRequest, offering, capt
     }
 
 
+def _order_clarification_message(request: AgentTurnRequest) -> dict:
+    text = ("Confirma los artículos y la cantidad exacta de cada uno, incluyendo las modificaciones. "
+            "Si estás cambiando un pedido, indica qué artículo deseas modificar."
+            if request.guest.preferredLanguage.lower().startswith("es") else
+            "Please confirm the items and exact quantity of each, including modifications. "
+            "For an order change, specify which item you want to edit.")
+    return {"messageDraftId": str(uuid4()), "purpose": "CLARIFICATION", "text": text,
+            "language": request.guest.preferredLanguage, "operationIds": [],
+            "conversationTaskIds": [], "interaction": None}
+
+
 def _room_service_change_prompt(request: AgentTurnRequest) -> dict:
     spanish = request.guest.preferredLanguage.lower().startswith("es")
     text = (
@@ -2113,6 +2272,9 @@ def _room_service_change_prompt(request: AgentTurnRequest) -> dict:
         if spanish
         else "Please provide the complete order again, including items, quantities, and changes."
     )
+    if understanding_enabled():
+        text = ("Indica qué deseas cambiar o escribe el nuevo pedido completo. Conservaremos los datos que no cambies."
+                if spanish else "Tell us what to change, or send the full new order. We will keep the details you do not change.")
     return {
         "messageDraftId": str(uuid4()),
         "purpose": "CLARIFICATION",
@@ -2162,11 +2324,15 @@ def _ensure_explicit_capture_confirmation(
         return False
 
     latest_inbound = context["latestInbound"]
-    items = _parse_order_items(
-        latest_inbound.text,
-        _coerce_order_items(context["completedValues"].get(context["fieldCode"])),
-    )
+    existing_items = _coerce_order_items(context["completedValues"].get(context["fieldCode"]))
+    items = (understand_order(request, latest_inbound, existing_items) if understanding_enabled()
+             else _parse_order_items(latest_inbound.text, existing_items))
     if not items:
+        if understanding_enabled():
+            messages[:] = [_order_clarification_message(request)]
+            normalized.update(disposition="RESPONSE_READY", toolCalls=[], updatedConversationSummary=
+                              _room_service_summary(context["completedValues"], False, "NEEDS_CLARIFICATION"))
+            return True
         return False
     completed_values = {
         **context["completedValues"],
@@ -2403,6 +2569,27 @@ def _ensure_configured_field_capture(
     fields = _ordered_guest_capture_fields(offering)
     if not fields:
         return False
+
+    if understanding_enabled() and offering.offeringCode == "ROOM_SERVICE" and completed_field == "deliveryLocation":
+        state = _latest_capture_state(request)
+        captured = dict(state.get("capturedFields", {})) if state.get("pendingOffering") == "ROOM_SERVICE" else {}
+        items = _coerce_order_items(captured.get("items"))
+        location = _structured_capture_value(latest_inbound.interactionReplyId)
+        if items and location:
+            captured.update(items=items, deliveryLocation=location)
+            confirmation = _room_service_confirmation_message(request, offering, captured)
+            catalog = offering.inputSchema.get("properties", {}).get("items", {}).get("x-chatbotinn-capture", {}).get("catalog", {})
+            url = catalog.get("externalUrl")
+            if isinstance(url, str) and url:
+                confirmation["text"] += "\n" + url
+                if len(confirmation["text"]) > 1024:
+                    confirmation["interaction"] = None
+                elif confirmation["interaction"]:
+                    confirmation["interaction"]["body"] = confirmation["text"]
+            messages[:] = [confirmation]
+            normalized.update(disposition="RESPONSE_READY", toolCalls=[], updatedConversationSummary=
+                              _room_service_summary(captured, True, "AWAITING_CONFIRMATION"))
+            return True
 
     field_index = 0
     if completed_field is not None:
