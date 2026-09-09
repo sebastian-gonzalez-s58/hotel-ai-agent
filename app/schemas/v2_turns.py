@@ -213,19 +213,11 @@ class AgentUsage(StrictModel):
     latencyMs: int | None = Field(default=None, ge=0)
 
 
-class LanguageDecision(StrictModel):
-    locale: str = Field(min_length=2, max_length=35, pattern=r"^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$")
-    source: Literal["DETECTED", "EXPLICIT"]
-    confidence: float = Field(ge=0.85, le=1)
-    messageId: UUID
-
-
 class AgentTurnResponse(StrictModel):
     schemaVersion: Literal["2.0"]
     agentTurnId: UUID
     disposition: Literal["RESPONSE_READY", "TOOL_CALLS_REQUIRED", "NO_ACTION", "HANDOFF_REQUIRED"]
     detectedLanguage: str | None = Field(default=None, max_length=35)
-    languageDecision: LanguageDecision | None = None
     messages: list[AgentMessage] = Field(max_length=10)
     toolCalls: list[DomainToolCall] = Field(max_length=20)
     updatedConversationSummary: str | None = Field(default=None, max_length=20000)

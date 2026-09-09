@@ -16,31 +16,6 @@
     }
   ],
   "paths": {
-    "/internal/v2/localizations": {
-      "post": {
-        "operationId": "localizeOutboundNotification",
-        "summary": "Localize visible notification text without conversation tools",
-        "description": "V2 only. Idempotency-Key must equal messageId. This pure presentation endpoint has a five-second budget; Spring persists the final rendered payload before delivery and owns durable idempotency.",
-        "security": [{ "agentBearer": [], "requestTimestamp": [], "idempotencyKey": [] }],
-        "parameters": [{ "$ref": "#/components/parameters/RequestId" }],
-        "requestBody": {
-          "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LocalizationRequest" } } }
-        },
-        "responses": {
-          "200": {
-            "description": "Localized text slots in the original order.",
-            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LocalizationResponse" } } }
-          },
-          "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" },
-          "404": { "description": "V2 runtime is not enabled." },
-          "422": { "$ref": "#/components/responses/Unprocessable" },
-          "502": { "$ref": "#/components/responses/ModelFailure" },
-          "504": { "$ref": "#/components/responses/Timeout" }
-        }
-      }
-    },
     "/internal/v2/turns": {
       "post": {
         "operationId": "executeAgentTurnV2",
@@ -101,7 +76,7 @@
         "type": "apiKey",
         "in": "header",
         "name": "Idempotency-Key",
-        "description": "Must equal agentTurnId for turns or messageId for localizations, and be reused for retries."
+        "description": "Must equal agentTurnId and be reused for retries."
       }
     },
     "parameters": {
@@ -119,41 +94,6 @@
       }
     },
     "schemas": {
-      "LocalizationRequest": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["messageId", "namespace", "locale", "texts"],
-        "properties": {
-          "messageId": { "type": "string", "format": "uuid" },
-          "namespace": { "type": "string", "minLength": 1, "maxLength": 100 },
-          "locale": { "type": "string", "maxLength": 35 },
-          "protectedValues": {
-            "type": "array", "maxItems": 100, "items": { "type": "string" },
-            "description": "At most 12000 characters in total; preserve each value exactly."
-          },
-          "texts": {
-            "type": "array", "minItems": 1, "maxItems": 25,
-            "description": "At most 30000 source characters in total.",
-            "items": {
-              "type": "object", "additionalProperties": false,
-              "required": ["text", "maxLength"],
-              "properties": {
-                "text": { "type": "string", "minLength": 1, "maxLength": 20000 },
-                "maxLength": { "type": "integer", "minimum": 1, "maximum": 20000 }
-              }
-            }
-          }
-        }
-      },
-      "LocalizationResponse": {
-        "type": "object", "additionalProperties": false,
-        "required": ["locale", "version", "texts"],
-        "properties": {
-          "locale": { "type": "string" },
-          "version": { "type": "string", "const": "1" },
-          "texts": { "type": "array", "items": { "type": "string" } }
-        }
-      },
       "AgentTurnRequest": {
         "type": "object",
         "additionalProperties": false,
@@ -476,10 +416,6 @@
             "enum": ["RESPONSE_READY", "TOOL_CALLS_REQUIRED", "NO_ACTION", "HANDOFF_REQUIRED"]
           },
           "detectedLanguage": { "type": ["string", "null"], "maxLength": 35 },
-          "languageDecision": {
-            "description": "Runtime-owned preference decision bound to the current inbound message. Enabled by eventPayload.languageContext.version=1.",
-            "anyOf": [{ "$ref": "#/components/schemas/LanguageDecision" }, { "type": "null" }]
-          },
           "messages": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/AgentMessage" },
@@ -497,17 +433,6 @@
             "items": { "type": "string", "maxLength": 1000 },
             "maxItems": 20
           }
-        }
-      },
-      "LanguageDecision": {
-        "type": "object",
-        "additionalProperties": false,
-        "required": ["locale", "source", "confidence", "messageId"],
-        "properties": {
-          "locale": { "type": "string", "minLength": 2, "maxLength": 35, "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$" },
-          "source": { "type": "string", "enum": ["DETECTED", "EXPLICIT"] },
-          "confidence": { "type": "number", "minimum": 0.85, "maximum": 1 },
-          "messageId": { "type": "string", "format": "uuid" }
         }
       },
       "AgentMessage": {
@@ -543,27 +468,29 @@
       "AgentInteraction": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["type", "body", "options"],
+        "required": ["kind"],
         "properties": {
-          "type": { "type": "string", "enum": ["BUTTONS", "LIST"] },
+          "kind": { "type": "string", "enum": ["BUTTONS", "LIST", "CTA_URL"] },
           "title": { "type": ["string", "null"], "maxLength": 60 },
-          "body": { "type": "string", "minLength": 1, "maxLength": 1024 },
-          "buttonText": { "type": ["string", "null"], "maxLength": 20 },
+          "body": { "type": ["string", "null"], "maxLength": 1024 },
+          "actionLabel": { "type": ["string", "null"], "maxLength": 20 },
+          "actionUrl": { "type": ["string", "null"], "format": "uri" },
           "options": {
             "type": "array",
             "items": { "$ref": "#/components/schemas/InteractionOption" },
-            "minItems": 1,
-            "maxItems": 10
+            "maxItems": 10,
+            "default": []
           }
         }
       },
       "InteractionOption": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["id", "label"],
+        "required": ["id", "title"],
         "properties": {
           "id": { "type": "string", "minLength": 1, "maxLength": 200 },
-          "label": { "type": "string", "minLength": 1, "maxLength": 24 }
+          "title": { "type": "string", "minLength": 1, "maxLength": 24 },
+          "description": { "type": ["string", "null"], "maxLength": 72 }
         }
       },
       "DomainToolCall": {
