@@ -58,6 +58,10 @@ Choose the intent of the current message, not an old service in the context.
   'What time does the hotel close?' is a hotel question, not a pool question.
 - CONTEXT_REPLY: data, edits, confirmations or cancellations answering a pending capture/task.
   'Two burgers', 'tomorrow at 3', 'yes, fixed', 'without onions' are valid replies in context.
+  During initial ROOM_SERVICE capture, 'Traeme unas gorditas de pulpo' answers the items
+  question. Imperatives such as 'bring me', 'quiero' or 'traeme' do NOT start a new draft.
+  Changing the delivery location also continues the current order. Keep already captured data.
+  A separate order requires an explicit request for another/new independent order.
   Prefer this over a NEW service for an order replacement requested by kitchen or a SPA change.
   An unrelated question is NOT an answer to a pending field, even if one is waiting.
 - STATUS_REQUEST: follow-up about an existing hotel request/folio, not a new request.
@@ -105,7 +109,8 @@ Context:\n""" + json.dumps(context, ensure_ascii=False)
             kind="UNCLEAR", offeringCode=None, relevantText="", hasRequestDetails=False,
             containsUnrelatedTopic=False, confidence=0,
         )
-    logger.info("Hotel scope classified. turn_id=%s kind=%s offering=%s mixed=%s",
+    logger.info("Hotel scope classified. turn_id=%s kind=%s offering=%s mixed=%s details=%s pending=%s",
                 request.agentTurnId, decision.kind, decision.offeringCode,
-                decision.containsUnrelatedTopic)
+                decision.containsUnrelatedTopic, decision.hasRequestDetails,
+                capture_state.get("pendingOffering"))
     return decision, result.usage

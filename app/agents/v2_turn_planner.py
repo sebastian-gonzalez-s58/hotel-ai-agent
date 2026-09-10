@@ -36,11 +36,13 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
                      and _maintenance_resolution_value(latest) is not None)
             and not _is_greeting_turn(request) and _capture_selection(request, latest) is None):
         scope, scope_usage = classify_hotel_scope(request, latest, _latest_capture_state(request))
+        scoped = request
         if scope.kind in {"OUT_OF_SCOPE", "UNCLEAR"}:
             response = _scope_clarification(request, scope.kind, started_at)
         else:
             scoped = request.model_copy(deep=True)
             _latest_inbound_message(scoped).text = scope.relevantText
+            scoped, scope = _room_service_capture_request(scoped, scope)
             response = _plan_hotel_turn(scoped, started_at, scope)
         if (scope.containsUnrelatedTopic and scope.kind not in {"OUT_OF_SCOPE", "UNCLEAR"}
                 and response.messages):
@@ -51,8 +53,10 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         for name, count in scope_usage.as_api_dict().items():
             setattr(response.usage, name, getattr(response.usage, name) + count)
         response.usage.latencyMs = round((time.perf_counter() - started_at) * 1000)
-        return preserve_spa_state(request, response, scope)
-    return preserve_spa_state(request, _plan_hotel_turn(request, started_at, scope))
+        return preserve_spa_state(scoped, _preserve_room_service_draft(scoped, response, scope), scope)
+    request, scope = _room_service_capture_request(request, scope)
+    response = _plan_hotel_turn(request, started_at, scope)
+    return preserve_spa_state(request, _preserve_room_service_draft(request, response, scope))
 
 
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
@@ -192,6 +196,92 @@ def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
         )
 
     raise AgentModelError("OpenAI did not return a valid V2 agent plan")
+
+
+def _explicit_separate_order(text: str) -> bool:
+    text = _fold_text(text)
+    # Only a clear new-order command may discard the current unsubmitted draft.
+    return bool(re.fullmatch(
+        r"(?:(?:por favor|ahora|tambien|please|now)\s+)*"
+        r"(?:quiero|quisiera|necesito|vamos a|i want(?: to)?|i would like(?: to)?|i need(?: to)?)\s+"
+        r"(?:(?:hacer|crear|iniciar|empezar|make|place|start)\s+)?"
+        r"(?:(?:un|a)\s+)?(?:otro pedido|nuevo pedido|pedido nuevo|pedido aparte|"
+        r"pedido independiente|another order|new order|separate order)"
+        r"(?:\s+(?:aparte|independiente|por separado|desde cero|por favor|please))?",
+        text,
+    ))
+
+
+_ROOM_SERVICE_DRAFT_FIELDS = (
+    "pendingOffering", "capturedFields", "awaitingExplicitConfirmation", "phase", "readyToStart",
+)
+
+
+def _room_service_capture_request(request: AgentTurnRequest, scope: ScopeDecision | None):
+    if request.previousToolResults or request.trigger.type != "INBOUND_MESSAGE":
+        return request, scope
+    latest = _latest_inbound_message(request)
+    if latest is None:
+        return request, scope
+    selection = _capture_selection(request, latest)
+    selects_room_service = selection is not None and selection[0].offeringCode == "ROOM_SERVICE"
+    requests_room_service = bool(scope and scope.kind == "SERVICE_REQUEST"
+                                 and scope.offeringCode == "ROOM_SERVICE")
+    state = _latest_capture_state(request)
+    separate = requests_room_service and _explicit_separate_order(latest.text)
+    if separate:
+        # This full command contains no items; ask for the new order's first field.
+        scope = scope.model_copy(update={"hasRequestDetails": False})
+    saved = state.get("roomServiceDraft")
+    if (not separate and (selects_room_service or requests_room_service)
+            and state.get("pendingOffering") != "ROOM_SERVICE" and isinstance(saved, dict)
+            and saved.get("pendingOffering") == "ROOM_SERVICE"
+            and isinstance(saved.get("capturedFields"), dict)):
+        request = request.model_copy(deep=True)
+        state = {key: value for key, value in state.items() if key not in _ROOM_SERVICE_DRAFT_FIELDS}
+        state.update({key: saved[key] for key in _ROOM_SERVICE_DRAFT_FIELDS if key in saved})
+        state.pop("roomServiceDraft", None)
+        request.conversation.summary = json.dumps(state, ensure_ascii=False, separators=(",", ":"))
+    if (requests_room_service and not separate
+            and state.get("pendingOffering") == "ROOM_SERVICE"):
+        # Classification cannot reset a draft just because item text sounds like a command.
+        captured = state.get("capturedFields")
+        logger.info("Preserving room-service capture. turn_id=%s classified=%s fields=%s",
+                    request.agentTurnId, scope.kind, sorted(captured) if isinstance(captured, dict) else [])
+        scope = scope.model_copy(update={"kind": "CONTEXT_REPLY"})
+    return request, scope
+
+
+def _preserve_room_service_draft(request, response, scope=None):
+    old = _latest_capture_state(request)
+    summary = (response.updatedConversationSummary if response.updatedConversationSummary is not None
+               else request.conversation.summary)
+    updated = request.model_copy(deep=True)
+    updated.conversation.summary = summary
+    new = _latest_capture_state(updated)
+    saved = old.get("roomServiceDraft")
+    started = {operation["offeringCode"] for operation in _acknowledgeable_service_starts(request)}
+    latest = _latest_inbound_message(request)
+    cancels_draft = (old.get("pendingOffering") == "ROOM_SERVICE" and latest is not None
+                     and not response.toolCalls and not request.previousToolResults
+                     and (_room_service_confirmation_action(latest) == "CANCEL"
+                          or _is_free_text_cancel(latest.text)))
+    if "ROOM_SERVICE" in started or cancels_draft:
+        new.pop("roomServiceDraft", None)
+    elif new.get("pendingOffering") == "ROOM_SERVICE":
+        new.pop("roomServiceDraft", None)
+    else:
+        switching = (new.get("pendingOffering") not in {None, "ROOM_SERVICE"}
+                     or scope is not None and scope.kind != "CONTEXT_REPLY"
+                     or request.previousToolResults or _is_greeting_turn(request))
+        if old.get("pendingOffering") == "ROOM_SERVICE" and switching:
+            saved = {key: old[key] for key in _ROOM_SERVICE_DRAFT_FIELDS if key in old}
+        if isinstance(saved, dict):
+            new["roomServiceDraft"] = saved
+    if new != _latest_capture_state(updated):
+        encoded = json.dumps(new, ensure_ascii=False, separators=(",", ":"))
+        response.updatedConversationSummary = f"{summary}\n{encoded}" if summary else encoded
+    return response
 
 
 def _request_for_trigger(request: AgentTurnRequest) -> AgentTurnRequest:
@@ -780,7 +870,7 @@ def _room_service_draft_plan(
         return None
 
     selection = _capture_selection(request, latest_inbound)
-    if selection is not None:
+    if selection is not None and selection[0].offeringCode != "ROOM_SERVICE":
         # Configured offering and field selections are handled by the generic capture flow.
         return None
     if _is_greeting_turn(request):
@@ -799,6 +889,17 @@ def _room_service_draft_plan(
 
     captured = state.get("capturedFields")
     captured = dict(captured) if isinstance(captured, dict) else {}
+    if selection is not None:
+        if selection[1] == "deliveryLocation":
+            captured["deliveryLocation"] = _structured_capture_value(latest_inbound.interactionReplyId)
+        elif selection[1] is not None:
+            return None
+        return _room_service_resume_plan(request, offering, captured, started_at)
+
+    location = _room_service_location_change(offering, latest_inbound.text)
+    if location is not None:
+        captured["deliveryLocation"] = location
+        return _room_service_resume_plan(request, offering, captured, started_at)
     action = _room_service_confirmation_action(latest_inbound)
     awaiting_confirmation = bool(state.get("awaitingExplicitConfirmation"))
 
@@ -865,10 +966,39 @@ def _room_service_draft_plan(
     if not items:
         return None
     captured["items"] = items
+    return _room_service_resume_plan(request, offering, captured, started_at)
+
+
+def _room_service_location_change(offering, text: str) -> str | None:
+    field = offering.inputSchema.get("properties", {}).get("deliveryLocation", {})
+    capture = field.get("x-chatbotinn-capture", {})
+    folded = _fold_text(text)
+    for option in _capture_options(capture):
+        label = re.escape(_fold_text(str(option["label"])))
+        if re.fullmatch(
+            r"(?:(?:mejor|por favor|please)\s+)?"
+            r"(?:(?:entrega(?:lo|r)?|lleva(?:lo|r)?|deliver(?: it)?|bring it)\s+)?"
+            r"(?:(?:en|a|al|to|at)\s+)?(?:(?:la|el|the)\s+)?" + label,
+            folded,
+        ):
+            return option["code"]
+    return None
+
+
+def _room_service_resume_plan(request, offering, captured, started_at):
+    for field_code, field_schema in _ordered_guest_capture_fields(offering):
+        if captured.get(field_code):
+            continue
+        message = _capture_message(request, offering.offeringCode, field_code, field_schema,
+                                   field_schema["x-chatbotinn-capture"])
+        if message is None:
+            return None
+        return _deterministic_turn_response(
+            request, started_at, disposition="RESPONSE_READY", messages=[message],
+            updated_summary=_room_service_summary(captured, False, "CAPTURING_ITEMS"),
+        )
     return _deterministic_turn_response(
-        request,
-        started_at,
-        disposition="RESPONSE_READY",
+        request, started_at, disposition="RESPONSE_READY",
         messages=[_room_service_confirmation_message(request, offering, captured)],
         updated_summary=_room_service_summary(captured, True, "AWAITING_CONFIRMATION"),
     )
