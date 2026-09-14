@@ -1,6 +1,7 @@
 import json
 
 from app.schemas.v2_turns import AgentTurnRequest
+from app.prompts.input_policy import ORDER_QUANTITY_POLICY
 
 
 def build_v2_turn_prompt(request: AgentTurnRequest) -> str:
@@ -56,8 +57,7 @@ Rules:
   * CATALOG_ITEMS includes catalog.externalUrl as visible plain text when supplied and asks for the
     requested items, quantities, and modifications. Do not create an "open menu" reply button:
     reply IDs are not URLs. Normalize every concrete item as an object with name, quantity, and
-    modifications. If the guest gives a concrete item without a quantity, use quantity 1 instead
-    of repeating the quantity question.
+    modifications. {ORDER_QUANTITY_POLICY}
   * AUTO leaves presentation to you, while still respecting the property's schema and source.
 - Never invent catalog options, external URLs, required fields, or selection codes. An inbound
   interactionReplyId beginning with field: is authoritative structured input for the referenced
@@ -65,8 +65,9 @@ Rules:
 - An inbound interactionReplyId in the form confirmation:<offeringCode>:CONFIRM is explicit guest
   confirmation for the captured offering. CHANGE means ask what should change while preserving the
   other captured values. CANCEL means discard that pending request without calling START_SERVICE.
-- Treat unambiguous free-text equivalents such as confirmar/confirm, cambiar/change, and
-  cancelar/cancel the same way while a confirmation draft is pending.
+- Understand free-text decisions in any language while a confirmation draft is pending.
+  Only a pure, unambiguous approval is confirmation. 'Yes, but without onions' is an edit,
+  not confirmation; 'remove the coffee' is an item change, not cancellation of the request.
 - When the latest free-text message answers the currently requested capture field, extract it as
   that field's value. Never repeat the same field prompt after receiving a concrete non-empty answer.
 - When MAINTENANCE is selected without an issue, ask the guest to describe the problem in their
@@ -115,7 +116,11 @@ Rules:
 - If a guest-facing response is ready, disposition is RESPONSE_READY and toolCalls is empty.
 - HANDOFF_REQUIRED must include a guest-facing handoff message.
 - NO_ACTION has no messages and no tool calls.
-- Keep the language consistent with the guest's latest message unless explicitly asked otherwise.
+- Use guest.preferredLanguage as the effective output locale selected by the runtime for this turn.
+  Do not independently redetect or change it from the latest message, history, catalog or staff text.
+  A short reply, a product name or a button label never changes the response language here.
+  Understand guest input in any language while preserving its original evidence and business values.
+  Render visible messages and button labels in the effective locale; never translate IDs or codes.
 - schemaVersion, agentTurnId, toolCallId, messageDraftId, and usage are server-owned envelope
   fields. Include schema-valid placeholder values; the server replaces them with authoritative
   values.

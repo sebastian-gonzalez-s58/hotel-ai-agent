@@ -21,6 +21,7 @@ from app.services.localized_content import localize_response, template
 from app.services.faq_grounding import is_semantic_search, resolve_semantic_faq, restore_grounded_faq
 from app.services.input_understanding import (
     understanding_turn, understanding_enabled, record_scope_action, semantic_action, understand_order,
+    order_understanding_issue, order_understanding_failed,
 )
 
 
@@ -35,6 +36,8 @@ def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         response = _plan_v2_turn(request)
         for name, value in understanding.usage.items():
             setattr(response.usage, name, getattr(response.usage, name) + value)
+        if understanding.last_order_issue:
+            response.warnings = (response.warnings + ["ORDER_INPUT_" + understanding.last_order_issue])[-20:]
         response.usage.latencyMs = round((time.perf_counter() - understanding.started_at) * 1000)
         return response
 
@@ -61,8 +64,10 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
             request, language_decision = resolve_language(original_request, latest, scope)
         scoped = request
         if language_enabled(request) and scope.languageChangeOnly and language_decision is not None:
+            language_template = ("language.changed.pending" if _latest_capture_state(request).get("pendingOffering")
+                                 or request.activeOperations else "language.changed")
             response = _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY", messages=[{
-                "purpose": "ANSWER", "text": template("language.changed", request.guest.preferredLanguage),
+                "purpose": "ANSWER", "text": template(language_template, request.guest.preferredLanguage),
                 "language": request.guest.preferredLanguage, "operationIds": [], "conversationTaskIds": [],
             }], updated_summary=request.conversation.summary)
         elif scope.kind in {"OUT_OF_SCOPE", "UNCLEAR"}:
@@ -141,6 +146,10 @@ def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
             initial = _initial_offering_capture_plan(request, offering, started_at)
             if initial is not None:
                 items = understand_order(request, latest, [])
+                if order_understanding_failed():
+                    return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                            messages=[_order_clarification_message(request)],
+                            updated_summary=request.conversation.summary)
                 initial.updatedConversationSummary = _room_service_summary(
                     {"items": items} if items else {}, False, "CAPTURING_LOCATION")
                 return initial
@@ -934,11 +943,14 @@ def _room_service_operation_task_plan(
 
 
 def _room_service_kitchen_change_decision_message(request, task) -> dict:
-    text = (
-        "Cocina solicitó un cambio en tu pedido. Consulta nuevamente el menú digital: "
-        "https://hotelcristalino.menudigitalonline.com/ "
-        "Puedes modificar el pedido o cancelarlo por completo."
-    )
+    locale = request.guest.preferredLanguage
+    text = template("order.kitchen.change", locale)
+    offering = next((o for o in request.availableOfferings if o.offeringCode == "ROOM_SERVICE"), None)
+    if offering:
+        catalog = (offering.inputSchema.get("properties", {}).get("items", {})
+                   .get("x-chatbotinn-capture", {}).get("catalog", {}))
+        if catalog.get("externalUrl"):
+            text += "\n" + catalog["externalUrl"]
     return {
         "messageDraftId": str(uuid4()),
         "purpose": "CLARIFICATION",
@@ -948,25 +960,26 @@ def _room_service_kitchen_change_decision_message(request, task) -> dict:
         "conversationTaskIds": [],
         "interaction": {
             "type": "BUTTONS",
-            "title": "Cambio solicitado",
+            "title": template("order.kitchen.title", locale),
             "body": text,
-            "buttonText": "Elegir opción",
+            "buttonText": template("options.open", locale),
             "options": [
-                {"id": "room-service-change:CHANGE", "label": "Hacer cambios"},
-                {"id": "room-service-change:CANCEL", "label": "Cancelar pedido"},
+                {"id": "room-service-change:CHANGE", "label": template("action.change", locale)},
+                {"id": "room-service-change:CANCEL", "label": template("order.cancel", locale)},
             ],
         },
     }
 
 
 def _room_service_replacement_order_prompt(request, task) -> dict:
+    if order_understanding_failed():
+        message = _order_clarification_message(request)
+        message["operationIds"] = [str(task.operationId)]
+        return message
     return {
         "messageDraftId": str(uuid4()),
         "purpose": "CLARIFICATION",
-        "text": (
-            "Por favor indica nuevamente tu pedido completo con los cambios. "
-            "Incluye todos los productos, cantidades y modificaciones."
-        ),
+        "text": template("order.replacement", request.guest.preferredLanguage),
         "language": request.guest.preferredLanguage,
         "operationIds": [str(task.operationId)],
         "conversationTaskIds": [],
@@ -1092,7 +1105,8 @@ def _room_service_draft_plan(
         if understanding_enabled():
             return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
                     messages=[_order_clarification_message(request)],
-                    updated_summary=_room_service_summary(captured, False, "NEEDS_CLARIFICATION"))
+                    updated_summary=_room_service_summary(captured, False,
+                            "INPUT_RETRY" if order_understanding_failed() else "NEEDS_CLARIFICATION"))
         return None
     captured["items"] = items
     return _room_service_resume_plan(request, offering, captured, started_at)
@@ -2127,17 +2141,22 @@ def _is_free_text_confirmation(value: str) -> bool:
 
 
 def _coerce_order_items(value) -> list[dict]:
+    strict = understanding_enabled()
     if isinstance(value, str):
-        return _parse_order_items(value, [])
+        return [] if strict else _parse_order_items(value, [])
     if not isinstance(value, list):
         return []
     items = []
     for item in value:
         if not isinstance(item, dict):
+            if strict:
+                return []
             continue
         name = " ".join(str(item.get("name") or "").split()).strip(" .,;")
-        quantity = item.get("quantity", 1)
+        quantity = item.get("quantity", None if strict else 1)
         if not name or not isinstance(quantity, int) or isinstance(quantity, bool) or quantity < 1:
+            if strict:
+                return []
             continue
         modifications = item.get("modifications")
         if not isinstance(modifications, list):
@@ -2295,11 +2314,14 @@ def _room_service_confirmation_message(request: AgentTurnRequest, offering, capt
 
 
 def _order_clarification_message(request: AgentTurnRequest) -> dict:
-    text = ("Confirma los artículos y la cantidad exacta de cada uno, incluyendo las modificaciones. "
-            "Si estás cambiando un pedido, indica qué artículo deseas modificar."
-            if request.guest.preferredLanguage.lower().startswith("es") else
-            "Please confirm the items and exact quantity of each, including modifications. "
-            "For an order change, specify which item you want to edit.")
+    key = "order.input.clarify"
+    if order_understanding_failed():
+        key = "order.input.unavailable"
+    elif order_understanding_issue() == "MISSING_QUANTITY":
+        key = "order.input.quantity"
+    elif order_understanding_issue() == "COMPLETE_ORDER_REQUIRED":
+        key = "order.replacement"
+    text = template(key, request.guest.preferredLanguage)
     return {"messageDraftId": str(uuid4()), "purpose": "CLARIFICATION", "text": text,
             "language": request.guest.preferredLanguage, "operationIds": [],
             "conversationTaskIds": [], "interaction": None}
@@ -2313,8 +2335,7 @@ def _room_service_change_prompt(request: AgentTurnRequest) -> dict:
         else "Please provide the complete order again, including items, quantities, and changes."
     )
     if understanding_enabled():
-        text = ("Indica qué deseas cambiar o escribe el nuevo pedido completo. Conservaremos los datos que no cambies."
-                if spanish else "Tell us what to change, or send the full new order. We will keep the details you do not change.")
+        text = template("order.change", request.guest.preferredLanguage)
     return {
         "messageDraftId": str(uuid4()),
         "purpose": "CLARIFICATION",
@@ -2327,15 +2348,10 @@ def _room_service_change_prompt(request: AgentTurnRequest) -> dict:
 
 
 def _room_service_cancellation_message(request: AgentTurnRequest) -> dict:
-    spanish = request.guest.preferredLanguage.lower().startswith("es")
     return {
         "messageDraftId": str(uuid4()),
         "purpose": "ANSWER",
-        "text": (
-            "El pedido de servicio a la habitación fue cancelado."
-            if spanish
-            else "The room-service order was cancelled."
-        ),
+        "text": template("order.cancelled", request.guest.preferredLanguage),
         "language": request.guest.preferredLanguage,
         "operationIds": [],
         "conversationTaskIds": [],
@@ -2371,7 +2387,8 @@ def _ensure_explicit_capture_confirmation(
         if understanding_enabled():
             messages[:] = [_order_clarification_message(request)]
             normalized.update(disposition="RESPONSE_READY", toolCalls=[], updatedConversationSummary=
-                              _room_service_summary(context["completedValues"], False, "NEEDS_CLARIFICATION"))
+                              _room_service_summary(context["completedValues"], False,
+                                  "INPUT_RETRY" if order_understanding_failed() else "NEEDS_CLARIFICATION"))
             return True
         return False
     completed_values = {

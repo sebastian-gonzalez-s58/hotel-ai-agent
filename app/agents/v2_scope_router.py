@@ -22,6 +22,7 @@ class ScopeDecision(BaseModel):
     offeringCode: str | None
     relevantText: str = Field(max_length=20000)
     hasRequestDetails: bool
+    separateRequest: bool = False
     containsUnrelatedTopic: bool
     confidence: float = Field(ge=0, le=1)
     detectedLanguage: str | None = None
@@ -40,6 +41,7 @@ def classify_hotel_scope(
 ) -> tuple[ScopeDecision, OpenAiTokenUsage]:
     context = {
         "currentMessage": message.text,
+        "conversationLocale": request.guest.preferredLanguage,
         "pendingCapture": capture_state,
         "lastAssistantMessage": next((m.text[-2000:] for m in reversed(
             request.conversation.recentMessages
@@ -51,6 +53,7 @@ def classify_hotel_scope(
             "offeringCode": o.offeringCode, "referenceCode": o.referenceCode,
             "pendingTasks": [{
                 "type": t.taskType, "requiredOutputSchema": t.requiredOutputSchema,
+                "focused": t.conversationTaskId == request.conversation.focusedConversationTaskId,
             } for t in o.pendingConversationTasks],
         } for o in request.activeOperations],
     }
@@ -60,6 +63,11 @@ Choose the intent of the current message, not an old service in the context.
 - SERVICE_REQUEST: a NEW explicit request for an available hotel service. Use its exact code.
   hasRequestDetails is false for 'I need maintenance', true for 'the bathroom is leaking'.
   Urgent faults in the room are maintenance, including a broken sliding window.
+  separateRequest=true ONLY when the guest explicitly requests an additional independent request
+  for the SAME service currently being captured or awaiting a focused task reply
+  (e.g. 'Start a separate second room-service order').
+  A polite 'I would like', a greeting, or 'my complete new order' after a kitchen change is NOT
+  evidence of a separate request. Otherwise separateRequest=false.
 - HOTEL_QUESTION: a question about THIS hotel's services, amenities, policies or stay.
   Use FAQ when available. Unknown hotel facts still belong here and must be searched/escalated.
   'What time does the hotel close?' is a hotel question, not a pool question.
@@ -70,6 +78,10 @@ Choose the intent of the current message, not an old service in the context.
   Changing the delivery location also continues the current order. Keep already captured data.
   A separate order requires an explicit request for another/new independent order.
   Prefer this over a NEW service for an order replacement requested by kitchen or a SPA change.
+  While items are being collected, 'I would like two burgers, please' continues that capture;
+  mentioning the service again does not by itself start a new request. Greetings or thanks
+  attached to concrete data ('Hello, two burgers without cheese') do not make it SOCIAL.
+  A different service, or an explicitly separate request for the same service, remains NEW.
   An unrelated question is NOT an answer to a pending field, even if one is waiting.
   Understand decisions in any language, not only Spanish/English. replyAction is a PURE,
   unambiguous decision about the CURRENT pending step. The evidence must be the ENTIRE
@@ -118,6 +130,15 @@ Context:\n""" + json.dumps(context, ensure_ascii=False)
         decision = ScopeDecision.model_validate(result.payload)
         if decision.confidence < 0.7:
             raise ValueError("Uncertain scope")
+        focused_offering = next((o.offeringCode for o in request.activeOperations
+                                 if any(t.conversationTaskId == request.conversation.focusedConversationTaskId
+                                        for t in o.pendingConversationTasks)), None)
+        continuing_offering = capture_state.get("pendingOffering") or focused_offering
+        if (decision.kind == "SERVICE_REQUEST" and not decision.separateRequest
+                and decision.offeringCode is not None and decision.offeringCode == continuing_offering):
+            # Mentioning the current offering does not reset its capture/task. An explicit
+            # independent request remains available, including one for the same offering.
+            decision.kind = "CONTEXT_REPLY"
         if decision.kind == "SERVICE_REQUEST" and decision.offeringCode not in {
             o.offeringCode for o in request.availableOfferings
         }:
@@ -138,8 +159,8 @@ Context:\n""" + json.dumps(context, ensure_ascii=False)
             kind="UNCLEAR", offeringCode=None, relevantText="", hasRequestDetails=False,
             containsUnrelatedTopic=False, confidence=0,
         )
-    logger.info("Hotel scope classified. turn_id=%s kind=%s offering=%s mixed=%s details=%s pending=%s",
+    logger.info("Hotel scope classified. turn_id=%s kind=%s offering=%s mixed=%s details=%s pending=%s locale=%s action=%s",
                 request.agentTurnId, decision.kind, decision.offeringCode,
                 decision.containsUnrelatedTopic, decision.hasRequestDetails,
-                capture_state.get("pendingOffering"))
+                capture_state.get("pendingOffering"), request.guest.preferredLanguage, decision.replyAction)
     return decision, result.usage

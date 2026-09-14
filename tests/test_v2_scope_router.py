@@ -185,6 +185,36 @@ class ScopeRoutingTest(unittest.TestCase):
 
 
 class ScopeClassifierTest(unittest.TestCase):
+    @patch("app.agents.v2_scope_router.call_openai_json_result")
+    def test_focused_kitchen_task_is_not_mistaken_for_a_new_order(self, model):
+        from tests.test_multilingual_understanding import task_operation
+        request = request_for("My complete new order is two sandwiches")
+        request.activeOperations = [task_operation("ROOM_SERVICE_ORDER_CHANGE_DETAILS")]
+        request.conversation.focusedConversationTaskId = request.activeOperations[0].pendingConversationTasks[0].conversationTaskId
+        for separate, expected in [(False, "CONTEXT_REPLY"), (True, "SERVICE_REQUEST")]:
+            with self.subTest(separate=separate):
+                route = decision("SERVICE_REQUEST", request.conversation.recentMessages[0].text, "ROOM_SERVICE")
+                route.separateRequest = separate
+                model.return_value = OpenAiJsonResult(route.model_dump(), OpenAiTokenUsage(), "scope-test")
+                classified, _ = classify_hotel_scope(request, request.conversation.recentMessages[0], {})
+                self.assertEqual(expected, classified.kind)
+
+    @patch("app.agents.v2_scope_router.call_openai_json_result")
+    def test_same_offering_data_continues_but_independent_requests_remain_available(self, model):
+        for pending, separate, expected in [("ROOM_SERVICE", False, "CONTEXT_REPLY"),
+                                            ("ROOM_SERVICE", True, "SERVICE_REQUEST"),
+                                            ("SPA", False, "SERVICE_REQUEST"),
+                                            (None, False, "SERVICE_REQUEST")]:
+            with self.subTest(pending=pending, separate=separate):
+                request = request_for("I would like two burgers, please")
+                route = decision("SERVICE_REQUEST", request.conversation.recentMessages[0].text, "ROOM_SERVICE")
+                route.separateRequest = separate
+                model.return_value = OpenAiJsonResult(route.model_dump(), OpenAiTokenUsage(), "scope-test")
+                state = {"pendingOffering": pending, "capturedFields": {"deliveryLocation": "ROOM"}}
+                classified, _ = classify_hotel_scope(request, request.conversation.recentMessages[0], state)
+                self.assertEqual(expected, classified.kind)
+                self.assertEqual(request.conversation.recentMessages[0].text, classified.relevantText)
+
     def test_strict_schema_opt_in_preserves_existing_client_default(self):
         from app.services.openai_client import _response_format
         schema = ScopeDecision.model_json_schema()
