@@ -24,7 +24,8 @@ def multilingual_request(text="Hola"):
 
 
 def model_result(texts):
-    return OpenAiJsonResult({"texts": texts}, OpenAiTokenUsage(input_tokens=4, output_tokens=3, total_tokens=7), "translation")
+    return OpenAiJsonResult({"texts": {f"text_{index}": text for index, text in enumerate(texts)}},
+                           OpenAiTokenUsage(input_tokens=4, output_tokens=3, total_tokens=7), "translation")
 
 
 def response_for(request, text="Update for RS-123: https://hotel.example/menu"):

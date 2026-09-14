@@ -623,7 +623,7 @@ class OriginalDataLocalizationTest(unittest.TestCase):
             self.assertNotIn("soupes", prompt)
             self.assertNotIn("sans sel", prompt)
             texts = json.loads(prompt.split("\n", 1)[1])
-            return result({"texts": [text.replace("Order", "Commande") for text in texts]})
+            return result({"texts": {item["id"]: item["text"].replace("Order", "Commande") for item in texts}})
         with patch("app.services.localized_content.call_openai_json_result", side_effect=translate):
             localized = localize_response(request, response, time.perf_counter())
         self.assertEqual("Commande: 2 x soupes (sans sel)", localized.messages[0].text)

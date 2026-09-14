@@ -1,10 +1,11 @@
 {
-  "version": "2",
+  "version": "3",
   "templates": {
     "greeting.named": {"en": "Hello, {name}. How can we help you today? Please choose an option from the menu.", "es": "Hola, {name}. ¿Cómo podemos ayudarte hoy? Por favor, elige una opción del menú."},
     "greeting": {"en": "Hello. How can we help you today? Please choose an option from the menu.", "es": "Hola. ¿Cómo podemos ayudarte hoy? Por favor, elige una opción del menú."},
     "menu.title": {"en": "Hotel services", "es": "Servicios del hotel"},
     "menu.open": {"en": "View services", "es": "Ver servicios"},
+    "menu.faq": {"en": "Hotel questions", "es": "Preguntas frecuentes"},
     "options.open": {"en": "View options", "es": "Ver opciones"},
     "language.changed": {"en": "Of course. I will use this language from now on. How else can I help with your stay?", "es": "Claro. A partir de ahora te responderé en este idioma. ¿En qué más puedo ayudarte con tu estancia?"},
     "language.changed.pending": {"en": "Of course. I will continue in this language. Your pending requests and previously recorded details have not changed.", "es": "Claro. Continuaré en este idioma. Tus solicitudes pendientes y los datos registrados previamente no han cambiado."},
