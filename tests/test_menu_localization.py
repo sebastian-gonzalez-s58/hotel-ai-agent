@@ -4,10 +4,14 @@ import unittest
 from unittest.mock import patch
 
 from app.agents.v2_turn_planner import plan_v2_turn
+from app.agents.v2_scope_router import classify_hotel_scope
+from app.agents.social_opening import classify_social_opening
 from app.schemas.v2_turns import OfferingCapability
 from app.services.localized_content import _cache, translate_batch
-from tests.test_multilingual_foundation import multilingual_request, model_result
-from tests.test_v2_scope_router import maintenance_offering
+from app.services.openai_client import OpenAiJsonResult
+from app.services.telemetry_client import OpenAiTokenUsage
+from tests.test_multilingual_foundation import multilingual_request, model_result, response_for
+from tests.test_v2_scope_router import decision, maintenance_offering
 
 
 def menu_request(locale="en"):
@@ -15,8 +19,8 @@ def menu_request(locale="en"):
     request.guest.preferredLanguage = locale
     request.trigger.eventPayload["languageContext"]["explicit"] = True
     names = [("FAQ", "Preguntas frecuentes"), ("ROOM_SERVICE", "Servicio a la habitaci\u00f3n"),
-             ("MAINTENANCE", "Mantenimiento"), ("SPA", "Reservas de spa"),
-             ("FRONT_DESK", "Contacto con recepci\u00f3n")]
+             ("MAINTENANCE", "Mantenimiento"), ("SPA", "Reservaci\u00f3n de spa"),
+             ("FRONT_DESK", "Recepci\u00f3n")]
     request.availableOfferings = [OfferingCapability.model_validate(
         dict(maintenance_offering(), offeringCode=code, name=name)) for code, name in names]
     return request
@@ -29,6 +33,93 @@ def translation_inputs(call):
 class MenuLocalizationTest(unittest.TestCase):
     def setUp(self):
         _cache.clear()
+        opening = patch("app.agents.v2_turn_planner.classify_social_opening", return_value=(False, OpenAiTokenUsage()))
+        self.opening = opening.start()
+        self.addCleanup(opening.stop)
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    @patch("app.services.localized_content.call_openai_json_result")
+    @patch("app.agents.v2_turn_planner.classify_hotel_scope")
+    def test_semantic_greeting_including_typo_always_uses_localized_menu(self, classify, translate, planner):
+        for text in ["Hellow", "Hi there", "Hello again", "Good evening, how are you?"]:
+            with self.subTest(text=text):
+                request = menu_request()
+                request.conversation.recentMessages[0].text = text
+                classify.return_value = decision("SOCIAL", text, details=False), OpenAiTokenUsage()
+                self.opening.return_value = True, OpenAiTokenUsage(input_tokens=5, output_tokens=2, total_tokens=7)
+                translate.return_value = model_result(["Room service", "Maintenance", "Spa reservations", "Contact reception"])
+                response = plan_v2_turn(request)
+                self.assertEqual("LIST", response.messages[0].interaction.type)
+                self.assertEqual(5, len(response.messages[0].interaction.options))
+                self.assertEqual("Hotel questions", response.messages[0].interaction.options[0].label)
+                self.assertEqual([], response.toolCalls)
+                self.assertGreaterEqual(response.usage.totalTokens, 7)
+                self.assertNotIn("LOCALIZATION_FALLBACK", response.warnings)
+                planner.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    @patch("app.services.localized_content.call_openai_json_result")
+    @patch("app.agents.v2_turn_planner.classify_hotel_scope")
+    def test_semantic_greeting_keeps_pending_operations_and_independent_drafts(self, classify, translate, planner):
+        from uuid import uuid4
+        from app.schemas.v2_turns import OperationSnapshot
+        from tests.test_v2_turn_planner import operation, conversation_task
+        request = menu_request()
+        request.conversation.recentMessages[0].text = "Hellow"
+        request.conversation.summary = json.dumps({
+            "pendingOffering": "ROOM_SERVICE", "capturedFields": {"deliveryLocation": "ROOM"},
+            "spaDraft": {"serviceName": "Massage", "reservationDate": "2026-09-20"},
+        })
+        op_id, task_id = str(uuid4()), str(uuid4())
+        op = operation(op_id)
+        op["offeringCode"] = "MAINTENANCE"
+        op["pendingConversationTasks"] = [conversation_task(task_id, op_id)]
+        request.activeOperations = [OperationSnapshot.model_validate(op)]
+        before = request.model_dump()
+        classify.return_value = decision("SOCIAL", "Hellow", details=False), OpenAiTokenUsage()
+        self.opening.return_value = True, OpenAiTokenUsage()
+        translate.return_value = model_result(["Room service", "Maintenance", "Spa reservations", "Contact reception"])
+        response = plan_v2_turn(request)
+        self.assertEqual(5, len(response.messages[0].interaction.options))
+        self.assertEqual(request.conversation.summary, response.updatedConversationSummary)
+        self.assertEqual([], response.toolCalls)
+        self.assertEqual([], response.messages[0].operationIds)
+        self.assertEqual([], response.messages[0].conversationTaskIds)
+        self.assertEqual(before, request.model_dump())
+        planner.assert_not_called()
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    @patch("app.services.localized_content.call_openai_json_result")
+    @patch("app.agents.v2_turn_planner.classify_hotel_scope")
+    def test_thanks_and_farewell_are_not_forced_back_to_menu(self, classify, translate, planner):
+        for text, answer in [("Thanks", "You're welcome."), ("Goodbye", "Goodbye.")]:
+            with self.subTest(text=text):
+                request = menu_request()
+                request.conversation.recentMessages[0].text = text
+                classify.return_value = decision("SOCIAL", text, details=False), OpenAiTokenUsage()
+                planned = response_for(request, answer)
+                planned.messages[0].interaction = None
+                planned.messages[0].operationIds = []
+                planned.messages[0].purpose = "ANSWER"
+                planner.return_value = OpenAiJsonResult(planned.model_dump(mode="json"), OpenAiTokenUsage(), "social")
+                translate.return_value = model_result([answer])
+                response = plan_v2_turn(request)
+                self.assertIsNone(response.messages[0].interaction)
+                self.assertEqual([], response.toolCalls)
+
+    @patch("app.agents.v2_turn_planner.call_openai_json_result")
+    @patch("app.agents.v2_turn_planner.classify_hotel_scope")
+    def test_greeting_with_concrete_maintenance_request_starts_service_not_menu(self, classify, planner):
+        request = menu_request()
+        text = "Hello, the shower is leaking"
+        request.conversation.recentMessages[0].text = text
+        classify.return_value = decision("SERVICE_REQUEST", text, "MAINTENANCE"), OpenAiTokenUsage()
+        response = plan_v2_turn(request)
+        self.assertEqual([], response.messages)
+        self.assertEqual("START_SERVICE", response.toolCalls[0].toolName)
+        self.assertEqual(text, response.toolCalls[0].arguments["input"]["issue"])
+        planner.assert_not_called()
+        self.opening.assert_not_called()
 
     @patch("app.services.localized_content.call_openai_json_result")
     def test_english_greeting_translates_all_five_options_with_stable_ids(self, call):
@@ -50,6 +141,7 @@ class MenuLocalizationTest(unittest.TestCase):
         fields = call.call_args.kwargs["response_schema"]["properties"]["texts"]["properties"]
         self.assertTrue(all(field["maxLength"] == 24 for field in fields.values()))
         self.assertTrue(call.call_args.kwargs["strict_schema"])
+        self.opening.assert_not_called()
 
     @patch("app.services.localized_content.call_openai_json_result")
     def test_one_invalid_label_does_not_discard_other_translations_or_poison_cache(self, call):
@@ -145,6 +237,38 @@ class MenuLocalizationTest(unittest.TestCase):
 
 @unittest.skipUnless(os.getenv("RUN_LIVE_MULTILINGUAL_EVALS") == "1", "Opt-in real model evaluation")
 class LiveMenuLocalizationTest(unittest.TestCase):
+    def test_typo_after_previous_welcome_still_returns_menu(self):
+        from uuid import uuid4
+        _cache.clear()
+        request = menu_request()
+        latest = request.conversation.recentMessages[0]
+        latest.text = "Hellow"
+        previous = latest.model_copy(update={"messageId": uuid4(), "direction": "OUTBOUND", "actor": "AGENT",
+            "text": "Hello. How can we help you today? Please choose an option from the menu."})
+        request.conversation.recentMessages.insert(0, previous)
+        response = plan_v2_turn(request)
+        self.assertNotIn("LOCALIZATION_FALLBACK", response.warnings)
+        self.assertEqual("en", response.messages[0].language)
+        self.assertEqual(5, len(response.messages[0].interaction.options))
+        self.assertEqual("Hotel questions", response.messages[0].interaction.options[0].label)
+        self.assertEqual([], response.toolCalls)
+
+    def test_scope_distinguishes_openings_from_specific_requests_and_social_closings(self):
+        for text, expected, is_opening in [
+            ("Hi there", "SOCIAL", True), ("Good evening, how are you?", "SOCIAL", True),
+            ("Thanks", "SOCIAL", False), ("Goodbye", "SOCIAL", False),
+            ("Hello, the shower is leaking", "SERVICE_REQUEST", False),
+            ("Hi, when does the pool close?", "HOTEL_QUESTION", False),
+        ]:
+            with self.subTest(text=text):
+                request = menu_request()
+                latest = request.conversation.recentMessages[0]
+                latest.text = text
+                scope, _ = classify_hotel_scope(request, latest, {})
+                self.assertEqual(expected, scope.kind)
+                opening, _ = classify_social_opening(text)
+                self.assertEqual(is_opening, opening)
+
     def test_initial_english_menu_from_spanish_offerings(self):
         _cache.clear()
         response = plan_v2_turn(menu_request())

@@ -68,6 +68,19 @@ initial channel draft was truncated. Approved hotel translations take precedence
 the built-in FAQ label has a concise reviewed English version, "Hotel questions".
 Notification localization passes the same field limits without changing its API.
 
+### Semantic greetings
+
+Exact greetings still use the fast menu path. Other opening messages, including
+typos such as "Hellow" or "Hi there", previously fell into `SOCIAL` and relied on
+the general planner to remember to attach an interaction. A separate, bounded
+social-opening check now selects the deterministic welcome/menu response for
+these messages. It runs only for unmixed SOCIAL messages, never service/task
+requests, language changes or exact greetings. Thanks and farewells continue on
+their original path. Showing the menu preserves drafts and outstanding operations.
+The existing service classifier prompt, schema and action/evidence validation are
+unchanged. The new check has a three-second timeout and falls back to ordinary
+social handling on provider failure or low confidence.
+
 ## Verification
 
 Offline regression suite:

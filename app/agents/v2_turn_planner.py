@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from app.core.config import settings
 from app.core.errors import AgentModelError
 from app.agents.v2_scope_router import ScopeDecision, classify_hotel_scope
+from app.agents.social_opening import classify_social_opening
 from app.agents.schema_validation import satisfies_schema
 from app.agents.spa_turns import plan_spa_turn, preserve_spa_state, started_spa_summary, validate_spa_call
 from app.prompts.v2_turn import build_v2_turn_prompt
@@ -53,6 +54,7 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         request, language_decision = resolve_language(request, latest)
     scope = None
     scope_usage = None
+    opening_usage = None
     if (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
             and latest is not None and not latest.interactionReplyId
             and not (not understanding_enabled() and _has_pending_maintenance_resolution_task(request)
@@ -63,6 +65,10 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         if language_enabled(request):
             request, language_decision = resolve_language(original_request, latest, scope)
         scoped = request
+        opening = False
+        if (language_enabled(request) and scope.kind == "SOCIAL" and not scope.languageChangeOnly
+                and request.availableOfferings and not scope.containsUnrelatedTopic):
+            opening, opening_usage = classify_social_opening(latest.text)
         if language_enabled(request) and scope.languageChangeOnly and language_decision is not None:
             language_template = ("language.changed.pending" if _latest_capture_state(request).get("pendingOffering")
                                  or request.activeOperations else "language.changed")
@@ -72,6 +78,11 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
             }], updated_summary=request.conversation.summary)
         elif scope.kind in {"OUT_OF_SCOPE", "UNCLEAR"}:
             response = _scope_clarification(request, scope.kind, started_at)
+        elif opening:
+            messages = []
+            _ensure_personalized_service_menu(request, messages, force=True)
+            response = _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                                                    messages=messages, updated_summary=request.conversation.summary)
         else:
             scoped = request.model_copy(deep=True)
             _latest_inbound_message(scoped).text = scope.relevantText
@@ -83,8 +94,10 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
             response.messages[0].text = notice + "\n\n" + response.messages[0].text
             if response.messages[0].interaction is not None:
                 response.messages[0].interaction.body = response.messages[0].text[:1024]
-        for name, count in scope_usage.as_api_dict().items():
-            setattr(response.usage, name, getattr(response.usage, name) + count)
+        for usage in (scope_usage, opening_usage):
+            if usage is not None:
+                for name, count in usage.as_api_dict().items():
+                    setattr(response.usage, name, getattr(response.usage, name) + count)
         response.usage.latencyMs = round((time.perf_counter() - started_at) * 1000)
         response = preserve_spa_state(scoped, _preserve_room_service_draft(scoped, response, scope), scope)
     else:
