@@ -12,6 +12,7 @@ from app.services.conversation_language import resolve_language, normalize_local
 from app.services.localized_content import REGISTRY, _cache, template, translate_batch, localize_response
 from app.services.openai_client import OpenAiJsonResult
 from app.services.telemetry_client import OpenAiTokenUsage
+from app.prompts.v2_turn import build_v2_turn_prompt
 from tests.test_v2_scope_router import request_for, decision, maintenance_offering
 from tests.test_v2_turn_endpoint import MESSAGE_ID
 
@@ -38,6 +39,33 @@ def response_for(request, text="Update for RS-123: https://hotel.example/menu"):
 
 
 class LanguagePolicyTest(unittest.TestCase):
+    def test_planner_uses_runtime_locale_not_language_of_latest_reply(self):
+        request = multilingual_request("sin queso")
+        request.guest.preferredLanguage = "en"
+        request.trigger.eventPayload["languageContext"]["explicit"] = True
+        prompt = build_v2_turn_prompt(request)
+        self.assertIn("guest.preferredLanguage as the effective output locale", prompt)
+        self.assertNotIn("language consistent with the guest's latest message", prompt)
+        self.assertIn('"preferredLanguage":"en"', prompt)
+        self.assertIn("sin queso", prompt)
+
+    @patch("app.services.localized_content.call_openai_json_result")
+    @patch("app.agents.v2_turn_planner.classify_hotel_scope")
+    def test_switch_to_english_preserves_draft_without_restarting_menu(self, classify, translate):
+        request = multilingual_request("Please speak English")
+        request.conversation.summary = '{"pendingOffering":"ROOM_SERVICE","capturedFields":{"deliveryLocation":"ROOM"}}'
+        route = decision("SOCIAL", "Please speak English")
+        route.requestedLanguage, route.languageConfidence, route.languageChangeOnly = "en", 1, True
+        classify.return_value = route, OpenAiTokenUsage()
+        response = plan_v2_turn(request)
+        self.assertEqual(request.conversation.summary, response.updatedConversationSummary)
+        self.assertEqual("en", response.languageDecision.locale)
+        self.assertIn("previously recorded details have not changed", response.messages[0].text)
+        self.assertNotIn("How else", response.messages[0].text)
+        self.assertIsNone(response.messages[0].interaction)
+        self.assertEqual([], response.toolCalls)
+        translate.assert_not_called()
+
     def test_openapi_accepts_new_and_legacy_response_envelopes(self):
         from pathlib import Path
         from jsonschema import Draft202012Validator
@@ -135,6 +163,12 @@ class LanguagePolicyTest(unittest.TestCase):
 class LocalizedContentTest(unittest.TestCase):
     def setUp(self):
         _cache.clear()
+
+    @patch("app.services.localized_content.call_openai_json_result")
+    def test_optional_operation_reference_cannot_crash_localization(self, call):
+        call.return_value = model_result(["Bonjour [[P0]]"])
+        texts, _ = translate_batch(["Hello Ana"], "fr", [None, "", "Ana"])
+        self.assertEqual(["Bonjour Ana"], texts)
 
     def test_all_template_variants_use_identical_placeholders(self):
         for key, variants in REGISTRY["templates"].items():

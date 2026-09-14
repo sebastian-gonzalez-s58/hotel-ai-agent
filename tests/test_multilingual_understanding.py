@@ -7,12 +7,15 @@ from uuid import uuid4
 
 from app.agents import spa_turns
 from app.agents.v2_scope_router import ScopeDecision
-from app.agents.v2_turn_planner import plan_v2_turn, _maintenance_resolution_value, _validate_plan
-from app.core.errors import AgentModelError, AgentTimeoutError
+from app.agents.v2_turn_planner import plan_v2_turn, _maintenance_resolution_value, _validate_plan, _coerce_order_items
+from app.core.errors import AgentDependencyError, AgentModelError, AgentTimeoutError
+from app.prompts.input_policy import ORDER_QUANTITY_POLICY
+from app.prompts.v2_turn import build_v2_turn_prompt
 from app.schemas.v2_turns import OfferingCapability, OperationSnapshot
 from app.services.input_understanding import (
     OrderExtraction, apply_order_extraction, understanding_turn, understanding_enabled,
     record_scope_action, semantic_action, understand_order,
+    order_understanding_issue, order_understanding_failed,
 )
 from app.services.localized_content import localize_response, _cache
 from app.services.openai_client import OpenAiJsonResult
@@ -81,6 +84,79 @@ def task_operation(kind):
 
 
 class OrderEvidenceTest(unittest.TestCase):
+    def test_product_quote_may_include_its_quantity_without_rejecting_the_product(self):
+        text = "Hello, I would like two burgers without cheese, please"
+        data = order(edit("two burgers without cheese", "burgers", 2, "two", ["without cheese"],
+                          nameEvidence="two burgers"))
+        items = apply_order_extraction(OrderExtraction.model_validate(data), text, [])
+        self.assertEqual([{"name": "burgers", "quantity": 2, "modifications": ["without cheese"]}], items)
+        data["edits"][0]["name"] = "sandwiches"
+        with self.assertRaises(ValueError):
+            apply_order_extraction(OrderExtraction.model_validate(data), text, [])
+
+    def test_echoed_unchanged_values_do_not_require_new_evidence_but_edits_do(self):
+        text = "Yes, but without onions as well"
+        existing = [{"name": "burgers", "quantity": 2, "modifications": ["without cheese"]}]
+        data = order(edit(text, "burgers", 2, None, ["without onions as well"],
+                          action="UPDATE", existingItemIndex=0), mode="PATCH")
+        items = apply_order_extraction(OrderExtraction.model_validate(data), text, existing)
+        self.assertEqual(["without cheese", "without onions as well"], items[0]["modifications"])
+        self.assertEqual(2, items[0]["quantity"])
+        for changes in [{"quantity": 3}, {"name": "sandwiches", "nameEvidence": "sandwiches"}]:
+            invalid = copy.deepcopy(data)
+            invalid["edits"][0].update(changes)
+            with self.subTest(changes=changes), self.assertRaises(ValueError):
+                apply_order_extraction(OrderExtraction.model_validate(invalid), text, existing)
+        wrong_count = order(edit("make it 3", quantity=2, quantity_quote="3", action="UPDATE", existingItemIndex=0), mode="PATCH")
+        with self.assertRaises(ValueError):
+            apply_order_extraction(OrderExtraction.model_validate(wrong_count), "make it 3", existing)
+
+    def test_new_item_keep_label_cannot_discard_evidenced_restrictions(self):
+        text = "My complete new order is two sandwiches without mustard"
+        data = order(edit(text, "sandwiches", 2, "two", ["without mustard"], modificationAction="KEEP"))
+        items = apply_order_extraction(OrderExtraction.model_validate(data), text, [], True)
+        self.assertEqual([{"name": "sandwiches", "quantity": 2, "modifications": ["without mustard"]}], items)
+        data["mode"] = "PATCH"
+        data["edits"][0].update(action="UPDATE", existingItemIndex=0)
+        with self.assertRaises(ValueError):
+            apply_order_extraction(OrderExtraction.model_validate(data), text, items)
+
+    def test_multilingual_capture_never_uses_legacy_quantity_defaults(self):
+        request = room_request("burgers")
+        valid = {"name": "soup", "quantity": 2, "modifications": []}
+        with understanding_turn(request):
+            self.assertEqual([], _coerce_order_items("burgers"))
+            self.assertEqual([], _coerce_order_items([valid, {"name": "burger"}]))
+            self.assertEqual([valid], _coerce_order_items([valid]))
+        self.assertEqual(1, _coerce_order_items([{"name": "burger"}])[0]["quantity"])
+
+    @patch("app.services.input_understanding.call_openai_json_result")
+    def test_planner_and_extractor_share_quantity_policy(self, model):
+        request = room_request("a burger without cheese")
+        message = request.conversation.recentMessages[-1]
+        model.return_value = result(order(edit(message.text, "burger", 1, "a", ["without cheese"])))
+        with understanding_turn(request):
+            self.assertEqual(1, understand_order(request, message, [])[0]["quantity"])
+        self.assertIn(ORDER_QUANTITY_POLICY, build_v2_turn_prompt(request))
+        self.assertIn(ORDER_QUANTITY_POLICY, model.call_args.args[0])
+        self.assertIn("initial order uses REPLACE", model.call_args.args[0])
+        self.assertNotIn("use quantity 1 instead", build_v2_turn_prompt(request))
+
+    @patch("app.services.input_understanding.call_openai_json_result")
+    def test_cached_failures_keep_reason_without_logging_guest_content(self, model):
+        request = room_request("two burgers SECRET_GUEST_NOTE")
+        message = request.conversation.recentMessages[-1]
+        model.side_effect = AgentTimeoutError("SECRET_PROVIDER_PAYLOAD")
+        with understanding_turn(request), self.assertLogs("chatbotinn-agent.input-understanding") as logs:
+            self.assertIsNone(understand_order(request, message, []))
+            self.assertIsNone(understand_order(request, message, []))
+            self.assertEqual("TIMEOUT", order_understanding_issue())
+            self.assertTrue(order_understanding_failed())
+        self.assertIsNone(order_understanding_issue())
+        self.assertEqual(1, model.call_count)
+        self.assertIn("reason=TIMEOUT", " ".join(logs.output))
+        self.assertNotIn("SECRET", " ".join(logs.output))
+
     def test_multilingual_names_quantities_and_negations_remain_original(self):
         samples = [
             ("deux soupes sans sel", "soupes", 2, "deux", "sans sel"),
@@ -254,7 +330,121 @@ class UnderstandingFlowTest(unittest.TestCase):
         response = plan_v2_turn(request)
         self.assertEqual([], response.toolCalls)
         self.assertFalse(json.loads(response.updatedConversationSummary)["awaitingExplicitConfirmation"])
+        self.assertEqual("INPUT_RETRY", json.loads(response.updatedConversationSummary)["phase"])
+        self.assertIn("ORDER_INPUT_TIMEOUT", response.warnings)
         self.assertEqual(1, self.order_model.call_count)
+
+    def test_english_order_then_conditional_edit_never_confirms_old_order(self):
+        text = "Hello, I would like two burgers without cheese"
+        request = room_request(text)
+        request.guest.preferredLanguage = "en"
+        self.order_model.side_effect = None
+        self.order_model.return_value = result(order(edit(text, "burgers", 2, "two", ["without cheese"])))
+        captured = plan_v2_turn(request)
+        self.assertEqual([], captured.toolCalls)
+        self.assertTrue(json.loads(captured.updatedConversationSummary)["awaitingExplicitConfirmation"])
+        self.assertIn("Order confirmation", captured.messages[0].text)
+        request = follow_up(request, captured, "Yes, but without onions")
+        self.order_model.return_value = result(order(edit("Yes, but without onions",
+                modifiers=["without onions"], action="UPDATE", existingItemIndex=0), mode="PATCH"))
+        changed = plan_v2_turn(request)
+        self.assertEqual([], changed.toolCalls)
+        request = follow_up(request, changed, "Yes, confirm")
+        self.action = "CONFIRM"
+        confirmed = plan_v2_turn(request)
+        self.assertEqual(1, len(confirmed.toolCalls))
+        self.assertEqual("START_SERVICE", confirmed.toolCalls[0].toolName)
+        self.assertEqual([{"name": "burgers", "quantity": 2,
+                           "modifications": ["without cheese", "without onions"]}],
+                         confirmed.toolCalls[0].arguments["input"]["items"])
+        self.assertEqual(2, self.order_model.call_count)
+
+    def test_technical_failure_keeps_details_and_cannot_confirm_failed_edit(self):
+        for error, reason in [(AgentTimeoutError("slow"), "TIMEOUT"),
+                              (AgentDependencyError("unavailable"), "DEPENDENCY_ERROR"),
+                              (AgentModelError("invalid"), "INVALID_RESPONSE")]:
+            with self.subTest(reason=reason):
+                self.action = "NONE"
+                request = room_request("Make those three burgers", [
+                    {"name": "burgers", "quantity": 2, "modifications": ["without cheese"]}], True)
+                request.guest.preferredLanguage = "en"
+                previous_fields = json.loads(request.conversation.summary)["capturedFields"]
+                self.order_model.side_effect = error
+                response = plan_v2_turn(request)
+                state = json.loads(response.updatedConversationSummary)
+                self.assertEqual(previous_fields, state["capturedFields"])
+                self.assertEqual("INPUT_RETRY", state["phase"])
+                self.assertFalse(state["awaitingExplicitConfirmation"])
+                self.assertIn("temporary error", response.messages[0].text)
+                self.assertIn("ORDER_INPUT_" + reason, response.warnings)
+                request = follow_up(request, response, "Yes, confirm")
+                self.action = "CONFIRM"
+                self.assertEqual([], plan_v2_turn(request).toolCalls)
+
+    def test_missing_quantity_is_not_reported_as_technical_error_and_can_recover(self):
+        request = room_request("burgers without cheese")
+        request.guest.preferredLanguage = "en"
+        self.order_model.side_effect = None
+        self.order_model.return_value = result(order(edit("burgers without cheese", "burgers",
+                                                         modifiers=["without cheese"])))
+        response = plan_v2_turn(request)
+        self.assertIn("exact quantity", response.messages[0].text)
+        self.assertNotIn("temporary error", response.messages[0].text)
+        self.assertIn("ORDER_INPUT_MISSING_QUANTITY", response.warnings)
+        request = follow_up(request, response, "two burgers without cheese")
+        self.order_model.return_value = result(order(edit("two burgers without cheese", "burgers", 2,
+                                                         "two", ["without cheese"])))
+        response = plan_v2_turn(request)
+        self.assertTrue(json.loads(response.updatedConversationSummary)["awaitingExplicitConfirmation"])
+        self.assertEqual([], response.warnings)
+
+    def test_first_order_timeout_does_not_ask_location_or_erase_another_draft(self):
+        request = room_request("I would like two burgers")
+        request.conversation.summary = '{"pendingOffering":"SPA","capturedFields":{"service":"massage"}}'
+        request.guest.preferredLanguage = "en"
+        self.kind, self.offering = "SERVICE_REQUEST", "ROOM_SERVICE"
+        self.order_model.side_effect = AgentTimeoutError("slow")
+        response = plan_v2_turn(request)
+        self.assertEqual(request.conversation.summary, response.updatedConversationSummary)
+        self.assertIn("temporary error", response.messages[0].text)
+        self.assertIsNone(response.messages[0].interaction)
+        self.assertEqual([], response.toolCalls)
+
+    def test_english_kitchen_replacement_failure_then_success_keeps_operation(self):
+        request = enable(request_for("two burgers without cheese"))
+        request.guest.preferredLanguage = "en"
+        request.activeOperations = [task_operation("ROOM_SERVICE_ORDER_CHANGE_DETAILS")]
+        task = request.activeOperations[0].pendingConversationTasks[0]
+        self.order_model.side_effect = AgentTimeoutError("slow")
+        failed = plan_v2_turn(request)
+        self.assertEqual([task.operationId], failed.messages[0].operationIds)
+        self.assertEqual(request.conversation.summary, failed.updatedConversationSummary)
+        self.assertIn("temporary error", failed.messages[0].text)
+        request = follow_up(request, failed, "two burgers without cheese")
+        self.order_model.side_effect = None
+        self.order_model.return_value = result(order(edit("two burgers without cheese", "burgers", 2,
+                                                         "two", ["without cheese"])))
+        completed = plan_v2_turn(request)
+        self.assertEqual(1, len(completed.toolCalls))
+        self.assertEqual("COMPLETE_CONVERSATION_TASK", completed.toolCalls[0].toolName)
+        self.assertEqual(task.conversationTaskId, completed.toolCalls[0].targetConversationTaskId)
+        self.assertEqual([request.trigger.messageId], completed.toolCalls[0].evidenceMessageIds)
+
+    def test_english_kitchen_decision_uses_templates_and_configured_menu(self):
+        request = room_request("What can I do?")
+        request.conversation.summary = "{}"
+        request.guest.preferredLanguage = "en"
+        request.activeOperations = [task_operation("ROOM_SERVICE_KITCHEN_CHANGE_DECISION")]
+        catalog = request.availableOfferings[0].inputSchema["properties"]["items"]["x-chatbotinn-capture"]["catalog"]
+        catalog["externalUrl"] = "https://sandbox.example/menu"
+        response = plan_v2_turn(request)
+        message = response.messages[0]
+        self.assertIn("The kitchen has requested", message.text)
+        self.assertIn("https://sandbox.example/menu", message.text)
+        self.assertNotIn("hotelcristalino", message.text)
+        self.assertEqual(["room-service-change:CHANGE", "room-service-change:CANCEL"],
+                         [option.id for option in message.interaction.options])
+        self.assertEqual(["Make changes", "Cancel order"], [option.label for option in message.interaction.options])
 
     def test_multilingual_maintenance_decisions_and_negations(self):
         for text, action, expected in [("Ja, es funktioniert wieder", "RESOLVED", True),

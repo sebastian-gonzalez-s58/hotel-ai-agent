@@ -35,7 +35,8 @@ def template(key: str, locale: str, **parameters) -> str:
 def _protect(text, values):
     tokens = {}
     # Also mask literal token-like content so guests cannot forge translator placeholders.
-    patterns = [re.escape(value) for value in sorted(set(values), key=len, reverse=True) if value]
+    values = {value for value in values if isinstance(value, str) and value}
+    patterns = [re.escape(value) for value in sorted(values, key=len, reverse=True)]
     patterns += [r"\[\[P\d+\]\]", r"https?://[^\s]+", r"\{[^{}]+\}", r"\d+(?:[.,:/-]\d+)*"]
 
     def replace(match):
