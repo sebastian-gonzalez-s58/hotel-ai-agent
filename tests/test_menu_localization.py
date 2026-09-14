@@ -6,7 +6,7 @@ from unittest.mock import patch
 from app.agents.v2_turn_planner import plan_v2_turn
 from app.agents.v2_scope_router import classify_hotel_scope
 from app.agents.social_opening import classify_social_opening
-from app.schemas.v2_turns import OfferingCapability
+from app.schemas.v2_turns import AgentTurnRequest, OfferingCapability
 from app.services.localized_content import _cache, translate_batch
 from app.services.openai_client import OpenAiJsonResult
 from app.services.telemetry_client import OpenAiTokenUsage
@@ -243,9 +243,10 @@ class LiveMenuLocalizationTest(unittest.TestCase):
         request = menu_request()
         latest = request.conversation.recentMessages[0]
         latest.text = "Hellow"
-        previous = latest.model_copy(update={"messageId": uuid4(), "direction": "OUTBOUND", "actor": "AGENT",
+        previous = latest.model_copy(update={"messageId": uuid4(), "direction": "OUTBOUND", "actor": "ASSISTANT",
             "text": "Hello. How can we help you today? Please choose an option from the menu."})
         request.conversation.recentMessages.insert(0, previous)
+        request = AgentTurnRequest.model_validate_json(request.model_dump_json())
         response = plan_v2_turn(request)
         self.assertNotIn("LOCALIZATION_FALLBACK", response.warnings)
         self.assertEqual("en", response.messages[0].language)
