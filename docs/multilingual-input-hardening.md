@@ -49,6 +49,25 @@ task IDs, operation IDs and button action codes are unchanged.
 Optional/null operation references are filtered before placeholder protection, so a
 missing folio cannot crash presentation localization.
 
+### Menu label limits
+
+An English greeting could be followed by Spanish options because the translation
+"Frequently Asked Questions" is 26 characters, exceeding WhatsApp's 24-character
+list limit. One invalid label previously discarded all translated fields and was
+cached, causing subsequent menus to repeat the fallback.
+
+Localization now supplies a per-field length constraint in both the prompt and the
+strict response schema (20 for buttons, 24 for list options). Cache keys include
+that constraint and the length of protected parameter expansion. Only validated
+translations enter the cache; a rejected field does not discard valid sibling
+translations. Provider failures still produce a marked `LOCALIZATION_FALLBACK`
+without executing tools again. The translation call retains its four-second budget.
+
+Offering labels use the full catalog name as their translation source, even if the
+initial channel draft was truncated. Approved hotel translations take precedence;
+the built-in FAQ label has a concise reviewed English version, "Hotel questions".
+Notification localization passes the same field limits without changing its API.
+
 ## Verification
 
 Offline regression suite:
@@ -62,6 +81,7 @@ Optional real-model checks using synthetic messages only:
 ```powershell
 $env:RUN_LIVE_MULTILINGUAL_EVALS = '1'
 python -m unittest tests.test_multilingual_understanding_live
+python -m unittest tests.test_menu_localization.LiveMenuLocalizationTest
 ```
 
 Set `OPENAI_API_KEY` securely before running the optional checks. They exercise the

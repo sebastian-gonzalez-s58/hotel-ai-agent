@@ -45,7 +45,7 @@ def localize_notification(request: LocalizationRequest) -> LocalizationResponse:
         translated, _ = translate_batch(
             [request.texts[index].text for index in pending], request.locale,
             request.protectedValues, namespace=f"outbound:{REGISTRY['version']}:{request.namespace}",
-            timeout=4.0,
+            timeout=4.0, max_lengths=[request.texts[index].maxLength for index in pending],
         )
         for index, text in zip(pending, translated):
             texts[index] = text
