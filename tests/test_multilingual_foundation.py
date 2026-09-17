@@ -105,6 +105,37 @@ class LanguagePolicyTest(unittest.TestCase):
         updated, language = resolve_language(request, request.conversation.recentMessages[0], route)
         self.assertIsNone(language)
 
+    def test_short_clear_messages_use_semantics_not_character_count(self):
+        for text, locale, kind in [
+            ("Salut", "fr", "SOCIAL"), ("Ciao", "it", "SOCIAL"), ("Hellow", "en", "SOCIAL"),
+            ("我要订餐", "zh", "SERVICE_REQUEST"), ("泳池几点关门？", "zh", "HOTEL_QUESTION"),
+            ("水漏れです", "ja", "SERVICE_REQUEST"), ("메뉴 보여줘", "ko", "NAVIGATION"),
+        ]:
+            with self.subTest(text=text):
+                request = multilingual_request(text)
+                route = decision(kind, text)
+                route.detectedLanguage, route.languageConfidence = locale, 0.99
+                updated, language = resolve_language(request, request.conversation.recentMessages[0], route)
+                self.assertEqual(locale, updated.guest.preferredLanguage)
+                self.assertEqual(locale, language.locale)
+                self.assertEqual(request.conversation, updated.conversation)
+                self.assertEqual("es-MX", request.guest.preferredLanguage)
+
+    def test_capture_values_and_uncertain_intents_do_not_change_language(self):
+        for text, kind, confidence in [
+            ("OK", "SOCIAL", 1), ("123", "SOCIAL", 1), ("🙂", "SOCIAL", 1),
+            ("Alexander Hamilton", "CONTEXT_REPLY", 1), ("Club sandwich", "CONTEXT_REPLY", 1),
+            ("泳池", "UNCLEAR", 1), ("Salut", "SOCIAL", 0.7),
+        ]:
+            with self.subTest(text=text):
+                request = multilingual_request(text)
+                route = decision(kind, text)
+                route.confidence = confidence
+                route.detectedLanguage, route.languageConfidence = "en", 0.99
+                updated, language = resolve_language(request, request.conversation.recentMessages[0], route)
+                self.assertIsNone(language)
+                self.assertEqual("es-MX", updated.guest.preferredLanguage)
+
     def test_explicit_preference_is_sticky_but_can_be_changed(self):
         request = multilingual_request("Please speak French")
         request.trigger.eventPayload["languageContext"]["explicit"] = True
@@ -158,7 +189,7 @@ class LanguagePolicyTest(unittest.TestCase):
         self.assertEqual([], result.toolCalls)
         self.assertEqual(request.conversation.summary, result.updatedConversationSummary)
         self.assertEqual("EXPLICIT", result.languageDecision.source)
-        self.assertIn("LOCALIZATION_FALLBACK", result.warnings)
+        self.assertIn("LOCALIZATION_REQUIRED", result.warnings)
 
 
 class LocalizedContentTest(unittest.TestCase):
@@ -220,25 +251,42 @@ class LocalizedContentTest(unittest.TestCase):
         self.assertEqual("Confirm", source.messages[0].interaction.options[0].label)
 
     @patch("app.services.localized_content.call_openai_json_result", side_effect=AgentTimeoutError("timeout"))
-    def test_translation_timeout_keeps_valid_response_without_retrying_tools(self, call):
+    def test_translation_timeout_defers_presentation_without_retrying_tools(self, call):
         request = multilingual_request()
         request.guest.preferredLanguage = "fr"
         source = response_for(request)
         result = localize_response(request, source, time.perf_counter())
         self.assertEqual(source.messages[0].text, result.messages[0].text)
         self.assertEqual(source.toolCalls, result.toolCalls)
-        self.assertIn("LOCALIZATION_FALLBACK", result.warnings)
+        self.assertIn("LOCALIZATION_REQUIRED", result.warnings)
+        self.assertEqual(source.messages[0].messageDraftId, result.messages[0].messageDraftId)
+        self.assertEqual(source.messages[0].operationIds, result.messages[0].operationIds)
         self.assertEqual("mul", result.messages[0].language)
         call.assert_called_once()
         self.assertLessEqual(call.call_args.kwargs["timeout_seconds"], 4)
 
     @patch("app.services.localized_content.call_openai_json_result")
-    def test_spanish_has_no_added_model_call(self, call):
+    def test_spanish_translates_unreviewed_content_even_when_hotel_default_is_spanish(self, call):
         request = multilingual_request()
-        source = response_for(request, "Solicitud registrada")
+        source = response_for(request, "Please send your updated order.")
+        call.return_value = model_result(["Envía tu pedido actualizado.", "Pedido"])
+        result = localize_response(request, source, time.perf_counter())
+        self.assertEqual("Envía tu pedido actualizado.", result.messages[0].text)
+        self.assertEqual(result.messages[0].text, result.messages[0].interaction.body)
+        self.assertEqual("es-MX", result.messages[0].language)
+        self.assertEqual("Confirmar", result.messages[0].interaction.options[0].label)
+        self.assertEqual("task:123:CONFIRM", result.messages[0].interaction.options[0].id)
+        self.assertEqual([], result.warnings)
+        call.assert_called_once()
+
+    @patch("app.services.localized_content.call_openai_json_result")
+    def test_reviewed_spanish_templates_do_not_need_translation(self, call):
+        request = multilingual_request()
+        source = response_for(request, template("greeting.named", "es", name="Sebastian"))
+        source.messages[0].interaction = None
         result = localize_response(request, source, time.perf_counter())
         self.assertEqual(source.messages[0].text, result.messages[0].text)
-        self.assertEqual("Confirmar", result.messages[0].interaction.options[0].label)
+        self.assertEqual("es-MX", result.messages[0].language)
         call.assert_not_called()
 
     @patch("app.services.localized_content.call_openai_json_result")
