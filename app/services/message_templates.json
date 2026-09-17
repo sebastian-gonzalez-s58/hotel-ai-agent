@@ -1,5 +1,5 @@
 {
-  "version": "3",
+  "version": "4",
   "templates": {
     "greeting.named": {"en": "Hello, {name}. How can we help you today? Please choose an option from the menu.", "es": "Hola, {name}. ¿Cómo podemos ayudarte hoy? Por favor, elige una opción del menú."},
     "greeting": {"en": "Hello. How can we help you today? Please choose an option from the menu.", "es": "Hola. ¿Cómo podemos ayudarte hoy? Por favor, elige una opción del menú."},

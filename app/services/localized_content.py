@@ -111,7 +111,12 @@ def translate_batch(texts, locale, protected_values=(), *, namespace="templates"
             "or numbers. Each item has its own maxLength in characters, including restored placeholders "
             "whose lengths are provided. Every result MUST fit that limit. For short menu/button labels, "
             "use a concise natural equivalent (for example 'FAQ' instead of 'Frequently Asked Questions'), "
-            "not a cut-off word. Do not shorten longer message bodies unnecessarily. Return each "
+            "not a cut-off word. If the literal label is too long, replace the whole phrase with a "
+            "shorter complete phrase, never abbreviate a word. Leave spare characters rather than filling "
+            "the limit. Prefer one or two short whole words; omit optional verbs and adjectives. "
+            "For Spanish service labels: 'Contact concierge' -> 'Conserjer\u00eda'; "
+            "'Personalized reception assistance' -> 'Recepci\u00f3n'. Never output fragments like 'conser' or 'recepc'. "
+            "Keep decision labels unambiguous (confirm, change, cancel). Do not shorten longer message bodies unnecessarily. Return each "
             "translation under its text_N id. If already in the target language and within the limit, keep the text.\n"
             + json.dumps(instructions, ensure_ascii=False),
             purpose="V2_LOCALIZATION", response_schema=schema, response_schema_name="localized_texts_v2",
@@ -193,7 +198,6 @@ def localize_response(request, response, started_at):
     if not response.messages:
         return response
     locale = request.guest.preferredLanguage
-    source_language = request.hotel.defaultLanguage.split("-")[0]
     approved = _approved_display_variants(request, locale)
     result = response.model_copy(deep=True)
     offering_names = {f"offering:{offering.offeringCode}": offering.name for offering in request.availableOfferings}
@@ -218,9 +222,11 @@ def localize_response(request, response, started_at):
             setattr(item, field, known)
         else:
             pending.append((item, field, limit, original))
-    # Spanish defaults need no translation. Other locales may contain Spanish catalog data
-    # even when the surrounding built-in template is English.
-    if not pending or (locale.split("-")[0] == "es" and source_language == "es"):
+    for message in result.messages:
+        message.language = locale
+    # Only reviewed templates and approved display variants can bypass translation.
+    # A hotel's default locale does not establish the language of its catalog content.
+    if not pending:
         return result
     protected = [request.guest.displayName, request.guest.roomNumber or ""]
     protected.extend(request.guest.displayName.split()[:1])
@@ -251,9 +257,9 @@ def localize_response(request, response, started_at):
         if any(text is None for text in texts):
             raise ValueError("Some translated fields were invalid")
     except (AgentDependencyError, AgentModelError, AgentTimeoutError, ValueError) as exception:
-        logger.warning("Localization fallback. turn_id=%s locale=%s reason=%s",
+        logger.warning("Localization deferred to outbound delivery. turn_id=%s locale=%s reason=%s",
                        request.agentTurnId, locale, type(exception).__name__)
-        result.warnings = (result.warnings + ["LOCALIZATION_FALLBACK"])[-20:]
+        result.warnings = (result.warnings + ["LOCALIZATION_REQUIRED"])[-20:]
         for message in result.messages:
             message.language = "mul"
     result.usage.latencyMs = round((time.perf_counter() - started_at) * 1000)

@@ -46,8 +46,17 @@ def resolve_language(request: AgentTurnRequest, message, scope=None):
         confidence = getattr(scope, "languageConfidence", 0) if scope else 1.0
         locked = request.trigger.eventPayload.get("languageContext", {}).get("explicit", False)
         candidate = explicit or (detected if not locked else None)
-        # Short, ambiguous replies (OK, digits, emoji, names) inherit the existing language.
-        meaningful = explicit or greeting_language(message.text) or len(re.findall(r"[^\W\d_]", message.text)) >= 8
+        # Capture data and task decisions inherit the session locale. Clear standalone
+        # intents can establish a language regardless of word length or writing system.
+        meaningful = explicit or greeting_language(message.text) or (
+            getattr(scope, "kind", None) in {
+                "SOCIAL", "SERVICE_REQUEST", "HOTEL_QUESTION", "STATUS_REQUEST", "NAVIGATION", "OUT_OF_SCOPE",
+            }
+            and getattr(scope, "confidence", 0) >= 0.85
+            and getattr(scope, "replyAction", "NONE") == "NONE"
+            and re.search(r"[^\W\d_]", message.text)
+            and message.text.casefold().strip("!?. ,") not in {"ok", "okay"}
+        )
         if candidate and meaningful and confidence >= 0.85:
             if not explicit and candidate == effective.split("-")[0]:
                 candidate = effective

@@ -54,7 +54,7 @@ class MenuLocalizationTest(unittest.TestCase):
                 self.assertEqual("Hotel questions", response.messages[0].interaction.options[0].label)
                 self.assertEqual([], response.toolCalls)
                 self.assertGreaterEqual(response.usage.totalTokens, 7)
-                self.assertNotIn("LOCALIZATION_FALLBACK", response.warnings)
+                self.assertNotIn("LOCALIZATION_REQUIRED", response.warnings)
                 planner.assert_not_called()
 
     @patch("app.agents.v2_turn_planner.call_openai_json_result")
@@ -136,7 +136,7 @@ class MenuLocalizationTest(unittest.TestCase):
         self.assertEqual([f"offering:{o.offeringCode}" for o in request.availableOfferings],
                          [option.id for option in message.interaction.options])
         self.assertEqual([], response.toolCalls)
-        self.assertNotIn("LOCALIZATION_FALLBACK", response.warnings)
+        self.assertNotIn("LOCALIZATION_REQUIRED", response.warnings)
         self.assertTrue(all(item["maxLength"] == 24 for item in translation_inputs(call)))
         fields = call.call_args.kwargs["response_schema"]["properties"]["texts"]["properties"]
         self.assertTrue(all(field["maxLength"] == 24 for field in fields.values()))
@@ -148,7 +148,7 @@ class MenuLocalizationTest(unittest.TestCase):
         call.return_value = model_result(["A room service label that is too long", "Maintenance",
                                           "Spa reservations", "Contact reception"])
         response = plan_v2_turn(menu_request())
-        self.assertIn("LOCALIZATION_FALLBACK", response.warnings)
+        self.assertIn("LOCALIZATION_REQUIRED", response.warnings)
         self.assertEqual("mul", response.messages[0].language)
         self.assertEqual("Hotel questions", response.messages[0].interaction.options[0].label)
         self.assertEqual("Maintenance", response.messages[0].interaction.options[2].label)
@@ -157,7 +157,7 @@ class MenuLocalizationTest(unittest.TestCase):
         response = plan_v2_turn(menu_request())
         self.assertEqual(1, len(translation_inputs(call)))
         self.assertEqual("Room service", response.messages[0].interaction.options[1].label)
-        self.assertNotIn("LOCALIZATION_FALLBACK", response.warnings)
+        self.assertNotIn("LOCALIZATION_REQUIRED", response.warnings)
 
     @patch("app.services.localized_content.call_openai_json_result")
     def test_full_custom_offering_name_is_translated_before_channel_shortening(self, call):
@@ -183,12 +183,44 @@ class MenuLocalizationTest(unittest.TestCase):
         call.assert_not_called()
 
     @patch("app.services.localized_content.call_openai_json_result")
-    def test_spanish_menu_stays_spanish_without_extra_translation(self, call):
+    def test_spanish_catalog_content_is_checked_without_assuming_its_language(self, call):
         request = menu_request("es-MX")
+        call.return_value = model_result([o.name for o in request.availableOfferings[1:]])
         response = plan_v2_turn(request)
         self.assertEqual([o.name for o in request.availableOfferings],
                          [o.label for o in response.messages[0].interaction.options])
-        call.assert_not_called()
+        call.assert_called_once()
+        self.assertNotIn("LOCALIZATION_REQUIRED", response.warnings)
+
+    @patch("app.services.localized_content.call_openai_json_result")
+    def test_english_catalog_label_is_translated_for_spanish_guest(self, call):
+        request = menu_request("es-MX")
+        request.availableOfferings = request.availableOfferings[-1:]
+        request.availableOfferings[0].name = "Contact concierge"
+        call.return_value = model_result(["Contactar recepción"])
+        response = plan_v2_turn(request)
+        self.assertTrue(response.messages[0].text.startswith("Hola"))
+        self.assertEqual("Contactar recepción", response.messages[0].interaction.options[0].label)
+        self.assertEqual("offering:FRONT_DESK", response.messages[0].interaction.options[0].id)
+        self.assertEqual([], response.warnings)
+
+    @patch("app.services.localized_content.call_openai_json_result")
+    @patch("app.agents.v2_turn_planner.classify_hotel_scope")
+    def test_initial_typo_greeting_changes_inherited_spanish_before_building_menu(self, classify, translate):
+        request = menu_request("es-MX")
+        request.trigger.eventPayload["languageContext"]["explicit"] = False
+        request.conversation.recentMessages[0].text = "Hellow"
+        route = decision("SOCIAL", "Hellow", details=False)
+        route.detectedLanguage, route.languageConfidence = "en", .99
+        classify.return_value = route, OpenAiTokenUsage()
+        self.opening.return_value = True, OpenAiTokenUsage()
+        translate.return_value = model_result(["Room service", "Maintenance", "Spa reservations", "Contact reception"])
+        response = plan_v2_turn(request)
+        self.assertEqual("en", response.languageDecision.locale)
+        self.assertTrue(response.messages[0].text.startswith("Hello"))
+        self.assertEqual("Hotel questions", response.messages[0].interaction.options[0].label)
+        self.assertEqual([], response.toolCalls)
+        self.assertEqual([], response.warnings)
 
     @patch("app.services.localized_content.call_openai_json_result")
     def test_french_menu_localizes_labels_and_deduplicates_body_with_strictest_limit(self, call):
@@ -201,7 +233,7 @@ class MenuLocalizationTest(unittest.TestCase):
         self.assertEqual(response.messages[0].text, response.messages[0].interaction.body)
         self.assertEqual(1024, translation_inputs(call)[0]["maxLength"])
         self.assertTrue(all(item["maxLength"] == 24 for item in translation_inputs(call)[3:]))
-        self.assertNotIn("LOCALIZATION_FALLBACK", response.warnings)
+        self.assertNotIn("LOCALIZATION_REQUIRED", response.warnings)
 
     @patch("app.services.localized_content.call_openai_json_result")
     def test_cache_separates_long_body_translation_from_short_label(self, call):
@@ -248,7 +280,7 @@ class LiveMenuLocalizationTest(unittest.TestCase):
         request.conversation.recentMessages.insert(0, previous)
         request = AgentTurnRequest.model_validate_json(request.model_dump_json())
         response = plan_v2_turn(request)
-        self.assertNotIn("LOCALIZATION_FALLBACK", response.warnings)
+        self.assertNotIn("LOCALIZATION_REQUIRED", response.warnings)
         self.assertEqual("en", response.messages[0].language)
         self.assertEqual(5, len(response.messages[0].interaction.options))
         self.assertEqual("Hotel questions", response.messages[0].interaction.options[0].label)
@@ -273,7 +305,7 @@ class LiveMenuLocalizationTest(unittest.TestCase):
     def test_initial_english_menu_from_spanish_offerings(self):
         _cache.clear()
         response = plan_v2_turn(menu_request())
-        self.assertNotIn("LOCALIZATION_FALLBACK", response.warnings)
+        self.assertNotIn("LOCALIZATION_REQUIRED", response.warnings)
         self.assertEqual("en", response.messages[0].language)
         self.assertEqual("Hotel questions", response.messages[0].interaction.options[0].label)
         for option, offering in zip(response.messages[0].interaction.options, menu_request().availableOfferings):
