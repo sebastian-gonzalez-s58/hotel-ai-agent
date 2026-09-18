@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from app.schemas.v2_turns import AgentTurnRequest, ConversationMessage
 from app.services.openai_client import call_openai_json_result
 from app.services.telemetry_client import OpenAiTokenUsage
+from app.services.catalog_selection import pending_catalog_selection
 
 
 logger = logging.getLogger("chatbotinn-agent.v2-scope-router")
@@ -32,6 +33,9 @@ class ScopeDecision(BaseModel):
     replyAction: Literal["NONE", "CONFIRM", "CHANGE", "CANCEL", "RESOLVED", "NOT_RESOLVED", "AMBIGUOUS"] = "NONE"
     replyActionEvidence: str | None = None
     replyActionConfidence: float = Field(default=0, ge=0, le=1)
+    selectionCode: str | None = None
+    selectionEvidence: str | None = None
+    selectionConfidence: float = Field(default=0, ge=0, le=1)
 
 
 def classify_hotel_scope(
@@ -39,10 +43,12 @@ def classify_hotel_scope(
     message: ConversationMessage,
     capture_state: dict,
 ) -> tuple[ScopeDecision, OpenAiTokenUsage]:
+    selection = pending_catalog_selection(request, capture_state)
     context = {
         "currentMessage": message.text,
         "conversationLocale": request.guest.preferredLanguage,
         "pendingCapture": capture_state,
+        "pendingSelection": selection.context() if selection else None,
         "lastAssistantMessage": next((m.text[-2000:] for m in reversed(
             request.conversation.recentMessages
         ) if m.direction == "OUTBOUND"), None),
@@ -90,6 +96,17 @@ Choose the intent of the current message, not an old service in the context.
   AMBIGUOUS. Use NONE when the message contains request data, rather than a pure decision.
   A new service or hotel question must have replyAction=NONE. Do not select an operation ID.
   replyActionConfidence is confidence in this action, independently of scope confidence.
+  When pendingSelection is present, resolve a PURE choice of that field against its options.
+  Accept the exact catalog name/code, translations in ANY language and polite phrases such as
+  'Please deliver to Pool 1' for the option 'Alberca 1'. Return its exact selectionCode,
+  selectionEvidence=the ENTIRE currentMessage verbatim, and selectionConfidence >= 0.9 only
+  when exactly one configured option is explicitly selected. Do not invent an option or change
+  its number. An unknown location, two alternatives, negation without a positive selection,
+  or uncertainty requires CONTEXT_REPLY with selectionCode=null. Questions ABOUT a location
+  (e.g. pool opening hours), another service request, cancellation and status requests are NOT
+  selections; classify their actual intent. If the message also supplies other captured data
+  such as order items, do not discard those details by treating it as a PURE selection.
+  Without a pure selection use selectionCode=null, selectionEvidence=null, selectionConfidence=0.
 - STATUS_REQUEST: follow-up about an existing hotel request/folio, not a new request.
 - NAVIGATION: explicitly asks for the hotel's service menu or available services.
 - SOCIAL: a greeting, thanks or farewell with no other request.
@@ -116,6 +133,10 @@ Context:\n""" + json.dumps(context, ensure_ascii=False)
     schema["required"] = list(schema["properties"])
     for property_schema in schema["properties"].values():
         property_schema.pop("default", None)
+    schema["properties"]["selectionCode"] = {
+        "enum": [None, *dict.fromkeys(o["code"] for o in selection.options)] if selection else [None],
+        "type": ["string", "null"],
+    }
     result = call_openai_json_result(
         prompt, purpose="V2_HOTEL_SCOPE",
         response_schema=schema,
