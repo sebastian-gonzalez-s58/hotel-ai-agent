@@ -8,7 +8,7 @@ from app.agents.v2_scope_router import classify_hotel_scope
 from app.agents.v2_turn_planner import plan_v2_turn, _latest_capture_state
 from app.services.catalog_selection import pending_catalog_selection
 from app.schemas.v2_turns import OfferingCapability
-from tests.test_multilingual_understanding import room_request, scope_for, result
+from tests.test_multilingual_understanding import room_request, scope_for, result, task_operation
 from tests.test_v2_scope_router import maintenance_offering
 
 
@@ -38,7 +38,7 @@ class CatalogSelectionTest(unittest.TestCase):
     def route(self, request, code=None, **changes):
         message = request.conversation.recentMessages[-1]
         self.scope.return_value = (scope_for(message, selectionCode=code,
-                selectionEvidence=message.text, selectionConfidence=1, **changes), result({}).usage)
+                selectionAttempted=True, selectionEvidence=message.text, selectionConfidence=1, **changes), result({}).usage)
         return plan_v2_turn(request)
 
     def test_typed_codes_and_labels_follow_the_exact_button_path(self):
@@ -102,7 +102,7 @@ class CatalogSelectionTest(unittest.TestCase):
             with self.subTest(text=text, changes=changes):
                 request = selection_request(text, {"items": [{"name": "soup", "quantity": 1, "modifications": []}]})
                 message = request.conversation.recentMessages[-1]
-                scope = scope_for(message, selectionCode=code, selectionEvidence=text, selectionConfidence=1)
+                scope = scope_for(message, selectionCode=code, selectionAttempted=True, selectionEvidence=text, selectionConfidence=1)
                 scope = scope.model_copy(update=changes)
                 self.scope.return_value = (scope, result({}).usage)
                 response = plan_v2_turn(request)
@@ -126,11 +126,20 @@ class CatalogSelectionTest(unittest.TestCase):
         for changes in [{"pendingOffering": "MAINTENANCE"}, {"awaitingExplicitConfirmation": True},
                         {"capturedFields": {"deliveryLocation": "ROOM"}}, {"readyToStart": True}, {"phase": "STARTING"}]:
             self.assertIsNone(pending_catalog_selection(request, dict(state, **changes)))
-        request.conversation.focusedConversationTaskId = uuid4()
+        request.trigger.conversationTaskId = uuid4()
         self.assertIsNone(pending_catalog_selection(request, state))
-        request.conversation.focusedConversationTaskId = None
+        request.trigger.conversationTaskId = None
         request.conversation.recentMessages[-1].conversationTaskIds = [uuid4()]
         self.assertIsNone(pending_catalog_selection(request, state))
+
+    def test_pending_maintenance_does_not_block_room_service_selection(self):
+        request = selection_request("Pool 1")
+        request.activeOperations = [task_operation("MAINTENANCE_RESOLUTION")]
+        request.conversation.focusedConversationTaskId = request.activeOperations[0].pendingConversationTasks[0].conversationTaskId
+        response = plan_v2_turn(request)
+        self.assertIn('"deliveryLocation":"POOL_1"', response.updatedConversationSummary)
+        self.assertIn("https://hotel.example/menu", response.messages[0].text)
+        self.assertFalse(response.toolCalls)
 
     def test_new_maintenance_request_is_not_consumed_as_a_location(self):
         request = selection_request("Please send maintenance to pool 1")
@@ -178,6 +187,7 @@ class LiveCatalogSelectionTest(unittest.TestCase):
             ("Not Pool 1", None),
             ("What time does Pool 1 close?", None),
             ("Please deliver to Pool 3", None),
+            ("Two burgers", None),
         ]:
             with self.subTest(text=text):
                 request = selection_request(text)
@@ -191,3 +201,7 @@ class LiveCatalogSelectionTest(unittest.TestCase):
                 scope, _ = classify_hotel_scope(request, message, state)
                 selection = pending_catalog_selection(request, state)
                 self.assertEqual(expected, selection.semantic_code(scope, text))
+                if text == "Two burgers":
+                    self.assertFalse(scope.selectionAttempted)
+                elif text in {"Pool 1 or Pool 2", "Not Pool 1", "Please deliver to Pool 3"}:
+                    self.assertTrue(scope.selectionAttempted)

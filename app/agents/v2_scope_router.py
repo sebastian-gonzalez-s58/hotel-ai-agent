@@ -34,6 +34,7 @@ class ScopeDecision(BaseModel):
     replyActionEvidence: str | None = None
     replyActionConfidence: float = Field(default=0, ge=0, le=1)
     selectionCode: str | None = None
+    selectionAttempted: bool = False
     selectionEvidence: str | None = None
     selectionConfidence: float = Field(default=0, ge=0, le=1)
 
@@ -97,6 +98,9 @@ Choose the intent of the current message, not an old service in the context.
   A new service or hotel question must have replyAction=NONE. Do not select an operation ID.
   replyActionConfidence is confidence in this action, independently of scope confidence.
   When pendingSelection is present, resolve a PURE choice of that field against its options.
+  selectionAttempted=true ONLY when replying to that choice (including an ambiguous, negated
+  or unavailable choice). It is false for data for OTHER fields, e.g. 'two burgers' while a
+  delivery location is pending; those items must still be captured by the order flow.
   Accept the exact catalog name/code, translations in ANY language and polite phrases such as
   'Please deliver to Pool 1' for the option 'Alberca 1'. Return its exact selectionCode,
   selectionEvidence=the ENTIRE currentMessage verbatim, and selectionConfidence >= 0.9 only

@@ -77,7 +77,7 @@ class PendingCatalogSelection:
 def pending_catalog_selection(request, state):
     if (request.trigger.type != "INBOUND_MESSAGE" or request.previousToolResults
             or state.get("awaitingExplicitConfirmation") or state.get("readyToStart")
-            or state.get("phase") == "STARTING" or request.conversation.focusedConversationTaskId):
+            or state.get("phase") == "STARTING" or request.trigger.conversationTaskId):
         return None
     message = next((m for m in request.conversation.recentMessages if m.messageId == request.trigger.messageId), None)
     if message is not None and message.conversationTaskIds:

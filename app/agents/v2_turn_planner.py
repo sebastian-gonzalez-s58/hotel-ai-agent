@@ -97,6 +97,7 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
                 scoped = _with_catalog_selection(scoped, pending_selection, code)
                 response = _plan_hotel_turn(scoped, started_at, scope)
             elif (pending_selection and scope.kind == "CONTEXT_REPLY" and scope.replyAction in {"NONE", "AMBIGUOUS"}
+                  and (scope.selectionAttempted or scope.selectionCode is not None)
                   and not scope.containsUnrelatedTopic):
                 field = pending_selection.field_schema
                 message = _capture_message(request, pending_selection.offering.offeringCode,
