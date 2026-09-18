@@ -15,6 +15,8 @@ class AgentTrackingContext:
     unmatched_message_id: str | None = None
     process_instance_id: str | None = None
     process_activity_id: str | None = None
+    runtime_version: str = "legacy"
+    agent_turn_id: str | None = None
 
 
 _tracking_context: ContextVar[AgentTrackingContext | None] = ContextVar(
@@ -40,7 +42,20 @@ def tracking_context_from_payload(
     *,
     purpose: str,
     request_id: str | None,
+    runtime_version: str = "legacy",
 ) -> AgentTrackingContext:
+    if runtime_version == "v2":
+        conversation = payload.get("conversation") or {}
+        trigger = payload.get("trigger") or {}
+        return AgentTrackingContext(
+            purpose=purpose,
+            request_id=request_id,
+            conversation_id=conversation.get("conversationId"),
+            operation_id=trigger.get("operationId"),
+            message_id=payload.get("messageId") or trigger.get("messageId"),
+            runtime_version="v2",
+            agent_turn_id=payload.get("agentTurnId"),
+        )
     task_context = payload.get("context") or {}
     known_context = payload.get("knownContext") or {}
 
@@ -81,6 +96,7 @@ async def bind_agent_tracking_context(request: Request):
             request.headers.get("X-Request-ID")
             or getattr(request.state, "request_id", None)
         ),
+        runtime_version="v2" if request.url.path.startswith("/internal/v2/") else "legacy",
     )
     token = set_agent_tracking_context(context)
     try:
