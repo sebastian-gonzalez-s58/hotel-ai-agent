@@ -1035,6 +1035,9 @@ def _room_service_draft_plan(
     captured = dict(captured) if isinstance(captured, dict) else {}
     if selection is not None:
         if selection[1] == "deliveryLocation":
+            if understanding_enabled() and not captured.get("deliveryLocation") and _coerce_order_items(captured.get("items")):
+                # The initial location capture also presents the menu with the order summary.
+                return None
             captured["deliveryLocation"] = _structured_capture_value(latest_inbound.interactionReplyId)
         elif selection[1] is not None:
             return None

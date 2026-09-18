@@ -299,6 +299,13 @@ class UnderstandingFlowTest(unittest.TestCase):
         self.assertIn("sans sel", selected.messages[0].text)
         self.assertIn("https://", selected.messages[0].text)
         self.assertEqual(1, self.order_model.call_count)
+        request = follow_up(request, selected, "Muelle 1", "field:ROOM_SERVICE:deliveryLocation:DOCK_1")
+        changed = plan_v2_turn(request)
+        fields = json.loads(changed.updatedConversationSummary)["capturedFields"]
+        self.assertEqual("DOCK_1", fields["deliveryLocation"])
+        self.assertEqual(captured["capturedFields"]["items"], fields["items"])
+        self.assertNotIn("https://", changed.messages[0].text)
+        self.assertEqual(1, self.order_model.call_count)
 
     def test_long_order_confirmation_never_truncates_restrictions_in_buttons(self):
         name = "soupe"
