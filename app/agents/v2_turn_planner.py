@@ -19,6 +19,7 @@ from app.schemas.v2_turns import DomainToolName
 from app.services.openai_client import call_openai_json_result
 from app.services.conversation_language import language_enabled, greeting_language, resolve_language
 from app.services.localized_content import localize_response, template
+from app.services.catalog_selection import pending_catalog_selection, ordered_capture_fields as _ordered_guest_capture_fields
 from app.services.faq_grounding import is_semantic_search, resolve_semantic_faq, restore_grounded_faq
 from app.services.input_understanding import (
     understanding_turn, understanding_enabled, record_scope_action, semantic_action, understand_order,
@@ -52,6 +53,12 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     language_decision = None
     if language_enabled(request):
         request, language_decision = resolve_language(request, latest)
+    pending_selection = pending_catalog_selection(request, _latest_capture_state(request))
+    if pending_selection and latest is not None and not latest.interactionReplyId:
+        code = pending_selection.exact_code(latest.text)
+        if code is not None:
+            request = _with_catalog_selection(request, pending_selection, code)
+            latest = _latest_inbound_message(request)
     scope = None
     scope_usage = None
     opening_usage = None
@@ -87,7 +94,20 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
             scoped = request.model_copy(deep=True)
             _latest_inbound_message(scoped).text = scope.relevantText
             scoped, scope = _room_service_capture_request(scoped, scope)
-            response = _plan_hotel_turn(scoped, started_at, scope)
+            code = pending_selection.semantic_code(scope, latest.text) if pending_selection else None
+            if code is not None:
+                scoped = _with_catalog_selection(scoped, pending_selection, code)
+                response = _plan_hotel_turn(scoped, started_at, scope)
+            elif (pending_selection and scope.kind == "CONTEXT_REPLY" and scope.replyAction in {"NONE", "AMBIGUOUS"}
+                  and (scope.selectionAttempted or scope.selectionCode is not None)
+                  and not scope.containsUnrelatedTopic):
+                field = pending_selection.field_schema
+                message = _capture_message(request, pending_selection.offering.offeringCode,
+                                           pending_selection.field_code, field, field["x-chatbotinn-capture"])
+                response = _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                        messages=[message], updated_summary=request.conversation.summary)
+            else:
+                response = _plan_hotel_turn(scoped, started_at, scope)
         if (scope.containsUnrelatedTopic and scope.kind not in {"OUT_OF_SCOPE", "UNCLEAR"}
                 and response.messages):
             notice = _scope_refusal(request)
@@ -117,6 +137,13 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         if not _is_verified_faq_response(request, response):
             response = localize_response(request, response, started_at)
     return response
+
+
+def _with_catalog_selection(request, selection, code):
+    # Only the internal request gains a canonical selection; text and message ID remain original evidence.
+    resolved = request.model_copy(deep=True)
+    _latest_inbound_message(resolved).interactionReplyId = selection.reply_id(code)
+    return resolved
 
 
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
@@ -2685,7 +2712,10 @@ def _ensure_configured_field_capture(
     messages[:] = [message]
     normalized["disposition"] = "RESPONSE_READY"
     normalized["toolCalls"] = []
-    completed_values = {}
+    state = _latest_capture_state(request)
+    captured = state.get("capturedFields")
+    completed_values = (dict(captured) if state.get("pendingOffering") == offering.offeringCode
+                        and isinstance(captured, dict) else {})
     if completed_field is not None:
         completed_value = _structured_capture_value(latest_inbound.interactionReplyId)
         if completed_value is not None:
@@ -2732,27 +2762,6 @@ def _capture_selection(request: AgentTurnRequest, latest_inbound):
         }:
             return offering, None
     return None
-
-
-def _ordered_guest_capture_fields(offering) -> list[tuple[str, dict]]:
-    schema = offering.inputSchema
-    properties = schema.get("properties") if isinstance(schema.get("properties"), dict) else {}
-    required = schema.get("required") if isinstance(schema.get("required"), list) else []
-    fields = []
-    for position, field_code in enumerate(required):
-        field_schema = properties.get(field_code)
-        if not isinstance(field_schema, dict):
-            continue
-        source = str(field_schema.get("x-source") or "GUEST").upper()
-        capture = field_schema.get("x-chatbotinn-capture")
-        if source == "STAY" or not isinstance(capture, dict):
-            continue
-        order = capture.get("displayOrder")
-        fields.append(
-            (order if isinstance(order, int) else position, position, field_code, field_schema)
-        )
-    fields.sort(key=lambda item: (item[0], item[1]))
-    return [(field_code, field_schema) for _, _, field_code, field_schema in fields]
 
 
 def _capture_message(
