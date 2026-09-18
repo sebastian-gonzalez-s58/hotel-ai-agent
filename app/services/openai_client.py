@@ -59,8 +59,8 @@ def call_openai_json_result(
         response = api_client.responses.create(
             model=settings.openai_model,
             input=prompt,
-            temperature=0,
             text={"format": _response_format(response_schema, response_schema_name, strict_schema)},
+            **_generation_parameters(),
         )
     except APITimeoutError as exc:
         _record_failure(started_at, tracking_context, purpose, "OpenAI request timed out")
@@ -106,6 +106,12 @@ def call_openai_json_result(
 
 def call_openai_json(prompt: str) -> dict[str, Any]:
     return call_openai_json_result(prompt).payload
+
+
+def _generation_parameters() -> dict[str, Any]:
+    if settings.openai_model in {"gpt-5.6-terra", "gpt-5.6-luna"}:
+        return {"reasoning": {"effort": settings.openai_reasoning_effort}}
+    return {"temperature": 0}
 
 
 def _response_format(

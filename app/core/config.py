@@ -52,6 +52,7 @@ class Settings:
     agent_contract_version: str
     openai_api_key: str | None
     openai_model: str
+    openai_reasoning_effort: str
     openai_timeout_seconds: float
     agent_internal_token: str | None
     max_guest_message_chars: int
@@ -86,6 +87,11 @@ class Settings:
         self.agent_contract_version = os.getenv("AGENT_CONTRACT_VERSION", "2.0")
         self.openai_api_key = os.getenv("OPENAI_API_KEY")
         self.openai_model = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+        self.openai_reasoning_effort = _get_choice(
+            "OPENAI_REASONING_EFFORT",
+            "none",
+            {"none", "low", "medium", "high", "xhigh", "max"},
+        )
         self.openai_timeout_seconds = _get_float("OPENAI_TIMEOUT_SECONDS", 20.0)
         self.agent_internal_token = os.getenv("AGENT_INTERNAL_TOKEN")
         self.max_guest_message_chars = _get_int("MAX_GUEST_MESSAGE_CHARS", 4000)
