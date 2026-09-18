@@ -47,6 +47,17 @@ is checked even when the hotel and guest both have Spanish as their default lang
 One translation request gets at most four seconds and no SDK retries, capped again by the
 remaining request budget. This is independent of business model-call retries.
 
+## V2 telemetry
+
+Requests under `/internal/v2/` never post usage to the legacy `/api/agent/ai-model-calls`
+endpoint. Its message/conversation IDs refer to removed legacy tables, not V2 entities.
+Each model call instead emits a `V2 model call` log with request/turn/message IDs, token
+counts, status and latency, without prompts, guest text or credentials. This also avoids
+adding a blocking telemetry HTTP callback to the five-second localization endpoint.
+Spring still persists turn usage through the existing V2 response contract. Outbox-only
+translation usage is available in these logs, not in a separate database usage table.
+Legacy `/hotel/` requests retain their existing telemetry callback.
+
 Run `python -m tests.run_offline` for the network-blocked regression suite. Live linguistic
 acceptance is separate. The remaining stages migrate process/outbox producers, free-text
 parsers, FAQ retrieval and staff UI; this change is not a claim of universal-language E2E readiness.

@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import json
 from pathlib import Path
 from string import Formatter
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 from uuid import uuid4
@@ -15,6 +16,7 @@ from app.core.errors import AgentModelError
 from app.main import app
 from app.schemas.localization import LocalizationRequest
 from app.services.notification_localization import REGISTRY, localize_notification
+from app.services.openai_client import call_openai_json_result
 
 
 class NotificationLocalizationTest(unittest.TestCase):
@@ -147,6 +149,26 @@ class NotificationLocalizationEndpointTest(unittest.TestCase):
         self.assertEqual(200, result.status_code)
         self.assertEqual({"locale": "en", "version": "1", "texts": ["Cancel order"]}, result.json())
         planner.assert_not_called()
+
+    @patch("app.services.telemetry_client.post_ai_model_call")
+    @patch("app.services.openai_client.get_openai_client")
+    def test_model_translation_does_not_call_legacy_telemetry(self, openai_client, post_call):
+        openai_client.return_value.responses.create.return_value = SimpleNamespace(
+            output_text='{"texts":["Translated staff response"]}', usage=None, id="response-test")
+
+        def translate(*args, **kwargs):
+            result = call_openai_json_result("Synthetic translation test")
+            return result.payload["texts"], result.usage
+
+        payload = self.payload()
+        payload["texts"] = [{"text": "Synthetic staff response", "maxLength": 100}]
+        with patch("app.services.notification_localization.translate_batch", side_effect=translate), \
+                self.assertLogs("chatbotinn-agent.telemetry", "INFO") as logs:
+            result = self.client.post("/internal/v2/localizations", json=payload, headers=self.headers())
+        self.assertEqual(200, result.status_code)
+        self.assertEqual(["Translated staff response"], result.json()["texts"])
+        self.assertIn(self.message_id, logs.records[0].getMessage())
+        post_call.assert_not_called()
 
     def test_rejects_missing_authentication(self):
         response = self.client.post("/internal/v2/localizations", json=self.payload())

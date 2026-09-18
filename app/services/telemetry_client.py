@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
+import json
 import logging
 from typing import Any
 
@@ -56,6 +57,25 @@ def record_model_call(
     error_message: str | None = None,
     purpose: str | None = None,
 ) -> None:
+    if context is not None and context.runtime_version == "v2":
+        # V2 IDs do not belong to the legacy telemetry tables. Keep per-call metrics
+        # in logs; turn usage is persisted by Spring through the V2 response contract.
+        logger.info("V2 model call %s", json.dumps({
+            "requestId": context.request_id,
+            "agentTurnId": context.agent_turn_id,
+            "conversationId": context.conversation_id,
+            "operationId": context.operation_id,
+            "messageId": context.message_id,
+            "purpose": (purpose or context.purpose)[:80],
+            "provider": "OPENAI",
+            "model": settings.openai_model,
+            "providerResponseId": response_id,
+            "status": status,
+            **usage.as_api_dict(),
+            "estimatedCost": _estimate_cost(usage),
+            "latencyMs": max(latency_ms, 0),
+        }, separators=(",", ":")))
+        return
     if context is None or not _has_business_context(context):
         return
 
