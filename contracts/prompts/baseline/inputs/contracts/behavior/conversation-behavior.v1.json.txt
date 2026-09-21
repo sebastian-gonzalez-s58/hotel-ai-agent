@@ -676,7 +676,9 @@
         "tests/conversation_regression/fixtures/cases/SC-009-maintenance-new-menu-en.json",
         "tests/conversation_regression/fixtures/cases/SC-009-maintenance-new-direct-en.json",
         "tests/conversation_regression/fixtures/cases/SC-009-maintenance-hypothetical-es.json",
-        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-hypothetical-en.json"
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-hypothetical-en.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-reference-es.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-reference-en.json"
       ]
     },
     {

@@ -463,7 +463,14 @@
       "tests.test_maintenance_new_request.MaintenanceNewRequestTest.test_explicit_recurrence_still_asks_which_previous_request",
       "tests.test_maintenance_new_request.MaintenanceNewRequestTest.test_explicit_recurrence_with_one_source_still_requires_confirmation",
       "tests.test_maintenance_new_request.MaintenanceNewRequestTest.test_new_fault_with_identical_history_starts_independent_request",
-      "tests.test_maintenance_new_request.MaintenanceNewRequestTest.test_hotel_question_cannot_be_rerouted_by_conflicting_recurrence_flag"
+      "tests.test_maintenance_new_request.MaintenanceNewRequestTest.test_hotel_question_cannot_be_rerouted_by_conflicting_recurrence_flag",
+      "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_cancel_before_selection_clears_pending_state",
+      "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_legacy_question_without_summary_recovers_existing_conversation",
+      "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_new_fault_is_still_independent_while_awaiting_reference",
+      "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_reference_reply_prompts_confirmation_then_starts_original_issue",
+      "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_reference_selection_does_not_intercept_after_unrelated_outbound",
+      "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_reference_uses_current_authorized_snapshot_and_candidate_set",
+      "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_unknown_reference_can_be_corrected_without_restarting_issue_capture"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
@@ -2765,6 +2772,92 @@
           }
         ]
       }
+    },
+    "SC-009-maintenance-reference-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "report-persistence",
+        "wrong-reference",
+        "select-reference",
+        "confirm-recurrence"
+      ],
+      "not_run_steps": [
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "checks_pending": {
+        "report-persistence": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "wrong-reference": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "select-reference": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "confirm-recurrence": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 1
+          }
+        ]
+      }
+    },
+    "SC-009-maintenance-reference-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "report-persistence",
+        "wrong-reference",
+        "select-reference",
+        "confirm-recurrence"
+      ],
+      "not_run_steps": [
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "checks_pending": {
+        "report-persistence": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "wrong-reference": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "select-reference": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "confirm-recurrence": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 1
+          }
+        ]
+      }
     }
   },
   "integration": {
@@ -3397,6 +3490,32 @@
       "status": "INTEGRATION_PARTIAL_PASS",
       "turn_ids": [
         "ask"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-reference-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "report-persistence",
+        "wrong-reference",
+        "select-reference",
+        "confirm-recurrence",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-reference-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "report-persistence",
+        "wrong-reference",
+        "select-reference",
+        "confirm-recurrence",
+        "inspect",
+        "repeat-confirmation"
       ],
       "not_run_steps": [],
       "checks_pending": {}
