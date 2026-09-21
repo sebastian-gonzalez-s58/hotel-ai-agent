@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "id": "SC-015-ambiguous-tasks",
+  "scenario_id": "SC-015",
+  "title": "Sí con dos tareas abiertas",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "live_model",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "ambiguous",
+      "event": {
+        "kind": "guest",
+        "text": "Sí"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/tasks/MAINTENANCE/status",
+          "op": "equals",
+          "value": "OPEN"
+        },
+        {
+          "path": "/backend/tasks/SPA/status",
+          "op": "equals",
+          "value": "OPEN"
+        }
+      ],
+      "review": [
+        "Pedir a qué solicitud se refiere si no hay foco inequívoco."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Sí",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "AMBIGUOUS",
+            "replyActionEvidence": "Sí",
+            "replyActionConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "negative",
+      "event": {
+        "kind": "guest",
+        "text": "El aire acondicionado sigue sin funcionar"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "contains",
+          "value": "COMPLETE_CONVERSATION_TASK"
+        },
+        {
+          "path": "/tools/0/targetOperationId",
+          "op": "equals",
+          "value": "90000000-0000-4000-8000-000000000001"
+        },
+        {
+          "path": "/tools/0/arguments/result/resolved",
+          "op": "equals",
+          "value": false
+        },
+        {
+          "path": "/backend/tasks/MAINTENANCE/status",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/tasks/MAINTENANCE/result/resolved",
+          "op": "equals",
+          "value": false
+        },
+        {
+          "path": "/backend/tasks/SPA/status",
+          "op": "equals",
+          "value": "OPEN"
+        }
+      ],
+      "review": [
+        "No modificar tarea de spa."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": "MAINTENANCE",
+            "relevantText": "El aire acondicionado sigue sin funcionar",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NOT_RESOLVED",
+            "replyActionEvidence": "El aire acondicionado sigue sin funcionar",
+            "replyActionConfidence": 1
+          }
+        }
+      ]
+    }
+  ],
+  "initial_operations": [
+    {
+      "operationId": "90000000-0000-4000-8000-000000000001",
+      "referenceCode": "TEST-OP-1",
+      "offeringCode": "MAINTENANCE",
+      "lifecycle": "WAITING_FOR_GUEST",
+      "detailedStatus": "WAITING_FOR_GUEST",
+      "summary": "Synthetic pending task",
+      "input": {},
+      "availableActions": [],
+      "pendingConversationTasks": [
+        {
+          "conversationTaskId": "91000000-0000-4000-8000-000000000001",
+          "operationId": "90000000-0000-4000-8000-000000000001",
+          "taskType": "MAINTENANCE_RESOLUTION_CONFIRMATION",
+          "status": "OPEN",
+          "requiredOutputSchema": {
+            "type": "object",
+            "required": [
+              "resolved"
+            ],
+            "properties": {
+              "resolved": {
+                "type": "boolean"
+              }
+            }
+          },
+          "partialResult": {},
+          "context": {},
+          "priority": "NORMAL",
+          "version": 1,
+          "createdAt": "2026-10-01T16:00:00Z"
+        }
+      ],
+      "version": 3
+    },
+    {
+      "operationId": "90000000-0000-4000-8000-000000000002",
+      "referenceCode": "TEST-OP-2",
+      "offeringCode": "SPA",
+      "lifecycle": "WAITING_FOR_GUEST",
+      "detailedStatus": "WAITING_FOR_GUEST",
+      "summary": "Synthetic pending task",
+      "input": {},
+      "availableActions": [],
+      "pendingConversationTasks": [
+        {
+          "conversationTaskId": "91000000-0000-4000-8000-000000000002",
+          "operationId": "90000000-0000-4000-8000-000000000002",
+          "taskType": "SPA_ALTERNATIVE_DECISION",
+          "status": "OPEN",
+          "requiredOutputSchema": {
+            "type": "object",
+            "required": [
+              "decision"
+            ],
+            "properties": {
+              "decision": {
+                "enum": [
+                  "ACCEPT",
+                  "CHANGE",
+                  "CANCEL"
+                ]
+              }
+            }
+          },
+          "partialResult": {},
+          "context": {},
+          "priority": "NORMAL",
+          "version": 1,
+          "createdAt": "2026-10-01T16:00:00Z"
+        }
+      ],
+      "version": 3
+    }
+  ]
+}

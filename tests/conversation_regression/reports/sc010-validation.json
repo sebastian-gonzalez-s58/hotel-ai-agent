@@ -1,0 +1,64 @@
+{
+  "scope": "local-sandbox",
+  "completed_at": "2026-09-21T05:52:50.911245+00:00",
+  "source_fingerprint": {
+    "git_head": "24f6d0be5cae9f07d79a6ce69c590cbb007569a0",
+    "agent_source_sha256": "25e797482efb7899489cfec26348a260265c901f1feb5549d8efff5c9c33708f",
+    "library_sha256": "2b5d1ec1280913b1ad57fa3d34f003721a68e30731258c1fe64d95f9280ac005",
+    "contract_sha256": "91788d3dd3667dd8a8c013db2e14f2ae0ce2a15cef61e7e3d279c89d8c4c6dce",
+    "prompt_contract_sha256": "20edc591e6ef80633b223389a88feff3be1096282f2dbe58cd7cee760a8a4237"
+  },
+  "backend_java_sha256": "0b4ccfd10879992634fc1d58a3d67743bb92019abadbbaeee0d3b7803074158f",
+  "backend_git_head": "9e239235e634bc451b386c977760643d42c289e8",
+  "before": "sc010-before-integration.json",
+  "unit": {
+    "passed": 397,
+    "skipped": 10,
+    "failed": 0,
+    "report": "sc010-unit.log"
+  },
+  "backend_tests": {
+    "passed": 27,
+    "failed": 0,
+    "suites": [
+      "AgentRuntimeV2ServiceTest",
+      "ConversationLifecycleServicePersistenceTest",
+      "ServiceLifecycleServicePersistenceTest"
+    ]
+  },
+  "offline": {
+    "OFFLINE_PARTIAL_PASS": 28,
+    "NOT_RUN": 15
+  },
+  "offline_backend_steps_not_executed": {
+    "SC-010-duplicate-event": [
+      "duplicate"
+    ],
+    "SC-010-idempotency-conflict": [
+      "conflict"
+    ],
+    "SC-010-retry-after-commit": [
+      "arm-loss",
+      "confirm",
+      "retry",
+      "used-after-recovery"
+    ]
+  },
+  "integration": {
+    "NOT_RUN": 21,
+    "INTEGRATION_PARTIAL_PASS": 22
+  },
+  "prompt_review": "sc010-reviewed-prompts/acceptance.json",
+  "critical_anchors_preserved": 14,
+  "new_api_calls": 0,
+  "new_api_tokens": 0,
+  "cumulative_api_calls": 75,
+  "cumulative_api_tokens": 103891,
+  "deployment_authorized": false,
+  "remaining_limits": [
+    "Recorded terminal failures require reconciliation before a new start; no reconciliation UI/job implemented.",
+    "Sequential repeats and an interruption after domain commit are covered; concurrent races and remote transaction effects are not.",
+    "Offline backend cases exercise only agent prefixes and list unexecuted steps; Spring performs their persistence checks.",
+    "BPM and delivery are simulated; no live OpenAI or WhatsApp evaluation."
+  ]
+}

@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "id": "SC-016-stale-version",
+  "scenario_id": "SC-016",
+  "title": "Rechazar stale-version",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "invalid-plan",
+      "event": {
+        "kind": "proposed_plan",
+        "action": "submit_invalid_plan",
+        "data": {
+          "violation": "stale-version",
+          "request_message": {
+            "messageId": "92000000-0000-4000-8000-000000000001",
+            "text": "Confirmo cancelar la solicitud TEST-OP-1"
+          },
+          "tool_call": {
+            "toolCallId": "93000000-0000-4000-8000-000000000001",
+            "toolName": "EXECUTE_SERVICE_ACTION",
+            "targetOperationId": "90000000-0000-4000-8000-000000000001",
+            "targetConversationTaskId": null,
+            "arguments": {
+              "operationId": "90000000-0000-4000-8000-000000000001",
+              "expectedVersion": 2,
+              "actionCode": "CANCEL",
+              "input": {},
+              "evidenceMessageIds": [
+                "92000000-0000-4000-8000-000000000001"
+              ]
+            },
+            "confidence": 1,
+            "evidenceMessageIds": [
+              "92000000-0000-4000-8000-000000000001"
+            ]
+          }
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/planRejected",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/mutationCount",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ],
+  "initial_operations": [
+    {
+      "operationId": "90000000-0000-4000-8000-000000000001",
+      "referenceCode": "TEST-OP-1",
+      "offeringCode": "MAINTENANCE",
+      "lifecycle": "ACTIVE",
+      "detailedStatus": "IN_PROGRESS",
+      "summary": "Synthetic pending task",
+      "input": {},
+      "availableActions": [
+        {
+          "actionCode": "CANCEL",
+          "description": "Cancelar solicitud sintética",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          },
+          "requiresExplicitGuestConfirmation": true
+        }
+      ],
+      "pendingConversationTasks": [],
+      "version": 3
+    }
+  ]
+}

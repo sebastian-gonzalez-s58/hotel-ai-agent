@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "id": "SC-009-double-space",
+  "scenario_id": "SC-009",
+  "title": "Confirmación conserva identidad con espacios dobles",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "AWAITING_CONFIRMATION",
+    "capturedFields": {
+      "deliveryLocation": "ROOM",
+      "items": [
+        {
+          "name": "Pechuga  Herbal",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": true
+  },
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "present-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "ROOM",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:ROOM"
+      },
+      "model_replies": [],
+      "review": [],
+      "checks": [
+        {
+          "path": "/state/capturedFields",
+          "op": "equals",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "name": "Pechuga  Herbal",
+                "quantity": 1,
+                "modifications": []
+              }
+            ]
+          }
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "confirm",
+      "event": {
+        "kind": "guest",
+        "text": "Confirm",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tools/0/arguments/input/items/0/name",
+          "op": "equals",
+          "value": "Pechuga  Herbal"
+        },
+        {
+          "path": "/tool_names",
+          "op": "contains",
+          "value": "START_SERVICE"
+        },
+        {
+          "path": "/tools/0/arguments/input/items/0/quantity",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/tools/0/arguments/input/deliveryLocation",
+          "op": "equals",
+          "value": "ROOM"
+        }
+      ],
+      "review": [
+        "Pechuga  Herbal y Pechuga Herbal son el mismo producto; no confundir con traducción."
+      ],
+      "model_replies": []
+    }
+  ]
+}

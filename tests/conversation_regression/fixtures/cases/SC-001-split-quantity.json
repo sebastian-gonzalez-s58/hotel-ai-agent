@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "id": "SC-001-split-quantity",
+  "scenario_id": "SC-001",
+  "title": "Producto → cantidad italiana",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_ITEMS",
+    "capturedFields": {
+      "deliveryLocation": "ROOM"
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "it",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "product",
+      "event": {
+        "kind": "guest",
+        "text": "Gorditas de pulpo"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "absent"
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": false
+        },
+        {
+          "path": "/state/capturedFields/items/0/name",
+          "op": "equals",
+          "value": "Gorditas de pulpo"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [
+        "Conservar artículo incompleto y preguntar solo cantidad."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Gorditas de pulpo",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "REPLACE",
+            "edits": [
+              {
+                "action": "ADD",
+                "existingItemIndex": null,
+                "name": "Gorditas de pulpo",
+                "nameEvidence": "Gorditas de pulpo",
+                "quantity": null,
+                "quantityEvidence": null,
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "Gorditas de pulpo"
+              }
+            ],
+            "confidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "quantity",
+      "event": {
+        "kind": "guest",
+        "text": "Uno"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/state/capturedFields/items/0/name",
+          "op": "equals",
+          "value": "Gorditas de pulpo"
+        },
+        {
+          "path": "/message_purposes",
+          "op": "contains",
+          "value": "CONFIRMATION"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [
+        "No exigir repetir producto."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Uno",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "PATCH",
+            "edits": [
+              {
+                "action": "UPDATE",
+                "existingItemIndex": 0,
+                "name": null,
+                "nameEvidence": null,
+                "quantity": 1,
+                "quantityEvidence": "Uno",
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "Uno"
+              }
+            ],
+            "confidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "confirm-order",
+      "event": {
+        "kind": "guest",
+        "text": "Conferma",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        },
+        {
+          "path": "/tools/0/arguments/input",
+          "op": "equals",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "name": "Gorditas de pulpo",
+                "quantity": 1,
+                "modifications": []
+              }
+            ]
+          }
+        }
+      ],
+      "model_replies": []
+    }
+  ]
+}

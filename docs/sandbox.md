@@ -15,6 +15,29 @@ Health endpoint: `/health`. WhatsApp stays on the existing router; this agent ha
 direct webhook and does not require a Meta token. Verify live model/WhatsApp behavior
 after all three services are deployed; branch creation alone does not test delivery.
 
+## Conversation behavior contract
+
+The [behavior contract](conversation-behavior-contract.md) defines the critical
+guarantees, acceptance scenarios and partial coverage already present in tests.
+Its [versioned catalog](../contracts/behavior/conversation-behavior.v1.json) is the
+starting point for the regression library. Scenarios are specifications, not yet
+an executable release gate; existing test references do not imply full coverage.
+
+The [regression library](../tests/conversation_regression/README.md) adds synthetic
+conversation cases and an offline replay. Its baseline reports partial passes,
+reproduced failures and cases still awaiting adapters. It is not a release gate.
+
+The [three-level evaluation runner](conversation-evaluation.md) supports offline
+checks, opt-in real-model conversations and Spring/Python round trips with an
+isolated H2 database and simulated delivery. Reports retain first failures,
+repetitions, dependency errors and unevaluated cases.
+
+The [prompt change guard](prompt-change-protection.md) now checks the versioned
+prompt inventory, rendered synthetic prompts, critical instructions, schemas and
+source dependencies as part of `python -m tests.run_offline`. Changes require a
+reviewable diff and an explicit baseline update. This is a local check; deployment
+enforcement is still pending.
+
 ## GPT-5.6 Compatibility
 
 Only change the sandbox agent's environment for this experiment:
@@ -54,3 +77,10 @@ Terra also passed four synthetic live workflow checks: independent orders, kitch
 replacement, unresolved maintenance, and order capture/edit/confirmation. The menu
 and delivery translation completed in 3.86s and 2.37s in single samples, not a
 latency guarantee. No workflow tool was executed and no WhatsApp message was sent.
+
+## Mandatory regression gate (point 7)
+
+See [conversation CI gate](conversation-ci-gate.md) for the prepared local agent
+and backend workflows, exact paired revisions, prompt review record, required
+coverage and remote activation steps. No branch rules or Render settings have
+been applied remotely; the local workflow is not evidence of active enforcement.

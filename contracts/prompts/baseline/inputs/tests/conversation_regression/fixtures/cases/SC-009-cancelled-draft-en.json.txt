@@ -1,0 +1,507 @@
+{
+  "schema_version": 1,
+  "id": "SC-009-cancelled-draft-en",
+  "scenario_id": "SC-009",
+  "title": "Cancelled draft rejects every old menu without requesting a reference (en)",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_LOCATION",
+    "capturedFields": {
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "en-US",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "first-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Habitación",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:ROOM"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "edit",
+      "event": {
+        "kind": "guest",
+        "text": "Que sean dos sopas"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Que sean dos sopas",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "PATCH",
+            "edits": [
+              {
+                "action": "UPDATE",
+                "existingItemIndex": 0,
+                "name": null,
+                "nameEvidence": null,
+                "quantity": 2,
+                "quantityEvidence": "dos",
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "dos sopas"
+              }
+            ],
+            "confidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "stale-button",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": 1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "cancel-current",
+      "event": {
+        "kind": "guest",
+        "text": "Cancelar",
+        "reply_id": "confirmation:ROOM_SERVICE:CANCEL",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/response/roomServiceDraftEvent",
+          "op": "equals",
+          "value": "CANCELLED"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "cancelled-v1-confirm",
+      "event": {
+        "kind": "guest",
+        "text": "CONFIRM",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": 1
+      },
+      "checks": [
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "You cancelled this draft"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reference"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "cancelled-v1-change",
+      "event": {
+        "kind": "guest",
+        "text": "CHANGE",
+        "reply_id": "confirmation:ROOM_SERVICE:CHANGE",
+        "reply_from_turn": 1
+      },
+      "checks": [
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "You cancelled this draft"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reference"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "cancelled-v1-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "CANCEL",
+        "reply_id": "confirmation:ROOM_SERVICE:CANCEL",
+        "reply_from_turn": 1
+      },
+      "checks": [
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "You cancelled this draft"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reference"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "cancelled-v2-confirm",
+      "event": {
+        "kind": "guest",
+        "text": "CONFIRM",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": 2
+      },
+      "checks": [
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "You cancelled this draft"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reference"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "cancelled-v2-change",
+      "event": {
+        "kind": "guest",
+        "text": "CHANGE",
+        "reply_id": "confirmation:ROOM_SERVICE:CHANGE",
+        "reply_from_turn": 2
+      },
+      "checks": [
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "You cancelled this draft"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reference"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "cancelled-v2-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "CANCEL",
+        "reply_id": "confirmation:ROOM_SERVICE:CANCEL",
+        "reply_from_turn": 2
+      },
+      "checks": [
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "You cancelled this draft"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reference"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "cancelled-v3-confirm",
+      "event": {
+        "kind": "guest",
+        "text": "CONFIRM",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": 3
+      },
+      "checks": [
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "You cancelled this draft"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reference"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "cancelled-v3-change",
+      "event": {
+        "kind": "guest",
+        "text": "CHANGE",
+        "reply_id": "confirmation:ROOM_SERVICE:CHANGE",
+        "reply_from_turn": 3
+      },
+      "checks": [
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "You cancelled this draft"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reference"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "cancelled-v3-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "CANCEL",
+        "reply_id": "confirmation:ROOM_SERVICE:CANCEL",
+        "reply_from_turn": 3
+      },
+      "checks": [
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "You cancelled this draft"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reference"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    }
+  ]
+}

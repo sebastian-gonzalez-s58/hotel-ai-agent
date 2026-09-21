@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "baseline_index_sha256": "ba36d6e5f340d6b07494fbecb1a7f036158ccb8efd5978a1fddee89f0eb1e64b",
+  "reason": "Preserve cancelled and replaced room-service drafts from durable history; retain prior rules and mandatory coverage.",
+  "reviewer": "Codex local implementation review",
+  "human_approval": false,
+  "evidence": "docs/room-service-draft-history-review.md"
+}
