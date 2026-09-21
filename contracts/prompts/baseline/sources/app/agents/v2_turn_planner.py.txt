@@ -166,7 +166,9 @@ def _with_catalog_selection(request, selection, code):
 
 
 def _is_room_confirmation_button(message):
-    return (message.interactionReplyId or "").upper().startswith(
+    reply = (message.interactionReplyId or "").strip().upper()
+    # Older menus have no draft capability. Treat them as stale, never as fresh model intent.
+    return reply in {"CONFIRM_ORDER", "CHANGE_ORDER", "CANCEL_ORDER"} or reply.startswith(
         ("CONFIRMATION:ROOM_SERVICE:", "ROOM-SERVICE:"))
 
 

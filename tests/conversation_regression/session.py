@@ -33,7 +33,9 @@ class ConversationSession:
         self.request.conversation.summary = json.dumps(case.initial_summary, ensure_ascii=False)
         self.request.conversation.recentMessages = []
         payload = self.request.model_dump(mode="json")
-        payload["activeOperations"] = case.initial_operations
+        terminal = {'COMPLETED', 'CANCELLED', 'FAILED'}
+        payload["activeOperations"] = [o for o in case.initial_operations if o['lifecycle'] not in terminal]
+        payload["recentOperations"] = [o for o in case.initial_operations if o['lifecycle'] in terminal]
         self.request = AgentTurnRequest.model_validate(payload)
         self.request.guest.preferredLanguage = case.locale
         self.language = {"version": 1, "source": case.language_source,

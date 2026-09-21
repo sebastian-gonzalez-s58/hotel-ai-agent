@@ -1,0 +1,57 @@
+{
+  "status": "PASS",
+  "started_at": "2026-09-21T14:07:58.059351+00:00",
+  "finished_at": "2026-09-21T14:12:08.242217+00:00",
+  "sources": {
+    "agent": {
+      "git_head": "7b2228500ee09edaa40d2307304ccd1605255a44",
+      "inputs_sha256": "228ce3bf728064d6564e273a89e058d651a276882629c105ddc924ac36ff5f53"
+    },
+    "backend": {
+      "git_head": "64744c252b335783eed18d357e741e646344abf2",
+      "inputs_sha256": "8264a0d275919498441013bd08a497c96e944dcd3b29244c247a7281970baae6"
+    }
+  },
+  "scope": "Local deterministic paired gate; synthetic Spring/H2 conversations and scripted model replies.",
+  "agent_unit": {
+    "passed": 426,
+    "skipped": [
+      "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_initial_english_menu_from_spanish_offerings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_scope_distinguishes_openings_from_specific_requests_and_social_closings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_translation_respects_small_limits_for_custom_labels",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_typo_after_previous_welcome_still_returns_menu",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_explicit_separate_order_is_still_allowed",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_kitchen_replacement_completes_existing_task",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_maintenance_negation_does_not_confirm_resolution",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_polite_order_edit_and_confirmation",
+      "tests.test_v2_scope_live.LiveHotelScopeTest.test_scope_and_existing_workflows"
+    ]
+  },
+  "backend_unit": {
+    "passed": 569,
+    "skipped": [
+      "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
+    ]
+  },
+  "integration": {
+    "counts": {
+      "INTEGRATION_PARTIAL_PASS": 45
+    },
+    "pending": []
+  },
+  "mandatory_conversation_turns": 120,
+  "targeted_confirmation_tests_passed": 13,
+  "targeted_integration": "Both delivered-button cases passed twice before the full gate.",
+  "negative_test": "Before the legacy-ID fix, the two new unit tests produced four failures on unexpected model access.",
+  "anonymized_incident": {
+    "button": "confirmation:ROOM_SERVICE:CANCEL",
+    "persisted_state": "COMPLETED / DELIVERED",
+    "observed_defect": "False cancellation acknowledgement without any tool call; persisted delivery state was unchanged.",
+    "exact_input_local_replay": "Expired-menu response, no tools, no model calls, no database writes.",
+    "raw_evidence": "Kept private outside both repositories."
+  },
+  "live_model_calls": 0,
+  "remote_enforcement_verified": false,
+  "deployed": false
+}

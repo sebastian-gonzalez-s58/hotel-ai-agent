@@ -248,9 +248,11 @@
       "tests.test_prompt_contract.PromptContractTest.test_snapshot_tampering_and_unindexed_files_fail_closed",
       "tests.test_prompt_contract.PromptContractTest.test_template_change_affects_localization_and_message_rules",
       "tests.test_prompt_contract.PromptContractTest.test_unknown_rule_and_case_links_fail_closed",
+      "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_buttons_after_delivery_cannot_claim_cancellation_or_call_model",
       "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_current_change_and_cancel_still_work",
       "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_free_text_approval_remains_available",
       "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_language_only_preserves_current_button_and_exact_order",
+      "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_legacy_cancel_cannot_discard_a_new_draft",
       "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_old_button_after_cancellation_cannot_resurrect_order",
       "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_old_confirm_change_cancel_preserve_edited_order",
       "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_old_current_and_used_buttons_complete_full_conversation",
@@ -1533,6 +1535,252 @@
         "fresh-confirmation"
       ],
       "checks_pending": {}
+    },
+    "SC-009-delivered-buttons-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "used-cancel",
+        "unversioned-cancel",
+        "legacy-cancel",
+        "legacy-change",
+        "legacy-confirm"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "used-cancel": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "unversioned-cancel": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "legacy-cancel": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "legacy-change": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "legacy-confirm": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "SC-009-delivered-buttons-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "used-cancel",
+        "unversioned-cancel",
+        "legacy-cancel",
+        "legacy-change",
+        "legacy-confirm"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "used-cancel": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "unversioned-cancel": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "legacy-cancel": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "legacy-change": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "legacy-confirm": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
     }
   },
   "integration": {
@@ -1943,6 +2191,30 @@
         "first",
         "second",
         "fresh-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-delivered-buttons-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "used-cancel",
+        "unversioned-cancel",
+        "legacy-cancel",
+        "legacy-change",
+        "legacy-confirm"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-delivered-buttons-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "used-cancel",
+        "unversioned-cancel",
+        "legacy-cancel",
+        "legacy-change",
+        "legacy-confirm"
       ],
       "not_run_steps": [],
       "checks_pending": {}

@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "0ec85178bc0a0515bad9012da556dbb6598b3fd9eb069bc5b4318a168b8a2398",
-  "reason": "Complete all 43 Spring cases, preserve existing required tests and turns, and protect route continuation, task selection and queued confirmation fixes.",
+  "baseline_index_sha256": "3b7da6b3600b69ab254b5ab721094ef6f30accb6b6e203f3c7dc19279b2de28b",
+  "reason": "Treat three legacy room-service button IDs as stale and require post-delivery regressions without weakening existing tests.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/coverage21-prompt-review.md"
+  "evidence": "docs/delivered-buttons-review.md"
 }

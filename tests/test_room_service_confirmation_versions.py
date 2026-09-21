@@ -83,6 +83,32 @@ class RoomConfirmationVersionsTest(unittest.TestCase):
         self.assertEqual({}, structured_summary(result.updatedConversationSummary))
         self.assertEqual([], result.toolCalls)
 
+    def test_buttons_after_delivery_cannot_claim_cancellation_or_call_model(self):
+        from app.schemas.v2_turns import OperationSnapshot
+        for reply in ('confirmation:ROOM_SERVICE:used:CANCEL', 'confirmation:ROOM_SERVICE:CANCEL',
+                      'room-service:cancel', 'CANCEL_ORDER', 'CHANGE_ORDER', 'CONFIRM_ORDER'):
+            with self.subTest(reply=reply):
+                session = self.presented()
+                session.request.conversation.summary = '{}'
+                session.request.recentOperations = [OperationSnapshot(
+                    operationId=uuid4(), offeringCode='ROOM_SERVICE', referenceCode='TEST-DELIVERED',
+                    lifecycle='COMPLETED', detailedStatus='DELIVERED', summary='Synthetic delivered order',
+                    input={'items': [{'name': 'sopa', 'quantity': 1, 'modifications': []}], 'deliveryLocation': 'ROOM'},
+                    availableActions=[], pendingConversationTasks=[], version=3)]
+                _, response = self.turn(session, Event(kind='guest', text='Cancelar', reply_id=reply))
+                self.assertEqual([], response.toolCalls)
+                self.assertEqual('{}', response.updatedConversationSummary)
+                self.assertNotIn('fue cancelado', ' '.join(m.text for m in response.messages))
+                self.assertIn('ya no est', response.messages[0].text)
+
+    def test_legacy_cancel_cannot_discard_a_new_draft(self):
+        session = self.presented(edited=True)
+        before = structured_summary(session.request.conversation.summary)['capturedFields']
+        _, response = self.turn(session, Event(kind='guest', text='Cancelar', reply_id='CANCEL_ORDER'))
+        self.assertEqual([], response.toolCalls)
+        self.assertEqual(before, structured_summary(response.updatedConversationSummary)['capturedFields'])
+        self.assertNotIn('fue cancelado', ' '.join(m.text for m in response.messages))
+
     def test_same_order_restored_after_edit_does_not_revive_first_menu(self):
         session = self.presented(edited=True)
         edit = self.case.steps[1].model_copy(deep=True)
