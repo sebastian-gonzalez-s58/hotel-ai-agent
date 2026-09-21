@@ -670,7 +670,13 @@
         "tests/conversation_regression/fixtures/cases/SC-009-stale-confirmation.json",
         "tests/conversation_regression/fixtures/cases/SC-009-maintenance-recurrence-en.json",
         "tests/conversation_regression/fixtures/cases/SC-009-maintenance-recurrence-es.json",
-        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-timeout.json"
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-timeout.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-new-menu-es.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-new-direct-es.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-new-menu-en.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-new-direct-en.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-hypothetical-es.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-hypothetical-en.json"
       ]
     },
     {

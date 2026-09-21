@@ -1,6 +1,6 @@
 # Índice de conversaciones
 
-54 casos ligados a los 21 escenarios del contrato. Todos son obligatorios en Spring/H2.
+60 casos ligados a los 21 escenarios del contrato. Todos son obligatorios en Spring/H2.
 El replay Python declara por separado los pasos y comprobaciones que necesitan backend.
 
 | Caso | Conversación | Replay Python requerido |
@@ -20,6 +20,12 @@ El replay Python declara por separado los pasos y comprobaciones que necesitan b
 | [SC-009-delivered-buttons-en](fixtures/cases/SC-009-delivered-buttons-en.json) | Botones antiguos después de entrega (en) | Parcial |
 | [SC-009-delivered-buttons-es](fixtures/cases/SC-009-delivered-buttons-es.json) | Botones antiguos después de entrega (es) | Parcial |
 | [SC-009-double-space](fixtures/cases/SC-009-double-space.json) | Confirmación conserva identidad con espacios dobles | Parcial |
+| [SC-009-maintenance-hypothetical-en](fixtures/cases/SC-009-maintenance-hypothetical-en.json) | Hypothetical maintenance question cannot become recurrence (en) | Parcial |
+| [SC-009-maintenance-hypothetical-es](fixtures/cases/SC-009-maintenance-hypothetical-es.json) | Hypothetical maintenance question cannot become recurrence (es-MX) | Parcial |
+| [SC-009-maintenance-new-direct-en](fixtures/cases/SC-009-maintenance-new-direct-en.json) | New maintenance complaint with matching closed history (direct, en) | Parcial |
+| [SC-009-maintenance-new-direct-es](fixtures/cases/SC-009-maintenance-new-direct-es.json) | New maintenance complaint with matching closed history (direct, es-MX) | Parcial |
+| [SC-009-maintenance-new-menu-en](fixtures/cases/SC-009-maintenance-new-menu-en.json) | New maintenance complaint with matching closed history (menu, en) | Parcial |
+| [SC-009-maintenance-new-menu-es](fixtures/cases/SC-009-maintenance-new-menu-es.json) | New maintenance complaint with matching closed history (menu, es-MX) | Parcial |
 | [SC-009-maintenance-recurrence-en](fixtures/cases/SC-009-maintenance-recurrence-en.json) | Historical maintenance resolution asks before opening a linked recurrence | Parcial |
 | [SC-009-maintenance-recurrence-es](fixtures/cases/SC-009-maintenance-recurrence-es.json) | Historical maintenance resolution asks before opening a linked recurrence | Parcial |
 | [SC-009-maintenance-timeout](fixtures/cases/SC-009-maintenance-timeout.json) | Historical maintenance resolution asks before opening a linked recurrence | Pendiente de backend |

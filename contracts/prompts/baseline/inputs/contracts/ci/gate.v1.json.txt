@@ -458,7 +458,12 @@
       "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_unknown_task_and_malformed_button_cannot_become_new_issue",
       "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_written_recurrence_is_a_confirmation_not_a_start",
       "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_recurrence_preserves_prose_and_independent_state",
-      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_uncertain_prior_start_cannot_be_retried_through_old_button"
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_uncertain_prior_start_cannot_be_retried_through_old_button",
+      "tests.test_maintenance_new_request.MaintenanceNewRequestTest.test_closed_fault_history_cannot_change_scope_input",
+      "tests.test_maintenance_new_request.MaintenanceNewRequestTest.test_explicit_recurrence_still_asks_which_previous_request",
+      "tests.test_maintenance_new_request.MaintenanceNewRequestTest.test_explicit_recurrence_with_one_source_still_requires_confirmation",
+      "tests.test_maintenance_new_request.MaintenanceNewRequestTest.test_new_fault_with_identical_history_starts_independent_request",
+      "tests.test_maintenance_new_request.MaintenanceNewRequestTest.test_hotel_question_cannot_be_rerouted_by_conflicting_recurrence_flag"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
@@ -2508,6 +2513,258 @@
         "duplicate-old-button"
       ],
       "checks_pending": {}
+    },
+    "SC-009-maintenance-new-direct-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "describe": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/createdOperations/MAINTENANCE",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/initialOperations/1/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/1/version",
+            "op": "equals",
+            "value": 1
+          }
+        ]
+      }
+    },
+    "SC-009-maintenance-new-direct-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "describe": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/createdOperations/MAINTENANCE",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/initialOperations/1/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/1/version",
+            "op": "equals",
+            "value": 1
+          }
+        ]
+      }
+    },
+    "SC-009-maintenance-new-menu-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "select",
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "select": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "describe": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/createdOperations/MAINTENANCE",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/initialOperations/1/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/1/version",
+            "op": "equals",
+            "value": 1
+          }
+        ]
+      }
+    },
+    "SC-009-maintenance-new-menu-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "select",
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "select": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "describe": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/createdOperations/MAINTENANCE",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/initialOperations/1/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/1/version",
+            "op": "equals",
+            "value": 1
+          }
+        ]
+      }
+    },
+    "SC-009-maintenance-hypothetical-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "ask"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "ask": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/createdOperations/MAINTENANCE",
+            "op": "equals",
+            "value": 0
+          },
+          {
+            "path": "/backend/createdOperations/FAQ",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/1/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          }
+        ]
+      }
+    },
+    "SC-009-maintenance-hypothetical-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "ask"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "ask": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/createdOperations/MAINTENANCE",
+            "op": "equals",
+            "value": 0
+          },
+          {
+            "path": "/backend/createdOperations/FAQ",
+            "op": "equals",
+            "value": 1
+          },
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/1/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          }
+        ]
+      }
     }
   },
   "integration": {
@@ -3090,6 +3347,56 @@
         "confirm-recurrence",
         "inspect",
         "duplicate-old-button"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-new-direct-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-new-direct-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-new-menu-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "select",
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-new-menu-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "select",
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-hypothetical-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "ask"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-hypothetical-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "ask"
       ],
       "not_run_steps": [],
       "checks_pending": {}
