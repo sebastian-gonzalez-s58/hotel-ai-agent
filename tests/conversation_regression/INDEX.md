@@ -1,6 +1,6 @@
 # Índice de conversaciones
 
-48 casos ligados a los 21 escenarios del contrato. Todos son obligatorios en Spring/H2.
+51 casos ligados a los 21 escenarios del contrato. Todos son obligatorios en Spring/H2.
 El replay Python declara por separado los pasos y comprobaciones que necesitan backend.
 
 | Caso | Conversación | Replay Python requerido |
@@ -15,9 +15,12 @@ El replay Python declara por separado los pasos y comprobaciones que necesitan b
 | [SC-007-language-partial](fixtures/cases/SC-007-language-partial.json) | Idioma cambia con un dato incompleto | Parcial |
 | [SC-007-language-switch](fixtures/cases/SC-007-language-switch.json) | Idioma cambia; borrador no | Parcial |
 | [SC-008-language-evidence](fixtures/cases/SC-008-language-evidence.json) | Los datos no piden idioma | Parcial |
+| [SC-009-cancelled-draft-en](fixtures/cases/SC-009-cancelled-draft-en.json) | Cancelled draft rejects every old menu without requesting a reference (en) | Parcial |
+| [SC-009-cancelled-draft-es](fixtures/cases/SC-009-cancelled-draft-es.json) | Cancelled draft rejects every old menu without requesting a reference (es) | Parcial |
 | [SC-009-delivered-buttons-en](fixtures/cases/SC-009-delivered-buttons-en.json) | Botones antiguos después de entrega (en) | Parcial |
 | [SC-009-delivered-buttons-es](fixtures/cases/SC-009-delivered-buttons-es.json) | Botones antiguos después de entrega (es) | Parcial |
 | [SC-009-double-space](fixtures/cases/SC-009-double-space.json) | Confirmación conserva identidad con espacios dobles | Parcial |
+| [SC-009-replaced-draft-submitted](fixtures/cases/SC-009-replaced-draft-submitted.json) | Earlier draft version remains rejected after submitting its replacement | Parcial |
 | [SC-009-room-lifecycle-buttons](fixtures/cases/SC-009-room-lifecycle-buttons.json) | Used confirmation stays bound through kitchen review, acceptance and delivery | Parcial |
 | [SC-009-room-state-en](fixtures/cases/SC-009-room-state-en.json) | Room-service existing-order changes use persisted state (en) | Parcial |
 | [SC-009-room-state-es](fixtures/cases/SC-009-room-state-es.json) | Room-service existing-order changes use persisted state (es) | Parcial |

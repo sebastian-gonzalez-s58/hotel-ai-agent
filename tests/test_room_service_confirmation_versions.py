@@ -82,6 +82,58 @@ class RoomConfirmationVersionsTest(unittest.TestCase):
         _, result = self.turn(session, Event(kind="guest", text="Confirmar", reply_id=old))
         self.assertEqual({}, structured_summary(result.updatedConversationSummary))
         self.assertEqual([], result.toolCalls)
+        self.assertIn('Cancelaste este borrador', result.messages[0].text)
+        self.assertNotIn('folio', result.messages[0].text)
+
+    def test_cancelled_draft_covers_old_versions_and_preserves_new_draft(self):
+        session = self.presented(edited=True)
+        menus = list(session.responses)
+        _, cancelled = self.turn(session, Event(kind='guest', text='Cancelar', reply_id=current_room_button(menus[-1], 'CANCEL')))
+        self.assertEqual('CANCELLED', cancelled.roomServiceDraftEvent)
+        new_draft = {'pendingOffering': 'ROOM_SERVICE', 'phase': 'COLLECTING', 'capturedFields': {'items': [{'name': 'té', 'quantity': 1}]}}
+        session.request.conversation.summary = json.dumps(new_draft)
+        for menu in menus:
+            for action in ('CONFIRM', 'CHANGE', 'CANCEL'):
+                _, response = self.turn(session, Event(kind='guest', text=action, reply_id=current_room_button(menu, action)))
+                self.assertIn('Cancelaste este borrador', response.messages[0].text)
+                self.assertEqual(new_draft, structured_summary(response.updatedConversationSummary))
+                self.assertIsNone(response.roomServiceDraftEvent)
+
+    def test_replaced_menu_explains_history_after_updated_order_was_sent(self):
+        session = self.presented(edited=True)
+        old = current_room_button(session.responses[0])
+        self.turn(session, Event(kind='guest', text='Confirmar', reply_id=current_room_button(session.responses[-1])))
+        self.turn(session, Event(kind='tool_result', action='complete_service_start'))
+        _, response = self.turn(session, Event(kind='guest', text='Confirmar', reply_id=old))
+        self.assertIn('versión anterior', response.messages[0].text)
+        self.assertIn('TEST-1', response.messages[0].text)
+        self.assertEqual(1, len(session.synthetic_operations))
+        self.assertEqual([], response.toolCalls)
+
+    def test_written_cancellation_records_the_same_draft_history(self):
+        from tests.conversation_regression.library import ModelReply
+        session = self.presented()
+        old = current_room_button(session.responses[-1])
+        text = 'Cancela mi pedido'
+        scope = dict(kind='CONTEXT_REPLY', offeringCode='ROOM_SERVICE', relevantText=text, hasRequestDetails=False,
+                     containsUnrelatedTopic=False, confidence=1, replyAction='CANCEL', replyActionEvidence=text, replyActionConfidence=1)
+        _, response = self.turn(session, Event(kind='guest', text=text), [ModelReply(purpose='V2_HOTEL_SCOPE', payload=scope)])
+        self.assertEqual('CANCELLED', response.roomServiceDraftEvent)
+        _, response = self.turn(session, Event(kind='guest', text='Confirmar', reply_id=old))
+        self.assertIn('Cancelaste este borrador', response.messages[0].text)
+
+    def test_cancel_after_entering_edit_mode_preserves_original_menu_history(self):
+        from tests.conversation_regression.library import ModelReply
+        session = self.presented()
+        menu = session.responses[-1]
+        self.turn(session, Event(kind='guest', text='Cambiar', reply_id=current_room_button(menu, 'CHANGE')))
+        text = 'Cancela mi pedido'
+        scope = dict(kind='CONTEXT_REPLY', offeringCode='ROOM_SERVICE', relevantText=text, hasRequestDetails=False,
+                     containsUnrelatedTopic=False, confidence=1, replyAction='CANCEL', replyActionEvidence=text, replyActionConfidence=1)
+        self.turn(session, Event(kind='guest', text=text), [ModelReply(purpose='V2_HOTEL_SCOPE', payload=scope)])
+        _, response = self.turn(session, Event(kind='guest', text='Confirmar', reply_id=current_room_button(menu)))
+        self.assertIn('Cancelaste este borrador', response.messages[0].text)
+        self.assertEqual([], response.toolCalls)
 
     def test_buttons_after_delivery_cannot_claim_cancellation_or_call_model(self):
         from app.schemas.v2_turns import OperationSnapshot

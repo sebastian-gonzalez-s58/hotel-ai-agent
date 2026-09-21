@@ -33,6 +33,7 @@ from app.services.input_understanding import (
 logger = logging.getLogger("chatbotinn-agent.v2-turn-planner")
 AGENT_TURN_RESPONSE_SCHEMA = AgentTurnResponse.model_json_schema()
 AGENT_TURN_RESPONSE_SCHEMA["properties"].pop("languageDecision", None)
+AGENT_TURN_RESPONSE_SCHEMA["properties"].pop("roomServiceDraftEvent", None)
 MAX_PLAN_ATTEMPTS = 3
 
 
@@ -160,7 +161,8 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         response.detectedLanguage = language_decision.locale if language_decision else None
         if not _is_verified_faq_response(request, response):
             response = localize_response(request, response, started_at)
-    return _bind_room_confirmation(request, response)
+    return _bind_room_confirmation(request, response, new_draft=bool(
+        scope and scope.separateRequest and scope.offeringCode == 'ROOM_SERVICE'))
 
 
 def _with_catalog_selection(request, selection, code):
@@ -200,18 +202,31 @@ def _room_confirmation_matches(request, latest):
                 f"confirmation:ROOM_SERVICE:{token}:{action}" for action in ("CONFIRM", "CHANGE", "CANCEL")})
 
 
-def _bind_room_confirmation(request, response):
+def _bind_room_confirmation(request, response, new_draft=False):
     """Runtime-owned capability: each displayed menu authorizes exactly its draft.
 
     A fresh token also prevents an A -> B -> A edit from reviving A's old menu.
     The model cannot preserve/invent a token for a different captured order.
     """
+    # Persist only runtime-verified transitions, never planner-invented history.
+    response.roomServiceDraftEvent = None
     summary = response.updatedConversationSummary
     if not summary:
         return response
     probe = request.model_copy(deep=True)
     probe.conversation.summary = summary
     state = _latest_capture_state(probe)
+    previous_state = _latest_capture_state(request)
+    latest = _latest_inbound_message(request)
+    was_room = previous_state.get('pendingOffering') == 'ROOM_SERVICE'
+    is_room = state.get('pendingOffering') == 'ROOM_SERVICE'
+    if is_room and (not was_room or new_draft):
+        response.roomServiceDraftEvent = 'NEW'
+    elif (was_room and not is_room and not response.toolCalls and latest is not None
+          and request.trigger.type == 'INBOUND_MESSAGE' and not request.previousToolResults
+          and (not latest.interactionReplyId or _room_confirmation_matches(request, latest))
+          and (_room_service_confirmation_action(latest) == 'CANCEL' or _is_free_text_cancel(latest.text))):
+        response.roomServiceDraftEvent = 'CANCELLED'
     messages = [m for m in response.messages if m.purpose == "CONFIRMATION" and m.interaction
                 and any(o.id.startswith("confirmation:ROOM_SERVICE:") for o in m.interaction.options)]
     if (state.get("pendingOffering") == "ROOM_SERVICE" and state.get("awaitingExplicitConfirmation")
@@ -255,12 +270,22 @@ def _stale_room_confirmation(request, started_at):
     latest = _latest_inbound_message(request)
     operation = resolve_order(request, latest, button=True) if latest else None
     action = (latest.interactionReplyId or '').upper().rsplit(':', 1)[-1].removesuffix('_ORDER') if latest else 'CONFIRM'
+    history = request.trigger.eventPayload.get('roomServiceButtonContext', {})
+    history_status = history.get('menuStatus') if isinstance(history, dict) else None
     spanish = request.guest.preferredLanguage.lower().startswith("es")
     notice = ("Ese botón corresponde a una confirmación anterior. Revisa el resumen actualizado antes de confirmar."
               if spanish else "That button belongs to an earlier confirmation. Review the updated summary before confirming.")
     offering = next((o for o in request.availableOfferings if o.offeringCode == "ROOM_SERVICE"), None)
-    if operation is not None:
+    if history_status == 'CANCELLED_DRAFT':
+        message = {'purpose': 'CLARIFICATION', 'text': (
+            'Cancelaste este borrador antes de enviarlo a cocina. Esa confirmación ya no puede utilizarse; no envié ningún pedido.'
+            if spanish else 'You cancelled this draft before sending it to the kitchen. That confirmation can no longer be used; I did not submit an order.'),
+            'language': request.guest.preferredLanguage, 'operationIds': [], 'conversationTaskIds': []}
+    elif operation is not None:
         message = status_message(request, operation, action, button=True)
+        if history_status == 'REPLACED':
+            message['text'] = ('Ese botón corresponde a una versión anterior de tu pedido y no puede confirmarla. ' if spanish else
+                               'That button belongs to an earlier version of your order and cannot confirm it. ') + message['text']
     elif (offering and state.get("pendingOffering") == "ROOM_SERVICE"
             and state.get("awaitingExplicitConfirmation") and state.get("phase") != "STARTING"):
         message = _room_service_confirmation_message(request, offering, state.get("capturedFields", {}))
@@ -275,6 +300,11 @@ def _stale_room_confirmation(request, started_at):
         message = _capture_message(request, offering.offeringCode, "deliveryLocation",
                                    field, field.get("x-chatbotinn-capture", {}))
         message = message or _order_clarification_message(request)
+    elif history_status == 'REPLACED':
+        message = {'purpose': 'CLARIFICATION', 'text': (
+            'Modificaste este borrador y esa confirmación corresponde a una versión anterior. No envié ni modifiqué ningún pedido.'
+            if spanish else 'You changed this draft and that confirmation belongs to an earlier version. I did not submit or modify an order.'),
+            'language': request.guest.preferredLanguage, 'operationIds': [], 'conversationTaskIds': []}
     else:
         message = status_message(request, None, action, button=True)
     return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",

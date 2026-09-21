@@ -77,10 +77,14 @@ class LanguagePolicyTest(unittest.TestCase):
         response = response_for(multilingual_request())
         legacy = response.model_dump(mode="json")
         legacy.pop("languageDecision")
+        legacy.pop("roomServiceDraftEvent")
         validator.validate(legacy)
         response.languageDecision = LanguageDecision(locale="fr", source="EXPLICIT", confidence=1,
                                                      messageId=UUID(MESSAGE_ID))
         validator.validate(response.model_dump(mode="json"))
+        for event in ('NEW', 'CANCELLED'):
+            response.roomServiceDraftEvent = event
+            validator.validate(response.model_dump(mode="json"))
 
     def test_greetings_override_inherited_language_without_mutating_request(self):
         for greeting, locale in [("Hello", "en"), ("Bonjour", "fr"), ("你好", "zh"),

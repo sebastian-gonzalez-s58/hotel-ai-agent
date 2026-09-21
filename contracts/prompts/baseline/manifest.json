@@ -145,7 +145,10 @@
         "SC-010-retry-after-commit",
         "SC-009-room-lifecycle-buttons",
         "SC-009-room-state-en",
-        "SC-009-room-state-es"
+        "SC-009-room-state-es",
+        "SC-009-cancelled-draft-es",
+        "SC-009-cancelled-draft-en",
+        "SC-009-replaced-draft-submitted"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -220,7 +223,10 @@
         "SC-006-partial-resume",
         "SC-009-room-lifecycle-buttons",
         "SC-009-room-state-en",
-        "SC-009-room-state-es"
+        "SC-009-room-state-es",
+        "SC-009-cancelled-draft-es",
+        "SC-009-cancelled-draft-en",
+        "SC-009-replaced-draft-submitted"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [

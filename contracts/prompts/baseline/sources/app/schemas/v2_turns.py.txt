@@ -226,6 +226,7 @@ class AgentTurnResponse(StrictModel):
     disposition: Literal["RESPONSE_READY", "TOOL_CALLS_REQUIRED", "NO_ACTION", "HANDOFF_REQUIRED"]
     detectedLanguage: str | None = Field(default=None, max_length=35)
     languageDecision: LanguageDecision | None = None
+    roomServiceDraftEvent: Literal["NEW", "CANCELLED"] | None = None
     messages: list[AgentMessage] = Field(max_length=10)
     toolCalls: list[DomainToolCall] = Field(max_length=20)
     updatedConversationSummary: str | None = Field(default=None, max_length=20000)

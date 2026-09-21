@@ -440,7 +440,11 @@
       "tests.test_room_service_status.RoomServiceStatusTest.test_pending_draft_and_allowed_kitchen_task_remain_available",
       "tests.test_room_service_status.RoomServiceStatusTest.test_unbound_button_never_chooses_a_recent_order",
       "tests.test_room_service_status.RoomServiceStatusTest.test_unknown_or_ambiguous_reference_does_not_guess",
-      "tests.test_room_service_status.RoomServiceStatusTest.test_written_change_and_cancel_use_actual_delivered_state"
+      "tests.test_room_service_status.RoomServiceStatusTest.test_written_change_and_cancel_use_actual_delivered_state",
+      "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_cancel_after_entering_edit_mode_preserves_original_menu_history",
+      "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_cancelled_draft_covers_old_versions_and_preserves_new_draft",
+      "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_replaced_menu_explains_history_after_updated_order_was_sent",
+      "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_written_cancellation_records_the_same_draft_history"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
@@ -1029,7 +1033,12 @@
       "com.chatbotinn.router.processing.RoomServiceButtonContextResolverTest.usedMenuResolvesItsCommittedOrderInsteadOfNewestOrder",
       "com.chatbotinn.router.processing.RoomServiceButtonContextResolverTest.unversionedAndMalformedButtonsNeverGuessOrReadHistory",
       "com.chatbotinn.router.processing.RoomServiceButtonContextResolverTest.unknownTokenAndInvisibleOperationCannotBind",
-      "com.chatbotinn.router.processing.RoomServiceButtonContextResolverTest.conflictingStartsCannotChooseOneOrder"
+      "com.chatbotinn.router.processing.RoomServiceButtonContextResolverTest.conflictingStartsCannotChooseOneOrder",
+      "com.chatbotinn.router.processing.RoomServiceDraftHistoryTest.cancellationCoversAllVersionsAndSurvivesANewDraft",
+      "com.chatbotinn.router.processing.RoomServiceDraftHistoryTest.genericChangeWithoutImmediateNewMenuPreservesLineage",
+      "com.chatbotinn.router.processing.RoomServiceDraftHistoryTest.replacedVersionLinksToSubmittedOrderWithoutResubmittingIt",
+      "com.chatbotinn.router.processing.RoomServiceDraftHistoryTest.navigationAndFailedTurnsDoNotInventCancellation",
+      "com.chatbotinn.router.processing.RoomServiceDraftHistoryTest.separateDraftDoesNotInheritPreviousMenuTokens"
     ],
     "allowed_skips": [
       "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
@@ -2202,6 +2211,217 @@
           }
         ]
       }
+    },
+    "SC-009-cancelled-draft-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "cancel-current",
+        "cancelled-v1-confirm",
+        "cancelled-v1-change",
+        "cancelled-v1-cancel",
+        "cancelled-v2-confirm",
+        "cancelled-v2-change",
+        "cancelled-v2-cancel",
+        "cancelled-v3-confirm",
+        "cancelled-v3-change",
+        "cancelled-v3-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "cancel-current": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v1-confirm": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v1-change": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v1-cancel": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v2-confirm": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v2-change": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v2-cancel": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v3-confirm": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v3-change": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v3-cancel": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "SC-009-cancelled-draft-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "cancel-current",
+        "cancelled-v1-confirm",
+        "cancelled-v1-change",
+        "cancelled-v1-cancel",
+        "cancelled-v2-confirm",
+        "cancelled-v2-change",
+        "cancelled-v2-cancel",
+        "cancelled-v3-confirm",
+        "cancelled-v3-change",
+        "cancelled-v3-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "cancel-current": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v1-confirm": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v1-change": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v1-cancel": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v2-confirm": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v2-change": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v2-cancel": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v3-confirm": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v3-change": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-v3-cancel": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "SC-009-replaced-draft-submitted": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "current-button",
+        "started",
+        "previous-v1",
+        "previous-v2"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "previous-v1": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 1
+          }
+        ],
+        "previous-v2": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 1
+          }
+        ]
+      }
     }
   },
   "integration": {
@@ -2686,6 +2906,60 @@
         "delivered-cancel",
         "cancelled-change",
         "cancelled-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-cancelled-draft-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "cancel-current",
+        "cancelled-v1-confirm",
+        "cancelled-v1-change",
+        "cancelled-v1-cancel",
+        "cancelled-v2-confirm",
+        "cancelled-v2-change",
+        "cancelled-v2-cancel",
+        "cancelled-v3-confirm",
+        "cancelled-v3-change",
+        "cancelled-v3-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-cancelled-draft-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "cancel-current",
+        "cancelled-v1-confirm",
+        "cancelled-v1-change",
+        "cancelled-v1-cancel",
+        "cancelled-v2-confirm",
+        "cancelled-v2-change",
+        "cancelled-v2-cancel",
+        "cancelled-v3-confirm",
+        "cancelled-v3-change",
+        "cancelled-v3-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-replaced-draft-submitted": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "current-button",
+        "started",
+        "previous-v1",
+        "previous-v2"
       ],
       "not_run_steps": [],
       "checks_pending": {}

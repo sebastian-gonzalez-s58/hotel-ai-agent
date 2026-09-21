@@ -48,6 +48,8 @@ class ConversationSession:
         self.responses = []
         self.room_button_bindings = {}
         self.pending_room_token = None
+        self.room_menu_history = {}
+        self.room_lineage = []
 
     def receive(self, event):
         if event.kind == "tool_result":
@@ -77,6 +79,8 @@ class ConversationSession:
         parts = (reply_id or '').split(':')
         if len(parts) == 4 and parts[:2] == ['confirmation', 'ROOM_SERVICE'] and parts[2] in self.room_button_bindings:
             self.request.trigger.eventPayload['roomServiceButtonContext'] = {'operationId': self.room_button_bindings[parts[2]]}
+        if len(parts) == 4 and parts[:2] == ['confirmation', 'ROOM_SERVICE'] and self.room_menu_history.get(parts[2]):
+            self.request.trigger.eventPayload['roomServiceButtonContext'] = dict(self.room_menu_history[parts[2]])
         self.request.conversation.recentMessages.append(ConversationMessage(
             messageId=message_id, direction="INBOUND", actor="GUEST", text=event.text,
             interactionReplyId=reply_id, createdAt=self.request.createdAt,
@@ -120,6 +124,9 @@ class ConversationSession:
             self.synthetic_operations.append(result)
             if code == 'ROOM_SERVICE' and self.pending_room_token:
                 self.room_button_bindings[self.pending_room_token] = result['operationId']
+                for token in self.room_lineage:
+                    self.room_menu_history[token]['operationId'] = result['operationId']
+                self.room_lineage = []
             self.request.activeOperations.append(OperationSnapshot(**result, summary="Synthetic started operation",
                 availableActions=[], pendingConversationTasks=[], version=1))
         else:
@@ -140,6 +147,21 @@ class ConversationSession:
             raise ValueError("Language decision is not supported by the current message")
         self.pending = False
         self.responses.append(response.model_copy(deep=True))
+        before_state = structured_summary(self.request.conversation.summary)
+        after_state = structured_summary(response.updatedConversationSummary or self.request.conversation.summary)
+        if response.roomServiceDraftEvent == 'NEW' or (before_state.get('pendingOffering') != 'ROOM_SERVICE' and after_state.get('pendingOffering') == 'ROOM_SERVICE'):
+            self.room_lineage = []
+        previous_token = before_state.get('roomServiceConfirmation', {}).get('token') if response.roomServiceDraftEvent != 'NEW' else None
+        for token in [previous_token, after_state.get('roomServiceConfirmation', {}).get('token')]:
+            if token and token not in self.room_lineage and 'operationId' not in self.room_menu_history.get(token, {}):
+                for old in self.room_lineage:
+                    self.room_menu_history[old]['menuStatus'] = 'REPLACED'
+                self.room_lineage.append(token)
+                self.room_menu_history.setdefault(token, {})
+        if response.roomServiceDraftEvent == 'CANCELLED':
+            for token in self.room_lineage:
+                self.room_menu_history[token] = {'menuStatus': 'CANCELLED_DRAFT'}
+            self.room_lineage = []
         if any(c.toolName.value == 'START_SERVICE' and c.arguments.get('offeringCode') == 'ROOM_SERVICE' for c in response.toolCalls):
             self.pending_room_token = structured_summary(self.request.conversation.summary).get('roomServiceConfirmation', {}).get('token')
         # Spring ignores null/blank summaries. '{}' is an explicit, valid empty state.
