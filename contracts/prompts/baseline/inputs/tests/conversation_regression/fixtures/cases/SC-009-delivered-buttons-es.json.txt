@@ -57,7 +57,7 @@
         {
           "path": "/text",
           "op": "contains",
-          "value": "ya no est"
+          "value": "No puedo identificar"
         },
         {
           "path": "/backend/initialOperations/0/lifecycle",
@@ -104,7 +104,7 @@
         {
           "path": "/text",
           "op": "contains",
-          "value": "ya no est"
+          "value": "No puedo identificar"
         },
         {
           "path": "/backend/initialOperations/0/lifecycle",
@@ -151,7 +151,7 @@
         {
           "path": "/text",
           "op": "contains",
-          "value": "ya no est"
+          "value": "No puedo identificar"
         },
         {
           "path": "/backend/initialOperations/0/lifecycle",
@@ -198,7 +198,7 @@
         {
           "path": "/text",
           "op": "contains",
-          "value": "ya no est"
+          "value": "No puedo identificar"
         },
         {
           "path": "/backend/initialOperations/0/lifecycle",
@@ -245,7 +245,7 @@
         {
           "path": "/text",
           "op": "contains",
-          "value": "ya no est"
+          "value": "No puedo identificar"
         },
         {
           "path": "/backend/initialOperations/0/lifecycle",

@@ -99,7 +99,8 @@ class RoomConfirmationVersionsTest(unittest.TestCase):
                 self.assertEqual([], response.toolCalls)
                 self.assertEqual('{}', response.updatedConversationSummary)
                 self.assertNotIn('fue cancelado', ' '.join(m.text for m in response.messages))
-                self.assertIn('ya no est', response.messages[0].text)
+                self.assertIn('No puedo identificar', response.messages[0].text)
+                self.assertEqual([], response.messages[0].operationIds)
 
     def test_legacy_cancel_cannot_discard_a_new_draft(self):
         session = self.presented(edited=True)

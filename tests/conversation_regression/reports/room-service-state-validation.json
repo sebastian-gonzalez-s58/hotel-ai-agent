@@ -1,0 +1,66 @@
+{
+  "status": "PASS",
+  "started_at": "2026-09-21T15:53:27.990306+00:00",
+  "finished_at": "2026-09-21T15:57:46.788178+00:00",
+  "sources": {
+    "agent": {
+      "git_head": "b3deaa889eb300a015459acde07275b3ef586f16",
+      "inputs_sha256": "4d6ab351e6143e5246c1dd1fbc664ee0cb5f2a6673c299b9fb39e2ad004f705e"
+    },
+    "backend": {
+      "git_head": "7ec6712d3d9436df9b966208d14ff98d98779d79",
+      "inputs_sha256": "6a4bd9674894722803a56fadc3deee301d8d8c25d77a5c66de12f2cd8894975f"
+    }
+  },
+  "scope": "Local deterministic paired gate; synthetic model replies, Spring/H2 persistence and controlled process stimuli.",
+  "agent_unit": {
+    "passed": 438,
+    "skipped": [
+      "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_initial_english_menu_from_spanish_offerings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_scope_distinguishes_openings_from_specific_requests_and_social_closings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_translation_respects_small_limits_for_custom_labels",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_typo_after_previous_welcome_still_returns_menu",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_explicit_separate_order_is_still_allowed",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_kitchen_replacement_completes_existing_task",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_maintenance_negation_does_not_confirm_resolution",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_polite_order_edit_and_confirmation",
+      "tests.test_v2_scope_live.LiveHotelScopeTest.test_scope_and_existing_workflows"
+    ]
+  },
+  "backend_unit": {
+    "passed": 573,
+    "skipped": [
+      "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
+    ]
+  },
+  "integration": {
+    "counts": {
+      "INTEGRATION_PARTIAL_PASS": 48
+    },
+    "pending": []
+  },
+  "mandatory_integration_turns": 149,
+  "prompt_review": {
+    "changed_documents": 114,
+    "snapshot_documents": 300,
+    "retained_anchors": 14,
+    "previous_rules_retained": true,
+    "prior_mandatory_coverage_retained": true,
+    "human_approval": false
+  },
+  "cases_added": [
+    "SC-009-room-lifecycle-buttons",
+    "SC-009-room-state-es",
+    "SC-009-room-state-en"
+  ],
+  "limitations": [
+    "Real-model intent interpretation and translation quality are not certified by scripted tests.",
+    "Unversioned or unresolvable menus ask for a reference; they cannot select the newest order.",
+    "BPM and WhatsApp delivery remain simulated."
+  ],
+  "live_model_calls": 0,
+  "live_model": "Pending separate authorization",
+  "deployed": false,
+  "remote_enforcement_verified": false
+}

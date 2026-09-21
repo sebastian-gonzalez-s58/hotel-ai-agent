@@ -658,10 +658,13 @@
       ],
       "existingEvidence": [],
       "fixturePaths": [
-        "tests/conversation_regression/fixtures/cases/SC-009-double-space.json",
-        "tests/conversation_regression/fixtures/cases/SC-009-stale-confirmation.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-delivered-buttons-en.json",
         "tests/conversation_regression/fixtures/cases/SC-009-delivered-buttons-es.json",
-        "tests/conversation_regression/fixtures/cases/SC-009-delivered-buttons-en.json"
+        "tests/conversation_regression/fixtures/cases/SC-009-double-space.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-room-lifecycle-buttons.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-room-state-en.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-room-state-es.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-stale-confirmation.json"
       ]
     },
     {

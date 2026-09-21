@@ -46,6 +46,8 @@ class ConversationSession:
         self.pending_tools = []
         self.synthetic_operations = []
         self.responses = []
+        self.room_button_bindings = {}
+        self.pending_room_token = None
 
     def receive(self, event):
         if event.kind == "tool_result":
@@ -72,6 +74,9 @@ class ConversationSession:
         self.request.previousToolResults = []
         self.request.trigger = TurnTrigger(type="INBOUND_MESSAGE", messageId=message_id,
                                            eventPayload={"languageContext": dict(self.language)})
+        parts = (reply_id or '').split(':')
+        if len(parts) == 4 and parts[:2] == ['confirmation', 'ROOM_SERVICE'] and parts[2] in self.room_button_bindings:
+            self.request.trigger.eventPayload['roomServiceButtonContext'] = {'operationId': self.room_button_bindings[parts[2]]}
         self.request.conversation.recentMessages.append(ConversationMessage(
             messageId=message_id, direction="INBOUND", actor="GUEST", text=event.text,
             interactionReplyId=reply_id, createdAt=self.request.createdAt,
@@ -113,6 +118,8 @@ class ConversationSession:
                       "offeringCode": code, "referenceCode": f"TEST-{len(self.synthetic_operations)+1}",
                       "lifecycle": "ACTIVE", "detailedStatus": "STARTED", "input": call.arguments["input"]}
             self.synthetic_operations.append(result)
+            if code == 'ROOM_SERVICE' and self.pending_room_token:
+                self.room_button_bindings[self.pending_room_token] = result['operationId']
             self.request.activeOperations.append(OperationSnapshot(**result, summary="Synthetic started operation",
                 availableActions=[], pendingConversationTasks=[], version=1))
         else:
@@ -133,6 +140,8 @@ class ConversationSession:
             raise ValueError("Language decision is not supported by the current message")
         self.pending = False
         self.responses.append(response.model_copy(deep=True))
+        if any(c.toolName.value == 'START_SERVICE' and c.arguments.get('offeringCode') == 'ROOM_SERVICE' for c in response.toolCalls):
+            self.pending_room_token = structured_summary(self.request.conversation.summary).get('roomServiceConfirmation', {}).get('token')
         # Spring ignores null/blank summaries. '{}' is an explicit, valid empty state.
         summary = response.updatedConversationSummary
         completes_task = any(c.toolName.value == "COMPLETE_CONVERSATION_TASK" for c in response.toolCalls)

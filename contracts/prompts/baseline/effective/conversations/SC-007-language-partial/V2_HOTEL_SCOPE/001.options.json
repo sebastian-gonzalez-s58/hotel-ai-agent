@@ -24,6 +24,32 @@
         ],
         "title": "Detectedlanguage"
       },
+      "existingOrderAction": {
+        "enum": [
+          "NONE",
+          "CHANGE",
+          "CANCEL"
+        ],
+        "title": "Existingorderaction",
+        "type": "string"
+      },
+      "existingOrderConfidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Existingorderconfidence",
+        "type": "number"
+      },
+      "existingOrderEvidence": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Existingorderevidence"
+      },
       "hasRequestDetails": {
         "title": "Hasrequestdetails",
         "type": "boolean"
@@ -167,7 +193,10 @@
       "selectionCode",
       "selectionAttempted",
       "selectionEvidence",
-      "selectionConfidence"
+      "selectionConfidence",
+      "existingOrderAction",
+      "existingOrderEvidence",
+      "existingOrderConfidence"
     ],
     "title": "ScopeDecision",
     "type": "object"

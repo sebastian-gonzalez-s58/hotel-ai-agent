@@ -142,7 +142,10 @@
         "SC-020-preserve-product",
         "SC-021-queued-messages",
         "SC-006-partial-resume",
-        "SC-010-retry-after-commit"
+        "SC-010-retry-after-commit",
+        "SC-009-room-lifecycle-buttons",
+        "SC-009-room-state-en",
+        "SC-009-room-state-es"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -179,7 +182,8 @@
         "tests/test_room_service_confirmation_versions.py",
         "tests/test_service_start_failures.py",
         "tests/test_conversation_regression_library.py",
-        "tests/test_v2_service_start_acknowledgements.py"
+        "tests/test_v2_service_start_acknowledgements.py",
+        "tests/test_room_service_status.py"
       ]
     },
     {
@@ -213,7 +217,10 @@
         "SC-020-channel-limit",
         "SC-020-preserve-product",
         "SC-021-queued-messages",
-        "SC-006-partial-resume"
+        "SC-006-partial-resume",
+        "SC-009-room-lifecycle-buttons",
+        "SC-009-room-state-en",
+        "SC-009-room-state-es"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -239,7 +246,8 @@
         "tests/test_v2_scope_router.py",
         "tests/test_catalog_selection.py",
         "tests/test_multilingual_understanding.py",
-        "tests/test_pending_language_switch.py"
+        "tests/test_pending_language_switch.py",
+        "tests/test_room_service_status.py"
       ]
     },
     {

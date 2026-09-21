@@ -1,0 +1,444 @@
+{
+  "schema_version": 1,
+  "id": "SC-009-room-lifecycle-buttons",
+  "scenario_id": "SC-009",
+  "title": "Used confirmation stays bound through kitchen review, acceptance and delivery",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_LOCATION",
+    "capturedFields": {
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "first-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Habitación",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:ROOM"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "edit",
+      "event": {
+        "kind": "guest",
+        "text": "Que sean dos sopas"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Que sean dos sopas",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "PATCH",
+            "edits": [
+              {
+                "action": "UPDATE",
+                "existingItemIndex": 0,
+                "name": null,
+                "nameEvidence": null,
+                "quantity": 2,
+                "quantityEvidence": "dos",
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "dos sopas"
+              }
+            ],
+            "confidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "stale-button",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": 1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "current-button",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        },
+        {
+          "path": "/tools/0/arguments/input/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "started",
+      "event": {
+        "kind": "tool_result",
+        "action": "complete_service_start",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/environment/operationInputs/ROOM_SERVICE/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "state-kitchen_review",
+      "event": {
+        "kind": "backend",
+        "action": "advance_room_order",
+        "data": {
+          "lifecycle": "WAITING_FOR_STAFF",
+          "status": "KITCHEN_REVIEW"
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/roomOperations/0/lifecycle",
+          "op": "equals",
+          "value": "WAITING_FOR_STAFF"
+        },
+        {
+          "path": "/backend/roomOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "KITCHEN_REVIEW"
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "kitchen_review-change",
+      "event": {
+        "kind": "guest",
+        "text": "CHANGE",
+        "reply_id": "confirmation:ROOM_SERVICE:CHANGE",
+        "reply_from_turn": 3
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "revisión de cocina"
+        },
+        {
+          "path": "/backend/roomOperations/0/lifecycle",
+          "op": "equals",
+          "value": "WAITING_FOR_STAFF"
+        },
+        {
+          "path": "/backend/roomOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "KITCHEN_REVIEW"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "state-awaiting_delivery",
+      "event": {
+        "kind": "backend",
+        "action": "advance_room_order",
+        "data": {
+          "lifecycle": "WAITING_FOR_STAFF",
+          "status": "AWAITING_DELIVERY"
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/roomOperations/0/lifecycle",
+          "op": "equals",
+          "value": "WAITING_FOR_STAFF"
+        },
+        {
+          "path": "/backend/roomOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "AWAITING_DELIVERY"
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "awaiting_delivery-change",
+      "event": {
+        "kind": "guest",
+        "text": "CHANGE",
+        "reply_id": "confirmation:ROOM_SERVICE:CHANGE",
+        "reply_from_turn": 3
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "pendiente de entrega"
+        },
+        {
+          "path": "/backend/roomOperations/0/lifecycle",
+          "op": "equals",
+          "value": "WAITING_FOR_STAFF"
+        },
+        {
+          "path": "/backend/roomOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "AWAITING_DELIVERY"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "state-delivered",
+      "event": {
+        "kind": "backend",
+        "action": "advance_room_order",
+        "data": {
+          "lifecycle": "COMPLETED",
+          "status": "DELIVERED"
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/roomOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/roomOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "delivered-change",
+      "event": {
+        "kind": "guest",
+        "text": "CHANGE",
+        "reply_id": "confirmation:ROOM_SERVICE:CHANGE",
+        "reply_from_turn": 3
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "ya fue entregado"
+        },
+        {
+          "path": "/backend/roomOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/roomOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "delivered-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "CANCEL",
+        "reply_id": "confirmation:ROOM_SERVICE:CANCEL",
+        "reply_from_turn": 3
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "ya fue entregado"
+        },
+        {
+          "path": "/backend/roomOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/roomOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "id": "delivered-confirm",
+      "event": {
+        "kind": "guest",
+        "text": "CONFIRM",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": 3
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "ya fue entregado"
+        },
+        {
+          "path": "/backend/roomOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/roomOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "model_replies": [],
+      "review": []
+    }
+  ]
+}

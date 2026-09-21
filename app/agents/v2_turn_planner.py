@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from app.core.config import settings
 from app.core.errors import AgentModelError
 from app.agents.v2_scope_router import ScopeDecision, classify_hotel_scope
+from app.agents.room_service_status import existing_order_message, resolve_order, status_message
 from app.agents.social_opening import classify_social_opening
 from app.agents.schema_validation import satisfies_schema
 from app.agents.spa_turns import plan_spa_turn, preserve_spa_state, started_spa_summary, validate_spa_call
@@ -87,7 +88,11 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         if (language_enabled(request) and scope.kind == "SOCIAL" and not scope.languageChangeOnly
                 and request.availableOfferings and not scope.containsUnrelatedTopic):
             opening, opening_usage = classify_social_opening(latest.text)
-        if (scope.replyAction == 'CONFIRM' and request.trigger.eventPayload.get('confirmationQueuedBeforePrompt') is True
+        existing_message = existing_order_message(request, latest, scope, _latest_capture_state(request))
+        if existing_message is not None:
+            response = _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                messages=[existing_message], updated_summary=request.conversation.summary)
+        elif (scope.replyAction == 'CONFIRM' and request.trigger.eventPayload.get('confirmationQueuedBeforePrompt') is True
                 and _latest_capture_state(request).get('pendingOffering') == 'ROOM_SERVICE'):
             response = _stale_room_confirmation(request, started_at)
         elif language_enabled(request) and scope.languageChangeOnly and language_decision is not None:
@@ -247,11 +252,16 @@ def _bind_room_confirmation(request, response):
 
 def _stale_room_confirmation(request, started_at):
     state = _latest_capture_state(request)
+    latest = _latest_inbound_message(request)
+    operation = resolve_order(request, latest, button=True) if latest else None
+    action = (latest.interactionReplyId or '').upper().rsplit(':', 1)[-1].removesuffix('_ORDER') if latest else 'CONFIRM'
     spanish = request.guest.preferredLanguage.lower().startswith("es")
-    notice = ("Ese menú ya no está vigente. Usa la confirmación actual."
-              if spanish else "That menu is no longer valid. Use the current confirmation.")
+    notice = ("Ese botón corresponde a una confirmación anterior. Revisa el resumen actualizado antes de confirmar."
+              if spanish else "That button belongs to an earlier confirmation. Review the updated summary before confirming.")
     offering = next((o for o in request.availableOfferings if o.offeringCode == "ROOM_SERVICE"), None)
-    if (offering and state.get("pendingOffering") == "ROOM_SERVICE"
+    if operation is not None:
+        message = status_message(request, operation, action, button=True)
+    elif (offering and state.get("pendingOffering") == "ROOM_SERVICE"
             and state.get("awaitingExplicitConfirmation") and state.get("phase") != "STARTING"):
         message = _room_service_confirmation_message(request, offering, state.get("capturedFields", {}))
         message["text"] = notice + "\n\n" + message["text"]
@@ -266,10 +276,7 @@ def _stale_room_confirmation(request, started_at):
                                    field, field.get("x-chatbotinn-capture", {}))
         message = message or _order_clarification_message(request)
     else:
-        message = {"purpose": "CLARIFICATION", "text": (
-            "Ese menú ya no está vigente. Continúa con la solicitud actual."
-            if spanish else "That menu is no longer valid. Continue with your current request."),
-            "language": request.guest.preferredLanguage, "operationIds": [], "conversationTaskIds": []}
+        message = status_message(request, None, action, button=True)
     return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
                                        messages=[message], updated_summary=request.conversation.summary)
 

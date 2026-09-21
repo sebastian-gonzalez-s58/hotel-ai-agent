@@ -428,7 +428,19 @@
       "tests.test_v2_turn_planner.V2TurnPlannerTest.test_room_service_free_text_cancel_clears_pending_draft",
       "tests.test_v2_turn_planner.V2TurnPlannerTest.test_spa_capture_collects_service_date_and_time_before_starting",
       "tests.test_v2_turn_planner.V2TurnPlannerTest.test_stops_after_successfully_completing_room_service_change_task",
-      "tests.test_v2_turn_planner.V2TurnPlannerTest.test_unknown_faq_starts_human_process_and_explains_handoff"
+      "tests.test_v2_turn_planner.V2TurnPlannerTest.test_unknown_faq_starts_human_process_and_explains_handoff",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_accepted_order_is_pending_delivery_without_inventing_preparation",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_bound_delivered_buttons_explain_action_in_both_languages",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_bound_old_order_does_not_change_new_draft",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_cancelled_order_does_not_claim_a_new_cancellation",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_explicit_reference_selects_old_order_among_multiple",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_foreign_binding_does_not_leak_or_select_another_order",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_kitchen_review_is_not_preparation",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_new_order_negation_and_unreliable_evidence_do_not_trigger_rejection",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_pending_draft_and_allowed_kitchen_task_remain_available",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_unbound_button_never_chooses_a_recent_order",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_unknown_or_ambiguous_reference_does_not_guess",
+      "tests.test_room_service_status.RoomServiceStatusTest.test_written_change_and_cancel_use_actual_delivered_state"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
@@ -1013,7 +1025,11 @@
       "com.chatbotinn.router.sync.RouterGuestRouteSyncServiceTest.enqueueCreatesPendingActiveRouteProjection",
       "com.chatbotinn.router.sync.RouterGuestRouteSyncServiceTest.enqueueTurnsCheckedOutStayIntoEndProjection",
       "com.chatbotinn.router.sync.RouterGuestRouteSyncWorkerTest.dispatchSchedulesRetryWhenRouterIsUnavailable",
-      "com.chatbotinn.router.sync.RouterGuestRouteSyncWorkerTest.dispatchUpsertsActiveStayWithNormalizedE164Phone"
+      "com.chatbotinn.router.sync.RouterGuestRouteSyncWorkerTest.dispatchUpsertsActiveStayWithNormalizedE164Phone",
+      "com.chatbotinn.router.processing.RoomServiceButtonContextResolverTest.usedMenuResolvesItsCommittedOrderInsteadOfNewestOrder",
+      "com.chatbotinn.router.processing.RoomServiceButtonContextResolverTest.unversionedAndMalformedButtonsNeverGuessOrReadHistory",
+      "com.chatbotinn.router.processing.RoomServiceButtonContextResolverTest.unknownTokenAndInvisibleOperationCannotBind",
+      "com.chatbotinn.router.processing.RoomServiceButtonContextResolverTest.conflictingStartsCannotChooseOneOrder"
     ],
     "allowed_skips": [
       "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
@@ -1781,6 +1797,411 @@
           }
         ]
       }
+    },
+    "SC-009-room-lifecycle-buttons": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "current-button",
+        "started"
+      ],
+      "not_run_steps": [
+        "state-kitchen_review",
+        "kitchen_review-change",
+        "state-awaiting_delivery",
+        "awaiting_delivery-change",
+        "state-delivered",
+        "delivered-change",
+        "delivered-cancel",
+        "delivered-confirm"
+      ],
+      "checks_pending": {}
+    },
+    "SC-009-room-state-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "review-change",
+        "review-cancel",
+        "accepted-change",
+        "accepted-cancel",
+        "delivered-change",
+        "delivered-cancel",
+        "cancelled-change",
+        "cancelled-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "review-change": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "WAITING_FOR_STAFF"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "KITCHEN_REVIEW"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "review-cancel": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "WAITING_FOR_STAFF"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "KITCHEN_REVIEW"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "accepted-change": [
+          {
+            "path": "/backend/initialOperations/1/lifecycle",
+            "op": "equals",
+            "value": "WAITING_FOR_STAFF"
+          },
+          {
+            "path": "/backend/initialOperations/1/detailedStatus",
+            "op": "equals",
+            "value": "AWAITING_DELIVERY"
+          },
+          {
+            "path": "/backend/initialOperations/1/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "accepted-cancel": [
+          {
+            "path": "/backend/initialOperations/1/lifecycle",
+            "op": "equals",
+            "value": "WAITING_FOR_STAFF"
+          },
+          {
+            "path": "/backend/initialOperations/1/detailedStatus",
+            "op": "equals",
+            "value": "AWAITING_DELIVERY"
+          },
+          {
+            "path": "/backend/initialOperations/1/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "delivered-change": [
+          {
+            "path": "/backend/initialOperations/2/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/2/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/2/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "delivered-cancel": [
+          {
+            "path": "/backend/initialOperations/2/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/2/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/2/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-change": [
+          {
+            "path": "/backend/initialOperations/3/lifecycle",
+            "op": "equals",
+            "value": "CANCELLED"
+          },
+          {
+            "path": "/backend/initialOperations/3/detailedStatus",
+            "op": "equals",
+            "value": "CANCELLED_BY_KITCHEN"
+          },
+          {
+            "path": "/backend/initialOperations/3/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-cancel": [
+          {
+            "path": "/backend/initialOperations/3/lifecycle",
+            "op": "equals",
+            "value": "CANCELLED"
+          },
+          {
+            "path": "/backend/initialOperations/3/detailedStatus",
+            "op": "equals",
+            "value": "CANCELLED_BY_KITCHEN"
+          },
+          {
+            "path": "/backend/initialOperations/3/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "SC-009-room-state-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "review-change",
+        "review-cancel",
+        "accepted-change",
+        "accepted-cancel",
+        "delivered-change",
+        "delivered-cancel",
+        "cancelled-change",
+        "cancelled-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {
+        "review-change": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "WAITING_FOR_STAFF"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "KITCHEN_REVIEW"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "review-cancel": [
+          {
+            "path": "/backend/initialOperations/0/lifecycle",
+            "op": "equals",
+            "value": "WAITING_FOR_STAFF"
+          },
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "KITCHEN_REVIEW"
+          },
+          {
+            "path": "/backend/initialOperations/0/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "accepted-change": [
+          {
+            "path": "/backend/initialOperations/1/lifecycle",
+            "op": "equals",
+            "value": "WAITING_FOR_STAFF"
+          },
+          {
+            "path": "/backend/initialOperations/1/detailedStatus",
+            "op": "equals",
+            "value": "AWAITING_DELIVERY"
+          },
+          {
+            "path": "/backend/initialOperations/1/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "accepted-cancel": [
+          {
+            "path": "/backend/initialOperations/1/lifecycle",
+            "op": "equals",
+            "value": "WAITING_FOR_STAFF"
+          },
+          {
+            "path": "/backend/initialOperations/1/detailedStatus",
+            "op": "equals",
+            "value": "AWAITING_DELIVERY"
+          },
+          {
+            "path": "/backend/initialOperations/1/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "delivered-change": [
+          {
+            "path": "/backend/initialOperations/2/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/2/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/2/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "delivered-cancel": [
+          {
+            "path": "/backend/initialOperations/2/lifecycle",
+            "op": "equals",
+            "value": "COMPLETED"
+          },
+          {
+            "path": "/backend/initialOperations/2/detailedStatus",
+            "op": "equals",
+            "value": "DELIVERED"
+          },
+          {
+            "path": "/backend/initialOperations/2/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-change": [
+          {
+            "path": "/backend/initialOperations/3/lifecycle",
+            "op": "equals",
+            "value": "CANCELLED"
+          },
+          {
+            "path": "/backend/initialOperations/3/detailedStatus",
+            "op": "equals",
+            "value": "CANCELLED_BY_KITCHEN"
+          },
+          {
+            "path": "/backend/initialOperations/3/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "cancelled-cancel": [
+          {
+            "path": "/backend/initialOperations/3/lifecycle",
+            "op": "equals",
+            "value": "CANCELLED"
+          },
+          {
+            "path": "/backend/initialOperations/3/detailedStatus",
+            "op": "equals",
+            "value": "CANCELLED_BY_KITCHEN"
+          },
+          {
+            "path": "/backend/initialOperations/3/version",
+            "op": "equals",
+            "value": 3
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
     }
   },
   "integration": {
@@ -2215,6 +2636,56 @@
         "legacy-cancel",
         "legacy-change",
         "legacy-confirm"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-room-lifecycle-buttons": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "current-button",
+        "started",
+        "state-kitchen_review",
+        "kitchen_review-change",
+        "state-awaiting_delivery",
+        "awaiting_delivery-change",
+        "state-delivered",
+        "delivered-change",
+        "delivered-cancel",
+        "delivered-confirm"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-room-state-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "review-change",
+        "review-cancel",
+        "accepted-change",
+        "accepted-cancel",
+        "delivered-change",
+        "delivered-cancel",
+        "cancelled-change",
+        "cancelled-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-room-state-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "review-change",
+        "review-cancel",
+        "accepted-change",
+        "accepted-cancel",
+        "delivered-change",
+        "delivered-cancel",
+        "cancelled-change",
+        "cancelled-cancel"
       ],
       "not_run_steps": [],
       "checks_pending": {}

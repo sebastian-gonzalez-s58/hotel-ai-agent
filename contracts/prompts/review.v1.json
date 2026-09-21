@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "3b7da6b3600b69ab254b5ab721094ef6f30accb6b6e203f3c7dc19279b2de28b",
-  "reason": "Treat three legacy room-service button IDs as stale and require post-delivery regressions without weakening existing tests.",
+  "baseline_index_sha256": "327b207989409aff8f6ae4b8e163fc38e20c3fc07569190ae1cb6fa0d531d81a",
+  "reason": "Ground room-service responses in persisted state and bind used menus to successful starts; retain prior rules and tests.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/delivered-buttons-review.md"
+  "evidence": "docs/room-service-state-review.md"
 }
