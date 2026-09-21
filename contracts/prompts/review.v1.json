@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "ba36d6e5f340d6b07494fbecb1a7f036158ccb8efd5978a1fddee89f0eb1e64b",
-  "reason": "Preserve cancelled and replaced room-service drafts from durable history; retain prior rules and mandatory coverage.",
+  "baseline_index_sha256": "1063d5b027a3902f9fd3c631d8e08f32c2187e97e659d693b1869c97711ddf65",
+  "reason": "Require explicit maintenance recurrence confirmation, preserve original details and reject stale buttons; retain prior rules and mandatory coverage.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/room-service-draft-history-review.md"
+  "evidence": "docs/maintenance-recurrence-review.md"
 }

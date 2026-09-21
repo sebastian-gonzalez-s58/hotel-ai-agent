@@ -40,6 +40,9 @@ class ScopeDecision(BaseModel):
     existingOrderAction: Literal["NONE", "CHANGE", "CANCEL"] = "NONE"
     existingOrderEvidence: str | None = None
     existingOrderConfidence: float = Field(default=0, ge=0, le=1)
+    maintenanceFollowUp: Literal["NONE", "RECURRENCE"] = "NONE"
+    maintenanceFollowUpEvidence: str | None = None
+    maintenanceFollowUpConfidence: float = Field(default=0, ge=0, le=1)
 
 
 def classify_hotel_scope(
@@ -53,6 +56,11 @@ def classify_hotel_scope(
         "conversationLocale": request.guest.preferredLanguage,
         "pendingCapture": capture_state,
         "pendingSelection": selection.context() if selection else None,
+        "maintenanceRequests": [{"referenceCode": o.referenceCode, "lifecycle": o.lifecycle,
+                                 "detailedStatus": o.detailedStatus, "issue": o.input.get("issue")}
+                                for o in {str(o.operationId): o for o in
+                                          [*request.recentOperations, *request.activeOperations]}.values()
+                                if o.offeringCode == "MAINTENANCE"],
         "roomServiceOrders": [{"referenceCode": o.referenceCode, "lifecycle": o.lifecycle,
                                "detailedStatus": o.detailedStatus}
                               for o in {str(o.operationId): o for o in
@@ -82,6 +90,11 @@ Choose the intent of the current message, not an old service in the context.
   negation ('do not cancel'), another service or a new/additional order must use NONE.
   This field never authorizes an action, selects an operation, or states that any change occurred.
   Preserve the pending-capture/task replyAction rules below; existingOrderAction is independent.
+- Independently classify a report that a PREVIOUS maintenance issue persists or has returned
+  as maintenanceFollowUp=RECURRENCE. Include maintenanceFollowUpEvidence=the ENTIRE currentMessage
+  verbatim and high confidence only for an unambiguous report. Negations, hypothetical questions,
+  a different new fault, or a status inquiry use NONE. This only requests follow-up clarification;
+  it never authorizes opening a new request. Preserve replyAction for an open resolution task.
 - SERVICE_REQUEST: a NEW explicit request for an available hotel service. Use its exact code.
   hasRequestDetails is false for 'I need maintenance', true for 'the bathroom is leaking'.
   Urgent faults in the room are maintenance, including a broken sliding window.

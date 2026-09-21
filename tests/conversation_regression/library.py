@@ -105,7 +105,8 @@ class Case(Strict):
                        "reject_reassigned_inbound", "start_new_stay_same_contact",
                        "set_offering_requirements", "activate_synthetic_catalog_offering",
                        "localize_overlong_button", "persist_two_inbounds_before_processing",
-                       "process_first_inbound", "process_second_inbound", "advance_room_order"}
+                       "process_first_inbound", "process_second_inbound", "advance_room_order",
+                       "close_maintenance", "inspect_maintenance_recurrence"}
                    or s.event.kind == 'proposed_plan' and s.event.action == 'submit_invalid_plan'
                    or s.event.kind == 'tool_result' and s.event.action == 'provide_approved_faq'
                    for s in self.steps)

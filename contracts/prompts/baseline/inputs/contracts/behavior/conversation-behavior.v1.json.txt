@@ -667,7 +667,10 @@
         "tests/conversation_regression/fixtures/cases/SC-009-room-lifecycle-buttons.json",
         "tests/conversation_regression/fixtures/cases/SC-009-room-state-en.json",
         "tests/conversation_regression/fixtures/cases/SC-009-room-state-es.json",
-        "tests/conversation_regression/fixtures/cases/SC-009-stale-confirmation.json"
+        "tests/conversation_regression/fixtures/cases/SC-009-stale-confirmation.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-recurrence-en.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-recurrence-es.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-maintenance-timeout.json"
       ]
     },
     {
