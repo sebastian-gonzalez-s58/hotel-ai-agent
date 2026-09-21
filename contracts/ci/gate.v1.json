@@ -444,7 +444,21 @@
       "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_cancel_after_entering_edit_mode_preserves_original_menu_history",
       "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_cancelled_draft_covers_old_versions_and_preserves_new_draft",
       "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_replaced_menu_explains_history_after_updated_order_was_sent",
-      "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_written_cancellation_records_the_same_draft_history"
+      "tests.test_room_service_confirmation_versions.RoomConfirmationVersionsTest.test_written_cancellation_records_the_same_draft_history",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_an_old_broken_issue_description_is_not_reused",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_cancel_invalidates_previous_confirmation",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_confirmation_retains_original_issue_and_source",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_existing_recurrence_does_not_start_another",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_old_negative_button_requires_fresh_confirmation_in_both_languages",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_other_service_draft_is_preserved",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_repeated_positive_confirmation_has_no_effect",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_replaced_prompt_does_not_confirm_newer_prompt",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_timeout_never_claims_guest_confirmed_resolution",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_typed_yes_requires_a_pending_recurrence",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_unknown_task_and_malformed_button_cannot_become_new_issue",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_written_recurrence_is_a_confirmation_not_a_start",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_recurrence_preserves_prose_and_independent_state",
+      "tests.test_maintenance_recurrence.MaintenanceRecurrenceTest.test_uncertain_prior_start_cannot_be_retried_through_old_button"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
@@ -1038,7 +1052,17 @@
       "com.chatbotinn.router.processing.RoomServiceDraftHistoryTest.genericChangeWithoutImmediateNewMenuPreservesLineage",
       "com.chatbotinn.router.processing.RoomServiceDraftHistoryTest.replacedVersionLinksToSubmittedOrderWithoutResubmittingIt",
       "com.chatbotinn.router.processing.RoomServiceDraftHistoryTest.navigationAndFailedTurnsDoNotInventCancellation",
-      "com.chatbotinn.router.processing.RoomServiceDraftHistoryTest.separateDraftDoesNotInheritPreviousMenuTokens"
+      "com.chatbotinn.router.processing.RoomServiceDraftHistoryTest.separateDraftDoesNotInheritPreviousMenuTokens",
+      "com.chatbotinn.orchestration.v2.service.MaintenanceRecurrencePolicyTest.acceptsFreshConfirmationWithOriginalIssue",
+      "com.chatbotinn.orchestration.v2.service.MaintenanceRecurrencePolicyTest.oldResolutionButtonNeverStartsAService",
+      "com.chatbotinn.orchestration.v2.service.MaintenanceRecurrencePolicyTest.rejectsCrossGuestCrossStayAndOpenSource",
+      "com.chatbotinn.orchestration.v2.service.MaintenanceRecurrencePolicyTest.rejectsMissingReplacedAndQueuedBeforePromptConfirmations",
+      "com.chatbotinn.orchestration.v2.service.MaintenanceRecurrencePolicyTest.cancelledOrConsumedPromptCannotBeReused",
+      "com.chatbotinn.orchestration.v2.service.MaintenanceRecurrencePolicyTest.rejectsLostOrModifiedIssue",
+      "com.chatbotinn.router.processing.MaintenanceButtonContextResolverTest.closedTaskRetainsSourceIssue",
+      "com.chatbotinn.router.processing.MaintenanceButtonContextResolverTest.anotherGuestOrStayCannotReadHistoricalDetails",
+      "com.chatbotinn.router.processing.MaintenanceButtonContextResolverTest.unknownAndMalformedTasksDoNotGuessAnOperation",
+      "com.chatbotinn.router.processing.MaintenanceButtonContextResolverTest.recurrenceIsBoundToOriginalNotNewestOperation"
     ],
     "allowed_skips": [
       "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
@@ -2422,6 +2446,68 @@
           }
         ]
       }
+    },
+    "SC-009-maintenance-recurrence-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "resolve"
+      ],
+      "not_run_steps": [
+        "close",
+        "old-negative",
+        "decline",
+        "cancelled-confirmation",
+        "ask-again",
+        "confirm-recurrence",
+        "inspect",
+        "duplicate-old-button"
+      ],
+      "checks_pending": {
+        "resolve": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "SC-009-maintenance-recurrence-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "resolve"
+      ],
+      "not_run_steps": [
+        "close",
+        "old-negative",
+        "decline",
+        "cancelled-confirmation",
+        "ask-again",
+        "confirm-recurrence",
+        "inspect",
+        "duplicate-old-button"
+      ],
+      "checks_pending": {
+        "resolve": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "SC-009-maintenance-timeout": {
+      "status": "NOT_RUN",
+      "turn_ids": [],
+      "not_run_steps": [
+        "close",
+        "old-negative",
+        "confirm-recurrence",
+        "inspect",
+        "duplicate-old-button"
+      ],
+      "checks_pending": {}
     }
   },
   "integration": {
@@ -2960,6 +3046,50 @@
         "started",
         "previous-v1",
         "previous-v2"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-recurrence-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "resolve",
+        "close",
+        "old-negative",
+        "decline",
+        "cancelled-confirmation",
+        "ask-again",
+        "confirm-recurrence",
+        "inspect",
+        "duplicate-old-button"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-recurrence-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "resolve",
+        "close",
+        "old-negative",
+        "decline",
+        "cancelled-confirmation",
+        "ask-again",
+        "confirm-recurrence",
+        "inspect",
+        "duplicate-old-button"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-timeout": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "close",
+        "old-negative",
+        "confirm-recurrence",
+        "inspect",
+        "duplicate-old-button"
       ],
       "not_run_steps": [],
       "checks_pending": {}

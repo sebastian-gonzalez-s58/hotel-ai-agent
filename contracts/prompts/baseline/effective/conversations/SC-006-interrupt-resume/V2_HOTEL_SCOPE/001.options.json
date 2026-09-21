@@ -78,6 +78,31 @@
         "title": "Languageconfidence",
         "type": "number"
       },
+      "maintenanceFollowUp": {
+        "enum": [
+          "NONE",
+          "RECURRENCE"
+        ],
+        "title": "Maintenancefollowup",
+        "type": "string"
+      },
+      "maintenanceFollowUpConfidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Maintenancefollowupconfidence",
+        "type": "number"
+      },
+      "maintenanceFollowUpEvidence": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Maintenancefollowupevidence"
+      },
       "offeringCode": {
         "anyOf": [
           {
@@ -196,7 +221,10 @@
       "selectionConfidence",
       "existingOrderAction",
       "existingOrderEvidence",
-      "existingOrderConfidence"
+      "existingOrderConfidence",
+      "maintenanceFollowUp",
+      "maintenanceFollowUpEvidence",
+      "maintenanceFollowUpConfidence"
     ],
     "title": "ScopeDecision",
     "type": "object"

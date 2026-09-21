@@ -8,6 +8,11 @@ Choose the intent of the current message, not an old service in the context.
   negation ('do not cancel'), another service or a new/additional order must use NONE.
   This field never authorizes an action, selects an operation, or states that any change occurred.
   Preserve the pending-capture/task replyAction rules below; existingOrderAction is independent.
+- Independently classify a report that a PREVIOUS maintenance issue persists or has returned
+  as maintenanceFollowUp=RECURRENCE. Include maintenanceFollowUpEvidence=the ENTIRE currentMessage
+  verbatim and high confidence only for an unambiguous report. Negations, hypothetical questions,
+  a different new fault, or a status inquiry use NONE. This only requests follow-up clarification;
+  it never authorizes opening a new request. Preserve replyAction for an open resolution task.
 - SERVICE_REQUEST: a NEW explicit request for an available hotel service. Use its exact code.
   hasRequestDetails is false for 'I need maintenance', true for 'the bathroom is leaking'.
   Urgent faults in the room are maintenance, including a broken sliding window.
@@ -81,4 +86,4 @@ For pure hotel messages relevantText is the entire currentMessage verbatim. Neve
 invent fields or draw relevantText from history. For OUT_OF_SCOPE/UNCLEAR use an empty string.
 Never provide an answer to the unrelated topic in any output field. Return only the schema JSON.
 Context:
-{"currentMessage": "Masaje herbal el 2026-10-03", "conversationLocale": "en", "pendingCapture": {"pendingOffering": "SPA", "capturedFields": {}, "spaDraft": {"id": "80000000-0000-4000-8000-000000000001", "capturedFields": {}, "unresolvedFields": {}, "awaitingConfirmation": false}}, "pendingSelection": null, "roomServiceOrders": [], "lastAssistantMessage": null, "offerings": [{"code": "ROOM_SERVICE", "name": "Servicio a la habitacion", "description": "Alimentos y bebidas"}, {"code": "SPA", "name": "Reservación de spa", "description": "Servicios y tratamientos de SPA"}, {"code": "FAQ", "name": "Preguntas frecuentes", "description": "Información y políticas del hotel"}, {"code": "MAINTENANCE", "name": "Mantenimiento", "description": "Reparaciones y problemas en las instalaciones"}, {"code": "FRONT_DESK", "name": "Recepcion", "description": "Contacto directo"}], "activeOperations": []}
+{"currentMessage": "Masaje herbal el 2026-10-03", "conversationLocale": "en", "pendingCapture": {"pendingOffering": "SPA", "capturedFields": {}, "spaDraft": {"id": "80000000-0000-4000-8000-000000000001", "capturedFields": {}, "unresolvedFields": {}, "awaitingConfirmation": false}}, "pendingSelection": null, "maintenanceRequests": [], "roomServiceOrders": [], "lastAssistantMessage": null, "offerings": [{"code": "ROOM_SERVICE", "name": "Servicio a la habitacion", "description": "Alimentos y bebidas"}, {"code": "SPA", "name": "Reservación de spa", "description": "Servicios y tratamientos de SPA"}, {"code": "FAQ", "name": "Preguntas frecuentes", "description": "Información y políticas del hotel"}, {"code": "MAINTENANCE", "name": "Mantenimiento", "description": "Reparaciones y problemas en las instalaciones"}, {"code": "FRONT_DESK", "name": "Recepcion", "description": "Contacto directo"}], "activeOperations": []}

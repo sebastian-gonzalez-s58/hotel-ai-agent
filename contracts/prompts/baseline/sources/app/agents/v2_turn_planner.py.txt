@@ -12,6 +12,7 @@ from pydantic import ValidationError
 from app.core.config import settings
 from app.core.errors import AgentModelError
 from app.agents.v2_scope_router import ScopeDecision, classify_hotel_scope
+from app.agents.maintenance_recurrence import plan_maintenance_recurrence
 from app.agents.room_service_status import existing_order_message, resolve_order, status_message
 from app.agents.social_opening import classify_social_opening
 from app.agents.schema_validation import satisfies_schema
@@ -67,6 +68,14 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
             response.detectedLanguage = language_decision.locale if language_decision else None
             response = localize_response(request, response, started_at)
         return _bind_room_confirmation(request, response)
+    maintenance = plan_maintenance_recurrence(request, _latest_capture_state(request), latest)
+    if maintenance is not None:
+        response = _deterministic_turn_response(request, started_at, **maintenance)
+        response.languageDecision = language_decision
+        if language_enabled(request):
+            response.detectedLanguage = language_decision.locale if language_decision else None
+            response = localize_response(request, response, started_at)
+        return response
     pending_selection = pending_catalog_selection(request, _latest_capture_state(request))
     if pending_selection and latest is not None and not latest.interactionReplyId:
         code = pending_selection.exact_code(latest.text)
@@ -89,8 +98,11 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         if (language_enabled(request) and scope.kind == "SOCIAL" and not scope.languageChangeOnly
                 and request.availableOfferings and not scope.containsUnrelatedTopic):
             opening, opening_usage = classify_social_opening(latest.text)
+        maintenance = plan_maintenance_recurrence(request, _latest_capture_state(request), latest, scope)
         existing_message = existing_order_message(request, latest, scope, _latest_capture_state(request))
-        if existing_message is not None:
+        if maintenance is not None:
+            response = _deterministic_turn_response(request, started_at, **maintenance)
+        elif existing_message is not None:
             response = _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
                 messages=[existing_message], updated_summary=request.conversation.summary)
         elif (scope.replyAction == 'CONFIRM' and request.trigger.eventPayload.get('confirmationQueuedBeforePrompt') is True

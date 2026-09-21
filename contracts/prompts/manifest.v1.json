@@ -148,7 +148,10 @@
         "SC-009-room-state-es",
         "SC-009-cancelled-draft-es",
         "SC-009-cancelled-draft-en",
-        "SC-009-replaced-draft-submitted"
+        "SC-009-replaced-draft-submitted",
+        "SC-009-maintenance-recurrence-es",
+        "SC-009-maintenance-recurrence-en",
+        "SC-009-maintenance-timeout"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -186,7 +189,8 @@
         "tests/test_service_start_failures.py",
         "tests/test_conversation_regression_library.py",
         "tests/test_v2_service_start_acknowledgements.py",
-        "tests/test_room_service_status.py"
+        "tests/test_room_service_status.py",
+        "tests/test_maintenance_recurrence.py"
       ]
     },
     {
@@ -226,7 +230,10 @@
         "SC-009-room-state-es",
         "SC-009-cancelled-draft-es",
         "SC-009-cancelled-draft-en",
-        "SC-009-replaced-draft-submitted"
+        "SC-009-replaced-draft-submitted",
+        "SC-009-maintenance-recurrence-es",
+        "SC-009-maintenance-recurrence-en",
+        "SC-009-maintenance-timeout"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -253,7 +260,8 @@
         "tests/test_catalog_selection.py",
         "tests/test_multilingual_understanding.py",
         "tests/test_pending_language_switch.py",
-        "tests/test_room_service_status.py"
+        "tests/test_room_service_status.py",
+        "tests/test_maintenance_recurrence.py"
       ]
     },
     {

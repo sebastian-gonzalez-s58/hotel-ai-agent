@@ -1,6 +1,6 @@
 # Índice de conversaciones
 
-51 casos ligados a los 21 escenarios del contrato. Todos son obligatorios en Spring/H2.
+54 casos ligados a los 21 escenarios del contrato. Todos son obligatorios en Spring/H2.
 El replay Python declara por separado los pasos y comprobaciones que necesitan backend.
 
 | Caso | Conversación | Replay Python requerido |
@@ -20,6 +20,9 @@ El replay Python declara por separado los pasos y comprobaciones que necesitan b
 | [SC-009-delivered-buttons-en](fixtures/cases/SC-009-delivered-buttons-en.json) | Botones antiguos después de entrega (en) | Parcial |
 | [SC-009-delivered-buttons-es](fixtures/cases/SC-009-delivered-buttons-es.json) | Botones antiguos después de entrega (es) | Parcial |
 | [SC-009-double-space](fixtures/cases/SC-009-double-space.json) | Confirmación conserva identidad con espacios dobles | Parcial |
+| [SC-009-maintenance-recurrence-en](fixtures/cases/SC-009-maintenance-recurrence-en.json) | Historical maintenance resolution asks before opening a linked recurrence | Parcial |
+| [SC-009-maintenance-recurrence-es](fixtures/cases/SC-009-maintenance-recurrence-es.json) | Historical maintenance resolution asks before opening a linked recurrence | Parcial |
+| [SC-009-maintenance-timeout](fixtures/cases/SC-009-maintenance-timeout.json) | Historical maintenance resolution asks before opening a linked recurrence | Pendiente de backend |
 | [SC-009-replaced-draft-submitted](fixtures/cases/SC-009-replaced-draft-submitted.json) | Earlier draft version remains rejected after submitting its replacement | Parcial |
 | [SC-009-room-lifecycle-buttons](fixtures/cases/SC-009-room-lifecycle-buttons.json) | Used confirmation stays bound through kitchen review, acceptance and delivery | Parcial |
 | [SC-009-room-state-en](fixtures/cases/SC-009-room-state-en.json) | Room-service existing-order changes use persisted state (en) | Parcial |
