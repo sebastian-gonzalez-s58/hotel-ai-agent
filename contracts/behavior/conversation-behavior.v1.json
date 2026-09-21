@@ -1,0 +1,1291 @@
+{
+  "contractVersion": "1.0.0",
+  "scope": "sandbox",
+  "stage": "three_level_evaluation_partial",
+  "baseline": {
+    "agentBranch": "sandbox",
+    "agentCommit": "24f6d0be5cae9f07d79a6ce69c590cbb007569a0",
+    "recordedOn": "2026-09-20",
+    "testRun": "not_run_for_this_change"
+  },
+  "statusMeaning": {
+    "specified": "Requisito y escenario definidos; no constituye una prueba ejecutable ni evidencia de que sandbox cumpla.",
+    "partialEvidence": "La prueba existente cubre parte del comportamiento, con las limitaciones indicadas.",
+    "notEvaluated": "No se ha evaluado este escenario completo en sandbox. Un incidente en Telware no establece el resultado en sandbox.",
+    "fixturesOnly": "Conversaciones concretas definidas; requieren guiones o adaptadores para ejecutarse.",
+    "partialOffline": "Al menos un caso dispone de replay con respuestas sintéticas; no evalúa modelo real ni todos los niveles del escenario."
+  },
+  "rules": [
+    {
+      "id": "BC-001",
+      "title": "Conservar captura parcial",
+      "severity": "critical",
+      "owner": "agent",
+      "requirement": "Un dato respaldado por el huésped se conserva aunque falten otros campos. Un artículo sin cantidad sigue pendiente; no se descarta ni recibe una cantidad inventada.",
+      "sourcePaths": [
+        "app/services/input_understanding.py",
+        "app/prompts/input_policy.py",
+        "app/agents/v2_turn_planner.py"
+      ],
+      "scenarioIds": [
+        "SC-001",
+        "SC-002"
+      ]
+    },
+    {
+      "id": "BC-002",
+      "title": "Resolver respuestas según la pregunta pendiente",
+      "severity": "critical",
+      "owner": "agent",
+      "requirement": "Una respuesta breve completa el campo pendiente cuando hay un referente inequívoco. Si hay varios referentes plausibles, se pide distinguirlos sin modificar otras solicitudes.",
+      "sourcePaths": [
+        "app/agents/v2_scope_router.py",
+        "app/services/input_understanding.py",
+        "app/agents/spa_turns.py"
+      ],
+      "scenarioIds": [
+        "SC-001",
+        "SC-003",
+        "SC-015"
+      ]
+    },
+    {
+      "id": "BC-003",
+      "title": "Aplicar cambios únicamente a campos solicitados",
+      "severity": "critical",
+      "owner": "agent",
+      "requirement": "Cambiar cantidad, ubicación o un artículo conserva los campos, artículos y restricciones no modificados; eliminar un artículo no cancela todo el pedido.",
+      "sourcePaths": [
+        "app/agents/v2_turn_planner.py",
+        "app/services/catalog_selection.py",
+        "app/services/input_understanding.py"
+      ],
+      "scenarioIds": [
+        "SC-004",
+        "SC-005"
+      ]
+    },
+    {
+      "id": "BC-004",
+      "title": "Conservar solicitudes durante interrupciones",
+      "severity": "critical",
+      "owner": "shared",
+      "requirement": "Una FAQ, saludo, navegación o solicitud de otro servicio no borra borradores ni completa tareas ajenas. Retomar una solicitud recupera su progreso; si no está claro cuál, se pregunta.",
+      "sourcePaths": [
+        "app/agents/v2_turn_planner.py",
+        "app/agents/spa_turns.py"
+      ],
+      "scenarioIds": [
+        "SC-006",
+        "SC-015"
+      ]
+    },
+    {
+      "id": "BC-005",
+      "title": "Separar idioma de estado de negocio",
+      "severity": "critical",
+      "owner": "shared",
+      "requirement": "Un cambio de idioma conserva borradores y operaciones. Solo una solicitud expresa permite registrar la preferencia como EXPLICIT; una detección de idioma no es una preferencia explícita.",
+      "sourcePaths": [
+        "app/services/conversation_language.py",
+        "app/agents/v2_scope_router.py",
+        "app/prompts/v2_turn.py"
+      ],
+      "scenarioIds": [
+        "SC-007",
+        "SC-008"
+      ]
+    },
+    {
+      "id": "BC-006",
+      "title": "Confirmar la versión vigente y ejecutar una sola vez",
+      "severity": "critical",
+      "owner": "shared",
+      "requirement": "Cuando el offering exige confirmación, solo la aceptación inequívoca de la versión vigente habilita su ejecución. Una edición invalida la confirmación anterior; un reintento de la misma acción no crea otra operación. Diferencias inocuas de espacios no invalidan una aceptación válida.",
+      "sourcePaths": [
+        "app/agents/v2_turn_planner.py",
+        "app/agents/spa_turns.py",
+        "app/services/idempotency_cache.py"
+      ],
+      "scenarioIds": [
+        "SC-009",
+        "SC-010"
+      ]
+    },
+    {
+      "id": "BC-007",
+      "title": "Preguntar por lo realmente pendiente",
+      "severity": "critical",
+      "owner": "agent",
+      "requirement": "La aclaración identifica el campo faltante o ambiguo y permite responder solo ese dato. No exige repetir información válida ni presenta identificadores internos al huésped. Un fallo técnico no se describe como falta de información.",
+      "sourcePaths": [
+        "app/agents/spa_turns.py",
+        "app/agents/v2_turn_planner.py",
+        "app/services/input_understanding.py"
+      ],
+      "scenarioIds": [
+        "SC-001",
+        "SC-003",
+        "SC-011",
+        "SC-012"
+      ]
+    },
+    {
+      "id": "BC-008",
+      "title": "Respetar autorización y evidencia al usar herramientas",
+      "severity": "critical",
+      "owner": "shared",
+      "requirement": "Solo se proponen y ejecutan herramientas permitidas sobre offerings, operaciones y tareas autorizados, con versión y evidencia válidas. Una negación no confirma resolución; no se anuncia éxito antes de un resultado exitoso.",
+      "sourcePaths": [
+        "app/prompts/v2_turn.py",
+        "app/agents/v2_turn_planner.py"
+      ],
+      "scenarioIds": [
+        "SC-010",
+        "SC-015",
+        "SC-016"
+      ]
+    },
+    {
+      "id": "BC-009",
+      "title": "Recuperar errores sin borrar datos ni duplicar efectos",
+      "severity": "critical",
+      "owner": "shared",
+      "requirement": "Timeouts, traducciones fallidas y reintentos conservan datos previos. Un cambio no interpretado no puede confirmarse como aplicado. Reintentar presentación no vuelve a ejecutar herramientas de negocio.",
+      "sourcePaths": [
+        "app/services/input_understanding.py",
+        "app/services/localized_content.py",
+        "app/services/notification_localization.py"
+      ],
+      "scenarioIds": [
+        "SC-010",
+        "SC-012"
+      ]
+    },
+    {
+      "id": "BC-010",
+      "title": "Mantener continuidad con límites de identidad",
+      "severity": "critical",
+      "owner": "backend",
+      "requirement": "Un cambio técnico de ruta o sesión no descarta silenciosamente el trabajo retomable del mismo contacto, huésped y estancia. Una estancia o identidad distinta no hereda automáticamente historial ni borradores; los casos ambiguos requieren resolución explícita.",
+      "sourcePaths": [],
+      "scenarioIds": [
+        "SC-013",
+        "SC-014"
+      ]
+    },
+    {
+      "id": "BC-011",
+      "title": "Responder con conocimiento aprobado",
+      "severity": "critical",
+      "owner": "shared",
+      "requirement": "Las respuestas sobre hechos del hotel se sustentan en fuentes aprobadas del mismo tema. Ausencia, contradicción o cobertura incompleta exige atención humana, sin inventar hechos ni sustituirlos por los de otro servicio.",
+      "sourcePaths": [
+        "app/services/faq_grounding.py",
+        "app/prompts/v2_turn.py"
+      ],
+      "scenarioIds": [
+        "SC-017"
+      ]
+    },
+    {
+      "id": "BC-012",
+      "title": "Respetar la configuración de offerings",
+      "severity": "critical",
+      "owner": "shared",
+      "requirement": "Captura, opciones, enlaces y confirmación siguen la configuración vigente. Seleccionar por texto o botón la misma opción produce el mismo estado. Un servicio sin campos ni confirmación no genera preguntas adicionales.",
+      "sourcePaths": [
+        "app/services/catalog_selection.py",
+        "app/agents/v2_turn_planner.py",
+        "app/prompts/v2_turn.py"
+      ],
+      "scenarioIds": [
+        "SC-004",
+        "SC-018",
+        "SC-019"
+      ]
+    },
+    {
+      "id": "BC-013",
+      "title": "Preservar datos originales en presentación",
+      "severity": "critical",
+      "owner": "agent",
+      "requirement": "La traducción adapta texto de interfaz sin modificar nombres de productos o tratamientos, restricciones, cantidades, fechas, enlaces ni identificadores. La confirmación visible debe corresponder al estado que se ejecutará.",
+      "sourcePaths": [
+        "app/services/localized_content.py",
+        "app/services/notification_localization.py"
+      ],
+      "scenarioIds": [
+        "SC-009",
+        "SC-020"
+      ]
+    },
+    {
+      "id": "BC-014",
+      "title": "Procesar el mensaje y la solicitud correctos",
+      "severity": "critical",
+      "owner": "shared",
+      "requirement": "El turno usa su mensaje disparador y los resultados previos correspondientes. Mensajes posteriores o tareas antiguas no deben consumir la respuesta actual ni aportar una confirmación adelantada.",
+      "sourcePaths": [
+        "app/agents/v2_turn_planner.py",
+        "app/agents/spa_turns.py"
+      ],
+      "scenarioIds": [
+        "SC-015",
+        "SC-021"
+      ]
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "SC-001",
+      "title": "Producto y cantidad en mensajes separados",
+      "ruleIds": [
+        "BC-001",
+        "BC-002",
+        "BC-007"
+      ],
+      "origin": "anonymized_incident",
+      "status": "specified",
+      "executionStatus": "partial_offline",
+      "sandboxResult": "not_evaluated",
+      "setup": "ROOM_SERVICE activo, entrega ROOM ya capturada, sin artículos; idioma it.",
+      "steps": [
+        {
+          "event": "Huésped: Gorditas de pulpo",
+          "expected": [
+            "Conservar nombre del artículo con cantidad pendiente.",
+            "Preguntar solo cuántas unidades desea; no iniciar servicio."
+          ]
+        },
+        {
+          "event": "Huésped: Uno",
+          "expected": [
+            "Asignar cantidad 1 al artículo pendiente.",
+            "Presentar confirmación sin pedir nombre ni cantidad otra vez."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Descartar producto por faltar cantidad.",
+        "Interpretar Uno sin su referente.",
+        "Asignar cantidad por defecto antes de recibirla."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_multilingual_understanding.py",
+          "method": "UnderstandingFlowTest.test_missing_quantity_is_not_reported_as_technical_error_and_can_recover",
+          "coverage": "partial",
+          "limitation": "La prueba repite el nombre y la cantidad juntos; no cubre completar con Uno."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-001-split-quantity.json"
+      ]
+    },
+    {
+      "id": "SC-002",
+      "title": "Pedido con un artículo incompleto",
+      "ruleIds": [
+        "BC-001"
+      ],
+      "origin": "anonymized_incident",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "ROOM_SERVICE activo sin borrador; catálogo sintético.",
+      "steps": [
+        {
+          "event": "Huésped: Quiero gorditas y una sopa de pollo",
+          "expected": [
+            "Conservar gorditas con cantidad pendiente y sopa con cantidad 1.",
+            "No crear operación mientras falten campos requeridos."
+          ]
+        },
+        {
+          "event": "Completar las preguntas pendientes con cantidad 2 para gorditas y entrega ROOM",
+          "expected": [
+            "El estado final contiene 2 gorditas y 1 sopa.",
+            "No volver a pedir artículos ya identificados."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Eliminar la sopa al aclarar otro artículo.",
+        "Aceptar una lista vacía tras una extracción parcialmente válida."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model"
+      ],
+      "existingEvidence": [],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-002-partial-basket.json"
+      ]
+    },
+    {
+      "id": "SC-003",
+      "title": "Fecha y hora de spa por separado",
+      "ruleIds": [
+        "BC-002",
+        "BC-007"
+      ],
+      "origin": "anonymized_incident",
+      "status": "specified",
+      "executionStatus": "partial_offline",
+      "sandboxResult": "not_evaluated",
+      "setup": "SPA activo; reloj fijo 2026-10-01T10:00:00-06:00; tratamiento Masaje herbal.",
+      "steps": [
+        {
+          "event": "Huésped: Quiero Masaje herbal el 2026-10-03",
+          "expected": [
+            "Guardar tratamiento y fecha.",
+            "Preguntar únicamente la hora."
+          ]
+        },
+        {
+          "event": "Huésped: 6pm",
+          "expected": [
+            "Guardar hora local 18:00 sin modificar tratamiento ni fecha.",
+            "Presentar confirmación; no iniciar antes de confirmar."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Pedir de nuevo tratamiento o fecha.",
+        "Mostrar serviceName o reservationTime al huésped.",
+        "Resolver 6pm como una hora distinta de 18:00."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model"
+      ],
+      "existingEvidence": [],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-003-spa-split-time.json"
+      ]
+    },
+    {
+      "id": "SC-004",
+      "title": "Editar una ubicación ya capturada",
+      "ruleIds": [
+        "BC-003",
+        "BC-012"
+      ],
+      "origin": "anonymized_incident",
+      "status": "specified",
+      "executionStatus": "partial_offline",
+      "sandboxResult": "not_evaluated",
+      "setup": "Pedido con entrega POOL_1 y 1 taco sin cebolla; confirmación presentada; catálogo permite ROOM.",
+      "steps": [
+        {
+          "event": "Huésped selecciona CHANGE",
+          "expected": [
+            "Conservar artículos y ubicación mientras se identifica el cambio."
+          ]
+        },
+        {
+          "event": "Huésped: I want to receive in my room",
+          "expected": [
+            "Cambiar entrega a ROOM.",
+            "Conservar producto, cantidad y restricción.",
+            "Presentar nueva confirmación sin preguntar por los artículos."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Mantener POOL_1 después de aceptar el cambio.",
+        "Tratar la ubicación como un nuevo producto."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_catalog_selection.py",
+          "method": "CatalogSelectionTest.test_existing_order_is_preserved_and_confirmed_not_requested_again",
+          "coverage": "partial",
+          "limitation": "Cubre selección de ubicación faltante, no edición de una ubicación ya capturada."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-004-edit-location.json"
+      ]
+    },
+    {
+      "id": "SC-005",
+      "title": "Editar cantidad conservando restricciones",
+      "ruleIds": [
+        "BC-003"
+      ],
+      "origin": "successful_path",
+      "status": "specified",
+      "executionStatus": "partial_offline",
+      "sandboxResult": "not_evaluated",
+      "setup": "Pedido de 1 hamburguesa sin queso y 1 sopa; entrega ROOM.",
+      "steps": [
+        {
+          "event": "Huésped: Que sean dos hamburguesas",
+          "expected": [
+            "Cambiar solo la cantidad de hamburguesas a 2.",
+            "Conservar sin queso, la sopa y ROOM."
+          ]
+        },
+        {
+          "event": "Huésped: Quita la sopa",
+          "expected": [
+            "Eliminar únicamente la sopa.",
+            "Mantener pedido abierto y solicitar confirmación vigente."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Eliminar restricciones.",
+        "Cancelar toda la solicitud al quitar un artículo."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_multilingual_understanding.py",
+          "method": "OrderEvidenceTest.test_partial_edits_keep_untouched_items_and_allergies",
+          "coverage": "partial",
+          "limitation": "Verifica aplicación de extracción estructurada; no clasificación real de toda la conversación."
+        },
+        {
+          "path": "tests/test_multilingual_understanding.py",
+          "method": "OrderEvidenceTest.test_remove_one_item_is_not_cancelling_the_request",
+          "coverage": "partial",
+          "limitation": "Cubre la transformación de datos, no el recorrido integrado."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-005-edit-items.json"
+      ]
+    },
+    {
+      "id": "SC-006",
+      "title": "Interrumpir pedido con FAQ y recepción",
+      "ruleIds": [
+        "BC-004"
+      ],
+      "origin": "successful_path",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "Pedido incompleto con 2 tacos y entrega ROOM; FAQ y FRONT_DESK activos; una sola captura de pedido pendiente.",
+      "steps": [
+        {
+          "event": "Huésped pregunta por cierre de alberca",
+          "expected": [
+            "Responder con fuente aprobada o derivar si no la hay.",
+            "Mantener íntegro el borrador del pedido."
+          ]
+        },
+        {
+          "event": "Huésped solicita recepción",
+          "expected": [
+            "Crear únicamente la solicitud de recepción según su contrato.",
+            "Mantener el borrador del pedido."
+          ]
+        },
+        {
+          "event": "Huésped: Sigamos con mi pedido",
+          "expected": [
+            "Retomar datos guardados y pedir solo lo pendiente."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Reiniciar el pedido.",
+        "Usar la pregunta FAQ como artículo.",
+        "Completar tareas ajenas."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model",
+        "integration"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_front_desk_turns.py",
+          "method": "FrontDeskTurnsTest.test_other_draft_and_active_tasks_survive_selection_and_acknowledgement",
+          "coverage": "partial",
+          "limitation": "Cubre recepción con borrador existente; falta la secuencia completa con FAQ y reanudación."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-006-interrupt-resume.json",
+        "tests/conversation_regression/fixtures/cases/SC-006-partial-resume.json"
+      ]
+    },
+    {
+      "id": "SC-007",
+      "title": "Cambiar idioma durante captura",
+      "ruleIds": [
+        "BC-005"
+      ],
+      "origin": "successful_path",
+      "status": "specified",
+      "executionStatus": "partial_offline",
+      "sandboxResult": "not_evaluated",
+      "setup": "Pedido en español con entrega ROOM, producto identificado y cantidad pendiente.",
+      "steps": [
+        {
+          "event": "Huésped: Please speak English",
+          "expected": [
+            "Actualizar idioma como preferencia explícita con evidencia de ese mensaje.",
+            "Conservar campos y solicitud pendiente."
+          ]
+        },
+        {
+          "event": "Huésped: Two",
+          "expected": [
+            "Completar cantidad 2 del artículo pendiente.",
+            "Continuar en inglés sin mostrar un menú que reinicie la captura."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Borrar borrador al cambiar idioma.",
+        "Traducir códigos de catálogo."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model",
+        "integration"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_multilingual_foundation.py",
+          "method": "LanguagePolicyTest.test_switch_to_english_preserves_draft_without_restarting_menu",
+          "coverage": "partial",
+          "limitation": "Usa clasificación simulada; falta completar la captura y persistir en Spring."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-007-language-partial.json",
+        "tests/conversation_regression/fixtures/cases/SC-007-language-switch.json"
+      ]
+    },
+    {
+      "id": "SC-008",
+      "title": "No inventar preferencia explícita de idioma",
+      "ruleIds": [
+        "BC-005"
+      ],
+      "origin": "anonymized_incident",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "Sesión en inglés; pendiente cantidad de un artículo.",
+      "steps": [
+        {
+          "event": "Huésped: Uno",
+          "expected": [
+            "Completar cantidad según contexto sin registrar una solicitud explícita de idioma."
+          ]
+        },
+        {
+          "event": "Nuevo turno de captura: 1 tacos de pescado",
+          "expected": [
+            "Tratar como datos del pedido, no como una petición explícita de hablar inglés."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Emitir languageDecision.source=EXPLICIT sin solicitud expresa.",
+        "Cambiar idioma por un nombre de producto."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_multilingual_foundation.py",
+          "method": "LanguagePolicyTest.test_capture_values_and_uncertain_intents_do_not_change_language",
+          "coverage": "partial",
+          "limitation": "Prueba política con metadata construida; no detecta metadata inventada por el clasificador real."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-008-language-evidence.json"
+      ]
+    },
+    {
+      "id": "SC-009",
+      "title": "Confirmación con espacios y versión de borrador",
+      "ruleIds": [
+        "BC-006",
+        "BC-013"
+      ],
+      "origin": "anonymized_incident",
+      "status": "specified",
+      "executionStatus": "partial_offline",
+      "sandboxResult": "not_evaluated",
+      "setup": "Pedido contiene 1 Pechuga  Herbal (dos espacios), entrega ROOM; confirmación de esa versión ya presentada.",
+      "steps": [
+        {
+          "event": "Huésped pulsa CONFIRM vigente",
+          "expected": [
+            "Proponer y ejecutar una sola solicitud semánticamente idéntica al pedido presentado.",
+            "Aceptar normalización inocua de espacios sin perder identidad del producto."
+          ]
+        },
+        {
+          "event": "Rama independiente: huésped edita cantidad y pulsa el botón de una confirmación anterior",
+          "expected": [
+            "No ejecutar la versión anterior ni dar por confirmada la nueva.",
+            "Presentar o señalar la confirmación vigente."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Rechazar confirmación por espacios dobles.",
+        "Confirmar automáticamente la edición con evidencia de una versión anterior."
+      ],
+      "requiredLevels": [
+        "offline",
+        "integration"
+      ],
+      "existingEvidence": [],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-009-double-space.json",
+        "tests/conversation_regression/fixtures/cases/SC-009-stale-confirmation.json"
+      ]
+    },
+    {
+      "id": "SC-010",
+      "title": "Idempotencia y acuse veraz",
+      "ruleIds": [
+        "BC-006",
+        "BC-008",
+        "BC-009"
+      ],
+      "origin": "boundary",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "Solicitud autorizada y confirmada; backend y herramientas de prueba.",
+      "steps": [
+        {
+          "event": "Entregar dos veces el mismo evento y reintentar la misma llamada START_SERVICE",
+          "expected": [
+            "Una única operación y una única ejecución efectiva.",
+            "Reutilizar el resultado para el mismo identificador y argumentos."
+          ]
+        },
+        {
+          "event": "Reutilizar identificador con argumentos diferentes",
+          "expected": [
+            "Rechazar conflicto sin una segunda operación."
+          ]
+        },
+        {
+          "event": "Rama independiente: la herramienta falla",
+          "expected": [
+            "No afirmar al huésped que la solicitud ya fue creada."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Duplicar operaciones.",
+        "Tratar herramienta fallida como éxito."
+      ],
+      "requiredLevels": [
+        "offline",
+        "integration"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_v2_turn_endpoint.py",
+          "method": "V2TurnEndpointTest.test_returns_and_replays_same_turn",
+          "coverage": "partial",
+          "limitation": "Cubre caché del endpoint Python; no la ejecución efectiva en Spring."
+        },
+        {
+          "path": "tests/test_v2_turn_endpoint.py",
+          "method": "V2TurnEndpointTest.test_rejects_same_turn_id_with_different_payload",
+          "coverage": "partial",
+          "limitation": "Cubre conflicto en endpoint; falta integración de herramienta."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-010-duplicate-event.json",
+        "tests/conversation_regression/fixtures/cases/SC-010-idempotency-conflict.json",
+        "tests/conversation_regression/fixtures/cases/SC-010-tool-failure.json",
+        "tests/conversation_regression/fixtures/cases/SC-010-retry-after-commit.json"
+      ]
+    },
+    {
+      "id": "SC-011",
+      "title": "Aclaraciones específicas de spa",
+      "ruleIds": [
+        "BC-007"
+      ],
+      "origin": "anonymized_incident",
+      "status": "specified",
+      "executionStatus": "partial_offline",
+      "sandboxResult": "not_evaluated",
+      "setup": "SPA en inglés; una extracción marca únicamente el tratamiento como ambiguo.",
+      "steps": [
+        {
+          "event": "Agente debe solicitar aclaración",
+          "expected": [
+            "Preguntar qué tratamiento desea con nombre comprensible.",
+            "No solicitar fecha u hora para resolver un nombre."
+          ]
+        },
+        {
+          "event": "Rama independiente: solo fecha ambigua 03/04",
+          "expected": [
+            "Pedir distinguir la fecha, conservando tratamiento y hora válidos."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Mostrar identificadores de campos.",
+        "Repetir todos los datos.",
+        "Usar una pregunta de fecha para el nombre del tratamiento."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model"
+      ],
+      "existingEvidence": [],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-011-spa-date.json",
+        "tests/conversation_regression/fixtures/cases/SC-011-spa-name.json",
+        "tests/conversation_regression/fixtures/cases/SC-011-spa-treatment-alternatives.json"
+      ]
+    },
+    {
+      "id": "SC-012",
+      "title": "Fallo técnico durante edición o traducción",
+      "ruleIds": [
+        "BC-007",
+        "BC-009"
+      ],
+      "origin": "boundary",
+      "status": "specified",
+      "executionStatus": "partial_offline",
+      "sandboxResult": "not_evaluated",
+      "setup": "Pedido válido capturado; se inyectan fallos en dependencias, sin red externa.",
+      "steps": [
+        {
+          "event": "Huésped solicita cambiar cantidad; extracción devuelve timeout",
+          "expected": [
+            "Conservar datos previos.",
+            "Informar fallo temporal sin fingir que el usuario omitió datos.",
+            "No permitir confirmar como aplicado el cambio no entendido."
+          ]
+        },
+        {
+          "event": "Reintentar edición y obtener extracción válida",
+          "expected": [
+            "Aplicar cambio y presentar nueva confirmación."
+          ]
+        },
+        {
+          "event": "Rama independiente: falla localización después de ejecutar herramienta",
+          "expected": [
+            "Reintentar solo presentación; no ejecutar otra vez la herramienta."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Borrar artículos tras timeout.",
+        "Repetir START_SERVICE por fallo de traducción."
+      ],
+      "requiredLevels": [
+        "offline",
+        "integration"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_multilingual_understanding.py",
+          "method": "UnderstandingFlowTest.test_technical_failure_keeps_details_and_cannot_confirm_failed_edit",
+          "coverage": "partial",
+          "limitation": "Cubre fallo simulado y bloqueo; falta recuperación con persistencia."
+        },
+        {
+          "path": "tests/test_multilingual_foundation.py",
+          "method": "LocalizedContentTest.test_translation_timeout_defers_presentation_without_retrying_tools",
+          "coverage": "partial",
+          "limitation": "Cubre respuesta del agente; falta outbox real de prueba."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-012-failed-edit.json",
+        "tests/conversation_regression/fixtures/cases/SC-012-outbox-retry.json"
+      ]
+    },
+    {
+      "id": "SC-013",
+      "title": "Retomar tras cambio técnico de sesión",
+      "ruleIds": [
+        "BC-010"
+      ],
+      "origin": "anonymized_incident",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "Mismo contacto autenticado, huésped y estancia activa; una reserva inequívoca pendiente solo de hora; se fuerza cambio de ruta.",
+      "steps": [
+        {
+          "event": "Huésped: 18 hrs",
+          "expected": [
+            "Recuperar el borrador retomable o pedir una confirmación explícita de reanudación, sin perderlo.",
+            "Conservar tratamiento y fecha.",
+            "No tratar la respuesta como apertura sin contexto."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Descartar silenciosamente el borrador.",
+        "Inventar que realmente venció la ventana de WhatsApp solo por el close_reason interno."
+      ],
+      "requiredLevels": [
+        "integration"
+      ],
+      "existingEvidence": [],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-013-route-renewal.json"
+      ]
+    },
+    {
+      "id": "SC-014",
+      "title": "No heredar datos entre identidades o estancias",
+      "ruleIds": [
+        "BC-010"
+      ],
+      "origin": "boundary",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "Un contacto o número se reasigna a otro huésped, o empieza otra estancia.",
+      "steps": [
+        {
+          "event": "La nueva sesión solicita un servicio",
+          "expected": [
+            "Construir contexto para la identidad y estancia actuales.",
+            "No exponer ni ejecutar el borrador anterior.",
+            "Resolver explícitamente cualquier continuidad ambigua."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Copiar automáticamente datos de otro huésped o estancia."
+      ],
+      "requiredLevels": [
+        "integration"
+      ],
+      "existingEvidence": [],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-014-contact-reassignment.json",
+        "tests/conversation_regression/fixtures/cases/SC-014-new-stay.json"
+      ]
+    },
+    {
+      "id": "SC-015",
+      "title": "Dos tareas abiertas y respuesta ambigua",
+      "ruleIds": [
+        "BC-002",
+        "BC-004",
+        "BC-008",
+        "BC-014"
+      ],
+      "origin": "boundary",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "Mantenimiento espera resolución y spa espera decisión; ninguna referencia inequívoca en el último intercambio.",
+      "steps": [
+        {
+          "event": "Huésped: Sí",
+          "expected": [
+            "No completar automáticamente ninguna de las dos tareas.",
+            "Pedir identificar a cuál se refiere."
+          ]
+        },
+        {
+          "event": "Huésped elige mantenimiento y dice: No, sigue sin funcionar",
+          "expected": [
+            "Registrar no resuelto en mantenimiento con evidencia válida.",
+            "Mantener intacta la tarea de spa."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Resolver mantenimiento con una negación.",
+        "Consumir respuesta en la primera tarea por orden de base de datos."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model",
+        "integration"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_multilingual_understanding.py",
+          "method": "UnderstandingFlowTest.test_multiple_pending_tasks_require_target_for_generic_yes",
+          "coverage": "partial",
+          "limitation": "Cubre selección con contexto construido; falta persistencia y modelo real."
+        },
+        {
+          "path": "tests/test_multilingual_understanding.py",
+          "method": "UnderstandingFlowTest.test_multilingual_maintenance_decisions_and_negations",
+          "coverage": "partial",
+          "limitation": "Cubre decisiones simuladas; falta recorrido completo."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-015-ambiguous-tasks.json"
+      ]
+    },
+    {
+      "id": "SC-016",
+      "title": "Restricciones de herramientas y datos requeridos",
+      "ruleIds": [
+        "BC-008"
+      ],
+      "origin": "boundary",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "Offering exige campos y confirmación; operación existente versión 3; catálogo y política limitados.",
+      "steps": [
+        {
+          "event": "Plan propone herramienta prohibida, offering inexistente, versión 2 o evidencia ajena",
+          "expected": [
+            "Rechazar cada variante antes de mutar estado."
+          ]
+        },
+        {
+          "event": "Plan intenta iniciar sin campos requeridos o confirmación exigida",
+          "expected": [
+            "No crear solicitud ni anunciar éxito."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Aceptar IDs inventados.",
+        "Ejecutar acciones fuera de la política."
+      ],
+      "requiredLevels": [
+        "offline",
+        "integration"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_v2_turn_planner.py",
+          "method": "V2TurnPlannerTest.test_rejects_tool_not_in_policy",
+          "coverage": "partial",
+          "limitation": "Cubre validación Python; falta prueba contra backend."
+        },
+        {
+          "path": "tests/test_v2_turn_planner.py",
+          "method": "V2TurnPlannerTest.test_rejects_stale_or_mismatched_conversation_task_completion",
+          "coverage": "partial",
+          "limitation": "Cubre versiones del plan, no concurrencia del backend."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-016-forbidden-tool.json",
+        "tests/conversation_regression/fixtures/cases/SC-016-foreign-evidence.json",
+        "tests/conversation_regression/fixtures/cases/SC-016-missing-confirmation.json",
+        "tests/conversation_regression/fixtures/cases/SC-016-missing-input.json",
+        "tests/conversation_regression/fixtures/cases/SC-016-stale-version.json",
+        "tests/conversation_regression/fixtures/cases/SC-016-unknown-offering.json"
+      ]
+    },
+    {
+      "id": "SC-017",
+      "title": "FAQ exacta y derivación sin inventar",
+      "ruleIds": [
+        "BC-011"
+      ],
+      "origin": "successful_path",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "Fuente aprobada: la alberca cierra a 22:00; sin fuente aprobada sobre mascotas.",
+      "steps": [
+        {
+          "event": "Huésped: At what time does the pool close?",
+          "expected": [
+            "Buscar fuentes autorizadas y responder 22:00 en inglés sin extrapolar al hotel entero.",
+            "Registrar el flujo FAQ según el contrato del servicio."
+          ]
+        },
+        {
+          "event": "Huésped pregunta si admite mascotas",
+          "expected": [
+            "Derivar al personal sin inventar política."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Usar horario de alberca como horario del hotel.",
+        "Prometer un hecho no respaldado."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model",
+        "integration"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_multilingual_faq.py",
+          "method": "MultilingualFaqGroundingTest.test_wrong_subject_partial_question_and_conflicts_require_staff",
+          "coverage": "partial",
+          "limitation": "Verifica decisiones con salidas del modelo simuladas; falta conversación integrada."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-017-approved-faq.json",
+        "tests/conversation_regression/fixtures/cases/SC-017-unknown-faq.json"
+      ]
+    },
+    {
+      "id": "SC-018",
+      "title": "Recepción sin preguntas innecesarias",
+      "ruleIds": [
+        "BC-012"
+      ],
+      "origin": "successful_path",
+      "status": "specified",
+      "executionStatus": "partial_offline",
+      "sandboxResult": "not_evaluated",
+      "setup": "FRONT_DESK activo con cero campos requeridos y sin confirmación obligatoria.",
+      "steps": [
+        {
+          "event": "Huésped selecciona recepción",
+          "expected": [
+            "Proponer inicio directamente.",
+            "Tras éxito, informar referencia y contacto del personal; no darlo por resuelto."
+          ]
+        },
+        {
+          "event": "Rama independiente: configuración exige un campo o confirmación",
+          "expected": [
+            "Respetar ese nuevo requisito en lugar de aplicar el atajo anterior."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Inventar requisito de motivo en la configuración sin campos.",
+        "Ignorar requisitos configurados."
+      ],
+      "requiredLevels": [
+        "offline",
+        "integration"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_front_desk_turns.py",
+          "method": "FrontDeskTurnsTest.test_menu_choice_starts_without_capture_confirmation_or_model",
+          "coverage": "partial",
+          "limitation": "Cubre inicio propuesto; falta operación efectiva."
+        },
+        {
+          "path": "tests/test_front_desk_turns.py",
+          "method": "FrontDeskTurnsTest.test_does_not_bypass_offering_contract_or_tool_policy",
+          "coverage": "partial",
+          "limitation": "Cubre restricciones en Python."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-018-configured-front-desk.json",
+        "tests/conversation_regression/fixtures/cases/SC-018-direct-front-desk.json"
+      ]
+    },
+    {
+      "id": "SC-019",
+      "title": "Equivalencia entre botón y texto de catálogo",
+      "ruleIds": [
+        "BC-012"
+      ],
+      "origin": "successful_path",
+      "status": "specified",
+      "executionStatus": "partial_offline",
+      "sandboxResult": "not_evaluated",
+      "setup": "Offering sintético ENTREGA con SINGLE_SELECT y opciones autorizadas ROOM y POOL_1; variantes de idioma aprobadas.",
+      "steps": [
+        {
+          "event": "En ramas independientes seleccionar POOL_1 con botón, código, nombre y traducción",
+          "expected": [
+            "Obtener el mismo código y conservar datos ya capturados.",
+            "Mostrar enlace configurado cuando corresponda."
+          ]
+        },
+        {
+          "event": "Huésped: Pool 1 o habitación",
+          "expected": [
+            "Pedir aclaración y conservar borrador; no elegir arbitrariamente."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Inventar opciones o URL.",
+        "Depender de que el offering se llame ROOM_SERVICE."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_catalog_selection.py",
+          "method": "CatalogSelectionTest.test_typed_codes_and_labels_follow_the_exact_button_path",
+          "coverage": "partial",
+          "limitation": "Cubre opciones exactas con modelo simulado, no todas las frases libres."
+        },
+        {
+          "path": "tests/test_catalog_selection.py",
+          "method": "CatalogSelectionTest.test_generic_catalog_does_not_depend_on_room_service_codes",
+          "coverage": "partial",
+          "limitation": "Cubre offering sintético, no configuración cargada desde Spring."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-019-ambiguous-selection.json",
+        "tests/conversation_regression/fixtures/cases/SC-019-button.json",
+        "tests/conversation_regression/fixtures/cases/SC-019-code.json",
+        "tests/conversation_regression/fixtures/cases/SC-019-generic-offering.json",
+        "tests/conversation_regression/fixtures/cases/SC-019-translation.json"
+      ]
+    },
+    {
+      "id": "SC-020",
+      "title": "Traducción preserva datos y decisiones",
+      "ruleIds": [
+        "BC-013"
+      ],
+      "origin": "anonymized_incident",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "Pedido en español con Pechuga Herbal, sin nueces, cantidad 2, URL sintética y referencia ficticia.",
+      "steps": [
+        {
+          "event": "Cambiar idioma de presentación a inglés",
+          "expected": [
+            "Conservar nombre de producto, restricción, cantidad, URL, referencia y IDs.",
+            "Traducir únicamente la interfaz; la confirmación sigue representando el mismo pedido."
+          ]
+        },
+        {
+          "event": "Rama independiente: traducción excede límite de botón",
+          "expected": [
+            "Aplicar recuperación de presentación sin truncar datos operativos ni cambiar códigos."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Traducir el nombre del producto a otro nombre.",
+        "Omitir alergias o negaciones."
+      ],
+      "requiredLevels": [
+        "offline",
+        "live_model"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_multilingual_understanding.py",
+          "method": "OriginalDataLocalizationTest.test_order_names_and_restrictions_are_masked_before_translation",
+          "coverage": "partial",
+          "limitation": "Cubre protección de valores simulada, no resultado de traducción real."
+        },
+        {
+          "path": "tests/test_multilingual_foundation.py",
+          "method": "LocalizedContentTest.test_response_localization_never_changes_action_ids_or_operation_links",
+          "coverage": "partial",
+          "limitation": "Cubre metadatos preservados, no fidelidad semántica final."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-020-channel-limit.json",
+        "tests/conversation_regression/fixtures/cases/SC-020-preserve-product.json"
+      ]
+    },
+    {
+      "id": "SC-021",
+      "title": "Mensajes consecutivos y turno disparador",
+      "ruleIds": [
+        "BC-014"
+      ],
+      "origin": "boundary",
+      "status": "specified",
+      "executionStatus": "fixtures_only",
+      "sandboxResult": "not_evaluated",
+      "setup": "Mensajes de huésped A y B llegan antes de terminar el procesamiento de A.",
+      "steps": [
+        {
+          "event": "Procesar A con B ya persistido",
+          "expected": [
+            "Usar A como entrada vigente.",
+            "No usar B como evidencia de confirmación anticipada."
+          ]
+        },
+        {
+          "event": "Procesar B tras completar A",
+          "expected": [
+            "Incorporar estado y respuesta anterior completados; preservar orden coherente."
+          ]
+        }
+      ],
+      "forbidden": [
+        "Adelantar confirmación.",
+        "Procesar ambos con borradores contradictorios."
+      ],
+      "requiredLevels": [
+        "offline",
+        "integration"
+      ],
+      "existingEvidence": [
+        {
+          "path": "tests/test_spa_turns.py",
+          "method": "SpaTurnsTest.test_later_inbound_cannot_supply_confirmation_for_current_trigger",
+          "coverage": "partial",
+          "limitation": "Cubre recorte de contexto del agente; falta cola y snapshots Spring."
+        }
+      ],
+      "fixturePaths": [
+        "tests/conversation_regression/fixtures/cases/SC-021-queued-messages.json"
+      ]
+    }
+  ],
+  "library": {
+    "version": 1,
+    "readme": "tests/conversation_regression/README.md",
+    "index": "tests/conversation_regression/INDEX.md",
+    "baselineReport": "tests/conversation_regression/reports/sandbox-baseline.json",
+    "fullScenarioEvaluation": "pending",
+    "unitValidation": "342 tests: 332 passed, 10 opt-in skipped; 15 targeted backend tests passed",
+    "evaluation": {
+      "documentation": "docs/conversation-evaluation.md",
+      "runner": "tests/conversation_regression/evaluate.py",
+      "levels": [
+        "offline",
+        "live_model",
+        "integration"
+      ],
+      "coverage": "partial",
+      "reports": [
+        "tests/conversation_regression/reports/point3-offline-final.json",
+        "tests/conversation_regression/reports/point3-integration-final.json",
+        "tests/conversation_regression/reports/point3-live-connected.json",
+        "tests/conversation_regression/reports/point3-live-language.json"
+      ]
+    }
+  }
+}

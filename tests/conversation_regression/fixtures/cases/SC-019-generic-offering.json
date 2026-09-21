@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "id": "SC-019-generic-offering",
+  "scenario_id": "SC-019",
+  "title": "Catálogo no depende de ROOM_SERVICE",
+  "origin": "successful_path",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "configure",
+      "event": {
+        "kind": "backend",
+        "action": "activate_synthetic_catalog_offering",
+        "data": {
+          "offeringCode": "ENTREGA",
+          "requiredField": "location",
+          "options": [
+            "ROOM",
+            "POOL_1"
+          ]
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/activeOffering",
+          "op": "equals",
+          "value": "ENTREGA"
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "select",
+      "event": {
+        "kind": "guest",
+        "text": "Entrega",
+        "reply_id": "offering:ENTREGA"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "location",
+      "event": {
+        "kind": "guest",
+        "text": "Pool 1"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/location",
+          "op": "equals",
+          "value": "POOL_1"
+        }
+      ],
+      "review": [
+        "Equivalente al botón field:ENTREGA:location:POOL_1; no inventar opciones."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_AGENT_TURN",
+          "payload": {
+            "schemaVersion": "2.0",
+            "agentTurnId": "$AGENT_TURN_ID",
+            "disposition": "RESPONSE_READY",
+            "messages": [
+              {
+                "messageDraftId": "95000000-0000-4000-8000-000000000001",
+                "purpose": "CLARIFICATION",
+                "text": "Confirma la entrega en Pool 1.",
+                "language": "es-MX",
+                "operationIds": [],
+                "conversationTaskIds": []
+              }
+            ],
+            "toolCalls": [],
+            "updatedConversationSummary": "{\"pendingOffering\": \"ENTREGA\", \"capturedFields\": {\"location\": \"POOL_1\"}, \"awaitingExplicitConfirmation\": true}",
+            "warnings": [],
+            "usage": {
+              "model": "synthetic",
+              "inputTokens": 0,
+              "cachedInputTokens": 0,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

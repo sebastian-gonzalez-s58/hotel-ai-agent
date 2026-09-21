@@ -1,0 +1,7 @@
+# Initial repository owner. Before enforcing reviews, add an independent maintainer
+# with write access: an author cannot approve their own pull request.
+/.github/ @sebastian-gonzalez-s58
+/contracts/ @sebastian-gonzalez-s58
+/app/ @sebastian-gonzalez-s58
+/tests/ @sebastian-gonzalez-s58
+/requirements.txt @sebastian-gonzalez-s58

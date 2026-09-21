@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "baseline_index_sha256": "0ec85178bc0a0515bad9012da556dbb6598b3fd9eb069bc5b4318a168b8a2398",
+  "reason": "Complete all 43 Spring cases, preserve existing required tests and turns, and protect route continuation, task selection and queued confirmation fixes.",
+  "reviewer": "Codex local implementation review",
+  "human_approval": false,
+  "evidence": "docs/coverage21-prompt-review.md"
+}

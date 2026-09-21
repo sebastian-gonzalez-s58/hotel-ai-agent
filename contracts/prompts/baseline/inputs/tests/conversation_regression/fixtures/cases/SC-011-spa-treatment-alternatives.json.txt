@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "id": "SC-011-spa-treatment-alternatives",
+  "scenario_id": "SC-011",
+  "title": "Aclarar alternativas de tratamiento conservando fecha y hora",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "SPA",
+    "capturedFields": {
+      "reservationDate": "2026-10-03",
+      "reservationTime": "18:00"
+    },
+    "spaDraft": {
+      "id": "80000000-0000-4000-8000-000000000001",
+      "capturedFields": {
+        "reservationDate": "2026-10-03",
+        "reservationTime": "18:00"
+      },
+      "unresolvedFields": {},
+      "awaitingConfirmation": false
+    }
+  },
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "ambiguous",
+      "event": {
+        "kind": "guest",
+        "text": "I'd like either a massage or a facial; I haven't decided which."
+      },
+      "checks": [
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "serviceName"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "YYYY-MM-DD"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/spaDraft/capturedFields",
+          "op": "equals",
+          "value": {
+            "reservationDate": "2026-10-03",
+            "reservationTime": "18:00"
+          }
+        },
+        {
+          "path": "/state/spaDraft/unresolvedFields/serviceName",
+          "op": "exists"
+        },
+        {
+          "path": "/state/spaDraft/awaitingConfirmation",
+          "op": "equals",
+          "value": false
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "date"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "time"
+        }
+      ],
+      "review": [
+        "La pregunta debe referirse al tratamiento; una fecha no resuelve esta ambigüedad."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "I'd like either a massage or a facial; I haven't decided which.",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_SPA_EXTRACTION",
+          "payload": {
+            "serviceName": {
+              "status": "AMBIGUOUS",
+              "value": null,
+              "evidence": "I'd like either a massage or a facial; I haven't decided which.",
+              "confidence": 0.6
+            },
+            "reservationDate": {
+              "status": "UNCHANGED",
+              "value": null,
+              "evidence": null,
+              "confidence": 1
+            },
+            "reservationTime": {
+              "status": "UNCHANGED",
+              "value": null,
+              "evidence": null,
+              "confidence": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

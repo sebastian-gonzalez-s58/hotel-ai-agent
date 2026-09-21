@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "id": "SC-012-outbox-retry",
+  "scenario_id": "SC-012",
+  "title": "Traducción fallida no repite herramientas",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "desk",
+      "event": {
+        "kind": "guest",
+        "text": "Recepción",
+        "reply_id": "offering:FRONT_DESK"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "contains",
+          "value": "START_SERVICE"
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "execute",
+      "event": {
+        "kind": "backend",
+        "action": "execute_proposed_tools_then_fail_localization",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/createdOperations/FRONT_DESK",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/backend/outboxPending",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "retry",
+      "event": {
+        "kind": "backend",
+        "action": "retry_localization_successfully",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/createdOperations/FRONT_DESK",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/backend/outboxPending",
+          "op": "equals",
+          "value": 0
+        },
+        {
+          "path": "/backend/deliveryCount",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

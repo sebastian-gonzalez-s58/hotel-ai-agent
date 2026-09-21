@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "id": "SC-016-unknown-offering",
+  "scenario_id": "SC-016",
+  "title": "Rechazar unknown-offering",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "invalid-plan",
+      "event": {
+        "kind": "proposed_plan",
+        "action": "submit_invalid_plan",
+        "data": {
+          "violation": "unknown-offering",
+          "request_message": {
+            "messageId": "92000000-0000-4000-8000-000000000001",
+            "text": "Quiero hablar con recepción"
+          },
+          "tool_call": {
+            "toolCallId": "93000000-0000-4000-8000-000000000001",
+            "toolName": "START_SERVICE",
+            "targetOperationId": null,
+            "targetConversationTaskId": null,
+            "arguments": {
+              "offeringCode": "UNCONFIGURED_SERVICE",
+              "input": {}
+            },
+            "confidence": 1,
+            "evidenceMessageIds": [
+              "92000000-0000-4000-8000-000000000001"
+            ]
+          }
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/planRejected",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/mutationCount",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}
