@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "c3efe335d08f3f2879a444f0fd89a8609b31e8da78d4fd15ca7caf042dae98c0",
-  "reason": "Keep new maintenance complaints independent of closed history; explicit recurrence and prior mandatory coverage remain protected.",
+  "baseline_index_sha256": "beb57224205934de5e418ce6408916fb5e09f67cd4941c7ec02b9d1b338462f1",
+  "reason": "Persist reference selection across maintenance follow-up turns; all prior rules, anchors and mandatory coverage remain protected.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/maintenance-new-request-review.md"
+  "evidence": "docs/maintenance-reference-followup-review.md"
 }

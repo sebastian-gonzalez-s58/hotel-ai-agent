@@ -10,6 +10,14 @@ RESOLUTION = re.compile(r"^maintenance-resolution:([a-fA-F0-9-]{36}):(RESOLVED|N
 RECURRENCE = re.compile(r"^maintenance-recurrence:([a-fA-F0-9-]{36}):([a-f0-9]{32}):(CONFIRM|CANCEL)$")
 YES = {"si", "sí", "yes", "confirmar", "confirm", "sí, abrir folio", "open new request"}
 NO = {"no", "cancel", "cancelar", "ahora no", "not now"}
+REFERENCE_QUESTION = (
+    '¿A qué folio de mantenimiento te refieres? Así conservaré los datos del problema correcto.',
+    'Which maintenance request do you mean? That will let me preserve the correct issue details.',
+)
+UNKNOWN_REFERENCE = (
+    'No encuentro ese folio entre tus reportes de mantenimiento disponibles. Revisa el folio del mensaje de mantenimiento y envíamelo completo.',
+    'I cannot find that reference among your available maintenance requests. Please check the maintenance message and send its complete reference.',
+)
 
 
 def plan_maintenance_recurrence(request, state, latest, scope=None):
@@ -27,6 +35,17 @@ def plan_maintenance_recurrence(request, state, latest, scope=None):
                    and scope.maintenanceFollowUp == 'RECURRENCE'
                    and scope.maintenanceFollowUpConfidence >= .9
                    and scope.maintenanceFollowUpEvidence == latest.text)
+    operations = {str(o.operationId): o for o in [*request.recentOperations, *request.activeOperations]
+                  if o.offeringCode == 'MAINTENANCE'}
+    last_outbound = next((m for m in reversed(request.conversation.recentMessages)
+                          if m.direction == 'OUTBOUND'), None)
+    # Also recover conversations that asked this question before the state was persisted.
+    reference_prompt = bool(last_outbound and last_outbound.text in (*REFERENCE_QUESTION, *UNKNOWN_REFERENCE))
+    awaiting_reference = pending.get('phase') == 'AWAITING_REFERENCE' or (not pending and reference_prompt)
+
+    def referenced_operations():
+        return [o for o in operations.values() if o.referenceCode and re.search(
+            r'(?<![\w-])' + re.escape(o.referenceCode) + r'(?![\w-])', text, re.IGNORECASE)]
 
     def response(es, en, operation=None, summary=None, interaction=None):
         message = {'purpose': 'ANSWER', 'text': es if spanish else en,
@@ -78,19 +97,29 @@ def plan_maintenance_recurrence(request, state, latest, scope=None):
                 or pending.get('token') != recurrence[2]) and not context.get('recurrence'):
             return response('Esa confirmación ya no corresponde a una solicitud pendiente. Indícame si el problema volvió a presentarse.',
                             'That confirmation no longer belongs to a pending request. Please tell me if the issue has returned.')
-    elif not reply and pending and text in YES | NO:
+    elif not reply and awaiting_reference and reference_prompt and (
+            text in YES | NO or referenced_operations() or re.search(r'\b(?:req|test)-[\w-]+', text)):
+        if text in NO:
+            return response('De acuerdo. No abriré otro folio de mantenimiento.',
+                            'Understood. I will not open another maintenance request.', summary=summary(None))
+        candidates = referenced_operations()
+        allowed = pending.get('candidateOperationIds', list(operations))
+        if (len(candidates) != 1 or str(candidates[0].operationId) not in allowed
+                or text != (candidates[0].referenceCode or '').lower()):
+            return response(*(REFERENCE_QUESTION if text in YES else UNKNOWN_REFERENCE),
+                            summary=summary({'phase': 'AWAITING_REFERENCE', 'candidateOperationIds': allowed}))
+        source = candidates[0].model_dump(mode='json')
+    elif not reply and pending.get('source') and text in YES | NO:
         source = pending.get('source')
     elif written:
-        operations = {str(o.operationId): o for o in [*request.recentOperations, *request.activeOperations]
-                      if o.offeringCode == 'MAINTENANCE'}
         # An open maintenance confirmation must remain with its existing task.
         if any(o.pendingConversationTasks for o in operations.values()):
             return None
-        refs = [o for o in operations.values() if o.referenceCode and o.referenceCode.lower() in text]
+        refs = referenced_operations()
         candidates = refs if refs else list(operations.values())
         if len(candidates) != 1:
-            return response('¿A qué folio de mantenimiento te refieres? Así conservaré los datos del problema correcto.',
-                            'Which maintenance request do you mean? That will let me preserve the correct issue details.')
+            return response(*REFERENCE_QUESTION, summary=summary({
+                'phase': 'AWAITING_REFERENCE', 'candidateOperationIds': list(operations)}))
         source = candidates[0].model_dump(mode='json')
     elif reply.startswith(('maintenance-resolution:', 'maintenance-recurrence:')):
         return response('No pude identificar ese botón de mantenimiento. Indícame el folio para revisar su estado.',
@@ -116,8 +145,8 @@ def plan_maintenance_recurrence(request, state, latest, scope=None):
         return response('El inicio anterior de mantenimiento quedó sin confirmar. Es necesario revisar su resultado antes de intentar abrir otro folio.',
                         'The previous maintenance start is unconfirmed. Its result must be checked before attempting another request.', source)
     if source['lifecycle'] != 'COMPLETED':
-        return response(f'El folio {ref} sigue en seguimiento. Ese botón es de una revisión anterior; no abrí otro folio.',
-                        f'Request {ref} is still being followed up. That button is from an earlier review; I did not open another request.', source)
+        return response(f'El folio {ref} sigue en seguimiento. No abrí otro folio.',
+                        f'Request {ref} is still being followed up. I did not open another request.', source, summary(None))
     cancelled = bool(recurrence and recurrence[3] == 'CANCEL' or not reply and pending and text in NO)
     if cancelled:
         return response('De acuerdo. No abriré otro folio de mantenimiento.',

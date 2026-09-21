@@ -157,7 +157,9 @@
         "SC-009-maintenance-new-menu-en",
         "SC-009-maintenance-new-direct-en",
         "SC-009-maintenance-hypothetical-es",
-        "SC-009-maintenance-hypothetical-en"
+        "SC-009-maintenance-hypothetical-en",
+        "SC-009-maintenance-reference-es",
+        "SC-009-maintenance-reference-en"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -197,7 +199,8 @@
         "tests/test_v2_service_start_acknowledgements.py",
         "tests/test_room_service_status.py",
         "tests/test_maintenance_recurrence.py",
-        "tests/test_maintenance_new_request.py"
+        "tests/test_maintenance_new_request.py",
+        "tests/test_maintenance_reference_followup.py"
       ]
     },
     {
@@ -246,7 +249,9 @@
         "SC-009-maintenance-new-menu-en",
         "SC-009-maintenance-new-direct-en",
         "SC-009-maintenance-hypothetical-es",
-        "SC-009-maintenance-hypothetical-en"
+        "SC-009-maintenance-hypothetical-en",
+        "SC-009-maintenance-reference-es",
+        "SC-009-maintenance-reference-en"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -275,7 +280,8 @@
         "tests/test_pending_language_switch.py",
         "tests/test_room_service_status.py",
         "tests/test_maintenance_recurrence.py",
-        "tests/test_maintenance_new_request.py"
+        "tests/test_maintenance_new_request.py",
+        "tests/test_maintenance_reference_followup.py"
       ]
     },
     {

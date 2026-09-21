@@ -1,0 +1,1513 @@
+{
+  "recordedAt": "2026-09-21T20:42:37.073783+00:00",
+  "status": "PASS",
+  "gate": {
+    "status": "PASS",
+    "started_at": "2026-09-21T20:36:32.005388+00:00",
+    "stages": {
+      "prompt-contract": {
+        "status": "PASS",
+        "result": {
+          "baseline_index_sha256": "beb57224205934de5e418ce6408916fb5e09f67cd4941c7ec02b9d1b338462f1",
+          "review": {
+            "version": 1,
+            "baseline_index_sha256": "beb57224205934de5e418ce6408916fb5e09f67cd4941c7ec02b9d1b338462f1",
+            "reason": "Persist reference selection across maintenance follow-up turns; all prior rules, anchors and mandatory coverage remain protected.",
+            "reviewer": "Codex local implementation review",
+            "human_approval": false,
+            "evidence": "docs/maintenance-reference-followup-review.md"
+          },
+          "limitation": "Recorded implementation review; independent approval is enforced by repository rules."
+        }
+      },
+      "agent-unit": {
+        "status": "PASS",
+        "result": {
+          "passed": 468,
+          "skipped": [
+            "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
+            "tests.test_menu_localization.LiveMenuLocalizationTest.test_initial_english_menu_from_spanish_offerings",
+            "tests.test_menu_localization.LiveMenuLocalizationTest.test_scope_distinguishes_openings_from_specific_requests_and_social_closings",
+            "tests.test_menu_localization.LiveMenuLocalizationTest.test_translation_respects_small_limits_for_custom_labels",
+            "tests.test_menu_localization.LiveMenuLocalizationTest.test_typo_after_previous_welcome_still_returns_menu",
+            "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_explicit_separate_order_is_still_allowed",
+            "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_kitchen_replacement_completes_existing_task",
+            "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_maintenance_negation_does_not_confirm_resolution",
+            "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_polite_order_edit_and_confirmation",
+            "tests.test_v2_scope_live.LiveHotelScopeTest.test_scope_and_existing_workflows"
+          ]
+        }
+      },
+      "offline-conversations": {
+        "status": "PASS",
+        "result": {
+          "counts": {
+            "OFFLINE_PARTIAL_PASS": 53,
+            "NOT_RUN": 9
+          },
+          "pending": [
+            {
+              "id": "SC-009-cancelled-draft-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "cancel-current": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-cancelled-draft-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "cancel-current": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-delivered-buttons-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "used-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "unversioned-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-change": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-confirm": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-delivered-buttons-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "used-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "unversioned-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-change": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-confirm": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-hypothetical-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "ask": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 0
+                  },
+                  {
+                    "path": "/backend/createdOperations/FAQ",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-hypothetical-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "ask": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 0
+                  },
+                  {
+                    "path": "/backend/createdOperations/FAQ",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-new-direct-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "describe": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-new-direct-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "describe": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-new-menu-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "select": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "describe": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-new-menu-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "select": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "describe": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-recurrence-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "close",
+                "old-negative",
+                "decline",
+                "cancelled-confirmation",
+                "ask-again",
+                "confirm-recurrence",
+                "inspect",
+                "duplicate-old-button"
+              ],
+              "checks_pending": {
+                "resolve": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-recurrence-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "close",
+                "old-negative",
+                "decline",
+                "cancelled-confirmation",
+                "ask-again",
+                "confirm-recurrence",
+                "inspect",
+                "duplicate-old-button"
+              ],
+              "checks_pending": {
+                "resolve": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-reference-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "inspect",
+                "repeat-confirmation"
+              ],
+              "checks_pending": {
+                "report-persistence": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "wrong-reference": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "select-reference": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "confirm-recurrence": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-reference-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "inspect",
+                "repeat-confirmation"
+              ],
+              "checks_pending": {
+                "report-persistence": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "wrong-reference": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "select-reference": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "confirm-recurrence": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-timeout",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "close",
+                "old-negative",
+                "confirm-recurrence",
+                "inspect",
+                "duplicate-old-button"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-009-replaced-draft-submitted",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "previous-v1": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ],
+                "previous-v2": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-room-lifecycle-buttons",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "state-kitchen_review",
+                "kitchen_review-change",
+                "state-awaiting_delivery",
+                "awaiting_delivery-change",
+                "state-delivered",
+                "delivered-change",
+                "delivered-cancel",
+                "delivered-confirm"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-009-room-state-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "review-change": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "KITCHEN_REVIEW"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "review-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "KITCHEN_REVIEW"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "accepted-change": [
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/detailedStatus",
+                    "op": "equals",
+                    "value": "AWAITING_DELIVERY"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "accepted-cancel": [
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/detailedStatus",
+                    "op": "equals",
+                    "value": "AWAITING_DELIVERY"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "delivered-change": [
+                  {
+                    "path": "/backend/initialOperations/2/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "delivered-cancel": [
+                  {
+                    "path": "/backend/initialOperations/2/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-change": [
+                  {
+                    "path": "/backend/initialOperations/3/lifecycle",
+                    "op": "equals",
+                    "value": "CANCELLED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/detailedStatus",
+                    "op": "equals",
+                    "value": "CANCELLED_BY_KITCHEN"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-cancel": [
+                  {
+                    "path": "/backend/initialOperations/3/lifecycle",
+                    "op": "equals",
+                    "value": "CANCELLED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/detailedStatus",
+                    "op": "equals",
+                    "value": "CANCELLED_BY_KITCHEN"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-room-state-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "review-change": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "KITCHEN_REVIEW"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "review-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "KITCHEN_REVIEW"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "accepted-change": [
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/detailedStatus",
+                    "op": "equals",
+                    "value": "AWAITING_DELIVERY"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "accepted-cancel": [
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/detailedStatus",
+                    "op": "equals",
+                    "value": "AWAITING_DELIVERY"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "delivered-change": [
+                  {
+                    "path": "/backend/initialOperations/2/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "delivered-cancel": [
+                  {
+                    "path": "/backend/initialOperations/2/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-change": [
+                  {
+                    "path": "/backend/initialOperations/3/lifecycle",
+                    "op": "equals",
+                    "value": "CANCELLED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/detailedStatus",
+                    "op": "equals",
+                    "value": "CANCELLED_BY_KITCHEN"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-cancel": [
+                  {
+                    "path": "/backend/initialOperations/3/lifecycle",
+                    "op": "equals",
+                    "value": "CANCELLED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/detailedStatus",
+                    "op": "equals",
+                    "value": "CANCELLED_BY_KITCHEN"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-010-duplicate-event",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "duplicate"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-010-idempotency-conflict",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "conflict"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-010-retry-after-commit",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "arm-loss",
+                "confirm",
+                "retry",
+                "used-after-recovery"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-012-outbox-retry",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "execute",
+                "retry"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-013-route-renewal",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "renew",
+                "time"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-014-contact-reassignment",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "transition",
+                "new-request"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-014-new-stay",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "transition",
+                "new-request"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-015-ambiguous-tasks",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "ambiguous": [
+                  {
+                    "path": "/backend/tasks/MAINTENANCE/status",
+                    "op": "equals",
+                    "value": "OPEN"
+                  },
+                  {
+                    "path": "/backend/tasks/SPA/status",
+                    "op": "equals",
+                    "value": "OPEN"
+                  }
+                ],
+                "negative": [
+                  {
+                    "path": "/backend/tasks/MAINTENANCE/status",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/tasks/MAINTENANCE/result/resolved",
+                    "op": "equals",
+                    "value": false
+                  },
+                  {
+                    "path": "/backend/tasks/SPA/status",
+                    "op": "equals",
+                    "value": "OPEN"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-forbidden-tool",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-foreign-evidence",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-missing-confirmation",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-missing-input",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-stale-version",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-unknown-offering",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-017-approved-faq",
+              "status": "NOT_RUN",
+              "not_run_steps": [],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-018-configured-front-desk",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "configure",
+                "desk"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-019-generic-offering",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "configure",
+                "select",
+                "location"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-020-channel-limit",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "translation"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-021-queued-messages",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "queue",
+                "first",
+                "second",
+                "fresh-confirmation"
+              ],
+              "checks_pending": {}
+            }
+          ]
+        }
+      },
+      "backend-unit": {
+        "status": "PASS",
+        "result": {
+          "passed": 588,
+          "skipped": [
+            "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
+          ]
+        }
+      },
+      "spring-conversations": {
+        "status": "PASS",
+        "result": {
+          "counts": {
+            "INTEGRATION_PARTIAL_PASS": 62
+          },
+          "pending": []
+        }
+      }
+    },
+    "live_model": "NOT_RUN: explicit separate authorization required",
+    "deployment_authorized": false,
+    "sources": {
+      "agent": {
+        "git_head": "d5b3772a2a7c80580b76eed60586c37cbd18c6c6",
+        "inputs_sha256": "4caa7598c33a69bc762ac429d378041f056c839e3e4f63d2b57f710ad82e107f"
+      },
+      "backend": {
+        "git_head": "da0d0c1df6bf049a0eaf94239a6dec8e58a517e7",
+        "inputs_sha256": "877ca76a3f342d2da6e2aab7b90a82a9844cf6842565deb3f9fca71871c417b6"
+      }
+    },
+    "finished_at": "2026-09-21T20:41:52.517596+00:00"
+  },
+  "modelCalls": 0,
+  "liveModel": "NOT_RUN: deterministic state fix; prompts/model unchanged",
+  "previousVersionCheck": "New multi-turn ES/EN test fails on deployed HEAD because maintenance reference-selection state is absent.",
+  "initialGateAttempt": {
+    "path": "target/ci/maintenance-reference-gate/summary.json",
+    "status": "BLOCKED",
+    "reason": "Restricted subprocess git rev-parse failed before any test stage; full gate rerun with approved local execution."
+  },
+  "whatsapp": "PENDING: user will verify from their phone; no guest messages sent by automation."
+}
