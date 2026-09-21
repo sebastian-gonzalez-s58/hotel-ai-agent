@@ -1,6 +1,6 @@
 # Índice de conversaciones
 
-62 casos ligados a los 21 escenarios del contrato. Todos son obligatorios en Spring/H2.
+68 casos ligados a los 21 escenarios del contrato. Todos son obligatorios en Spring/H2.
 El replay Python declara por separado los pasos y comprobaciones que necesitan backend.
 
 | Caso | Conversación | Replay Python requerido |
@@ -40,6 +40,12 @@ El replay Python declara por separado los pasos y comprobaciones que necesitan b
 | [SC-010-idempotency-conflict](fixtures/cases/SC-010-idempotency-conflict.json) | Mismo ID con otros argumentos | Parcial |
 | [SC-010-retry-after-commit](fixtures/cases/SC-010-retry-after-commit.json) | Reintento tras perder el resultado de un servicio ya creado | Parcial |
 | [SC-010-tool-failure](fixtures/cases/SC-010-tool-failure.json) | Fallo de inicio conserva el pedido y no anuncia éxito | Parcial |
+| [SC-011-reservation-cancel-en](fixtures/cases/SC-011-reservation-cancel-en.json) | Confirmed reservation cancel: decline, reconfirm, execute once and reject old buttons (en) | Parcial |
+| [SC-011-reservation-cancel-es](fixtures/cases/SC-011-reservation-cancel-es.json) | Confirmed reservation cancel: decline, reconfirm, execute once and reject old buttons (es) | Parcial |
+| [SC-011-reservation-change-en](fixtures/cases/SC-011-reservation-change-en.json) | Confirmed reservation change: decline, reconfirm, execute once and reject old buttons (en) | Parcial |
+| [SC-011-reservation-change-es](fixtures/cases/SC-011-reservation-change-es.json) | Confirmed reservation change: decline, reconfirm, execute once and reject old buttons (es) | Parcial |
+| [SC-011-reservation-terminal-en](fixtures/cases/SC-011-reservation-terminal-en.json) | Old menus cannot reactivate cancelled or completed reservations (en) | Parcial |
+| [SC-011-reservation-terminal-es](fixtures/cases/SC-011-reservation-terminal-es.json) | Old menus cannot reactivate cancelled or completed reservations (es) | Parcial |
 | [SC-011-spa-date](fixtures/cases/SC-011-spa-date.json) | Fecha ambigua conserva otros campos | Parcial |
 | [SC-011-spa-name](fixtures/cases/SC-011-spa-name.json) | Aclarar tratamiento sin pedir fecha | Parcial |
 | [SC-011-spa-treatment-alternatives](fixtures/cases/SC-011-spa-treatment-alternatives.json) | Aclarar alternativas de tratamiento conservando fecha y hora | Parcial |

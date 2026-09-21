@@ -159,7 +159,13 @@
         "SC-009-maintenance-hypothetical-es",
         "SC-009-maintenance-hypothetical-en",
         "SC-009-maintenance-reference-es",
-        "SC-009-maintenance-reference-en"
+        "SC-009-maintenance-reference-en",
+        "SC-011-reservation-change-es",
+        "SC-011-reservation-cancel-es",
+        "SC-011-reservation-terminal-es",
+        "SC-011-reservation-change-en",
+        "SC-011-reservation-cancel-en",
+        "SC-011-reservation-terminal-en"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -200,7 +206,8 @@
         "tests/test_room_service_status.py",
         "tests/test_maintenance_recurrence.py",
         "tests/test_maintenance_new_request.py",
-        "tests/test_maintenance_reference_followup.py"
+        "tests/test_maintenance_reference_followup.py",
+        "tests/test_reservation_actions.py"
       ]
     },
     {
@@ -251,7 +258,13 @@
         "SC-009-maintenance-hypothetical-es",
         "SC-009-maintenance-hypothetical-en",
         "SC-009-maintenance-reference-es",
-        "SC-009-maintenance-reference-en"
+        "SC-009-maintenance-reference-en",
+        "SC-011-reservation-change-es",
+        "SC-011-reservation-cancel-es",
+        "SC-011-reservation-terminal-es",
+        "SC-011-reservation-change-en",
+        "SC-011-reservation-cancel-en",
+        "SC-011-reservation-terminal-en"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -281,7 +294,8 @@
         "tests/test_room_service_status.py",
         "tests/test_maintenance_recurrence.py",
         "tests/test_maintenance_new_request.py",
-        "tests/test_maintenance_reference_followup.py"
+        "tests/test_maintenance_reference_followup.py",
+        "tests/test_reservation_actions.py"
       ]
     },
     {
@@ -341,7 +355,13 @@
         "SC-015-ambiguous-tasks",
         "SC-020-channel-limit",
         "SC-020-preserve-product",
-        "SC-006-partial-resume"
+        "SC-006-partial-resume",
+        "SC-011-reservation-change-es",
+        "SC-011-reservation-cancel-es",
+        "SC-011-reservation-terminal-es",
+        "SC-011-reservation-change-en",
+        "SC-011-reservation-cancel-en",
+        "SC-011-reservation-terminal-en"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -363,7 +383,8 @@
       ],
       "unit_files": [
         "tests/test_spa_turns.py",
-        "tests/test_multilingual_understanding.py"
+        "tests/test_multilingual_understanding.py",
+        "tests/test_reservation_actions.py"
       ]
     },
     {

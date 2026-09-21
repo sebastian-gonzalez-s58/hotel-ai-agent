@@ -1,0 +1,245 @@
+{
+  "schema_version": 1,
+  "id": "SC-011-reservation-change-es",
+  "scenario_id": "SC-011",
+  "title": "Confirmed reservation change: decline, reconfirm, execute once and reject old buttons (es)",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "initial_operations": [
+    {
+      "operationId": "90000000-0000-4000-8000-000000000001",
+      "referenceCode": "TEST-OP-1",
+      "offeringCode": "SPA",
+      "lifecycle": "ACTIVE",
+      "detailedStatus": "RESERVATION_CONFIRMED",
+      "summary": "Confirmed SPA booking",
+      "input": {
+        "serviceName": "Herbal massage",
+        "reservationDate": "2026-10-03",
+        "reservationTime": "17:00"
+      },
+      "availableActions": [
+        {
+          "actionCode": "RESERVATION_CHANGE",
+          "description": "CHANGE",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false
+          },
+          "requiresExplicitGuestConfirmation": true
+        },
+        {
+          "actionCode": "RESERVATION_CANCEL",
+          "description": "CANCEL",
+          "inputSchema": {
+            "type": "object",
+            "additionalProperties": false
+          },
+          "requiresExplicitGuestConfirmation": true
+        }
+      ],
+      "pendingConversationTasks": [],
+      "version": 1
+    }
+  ],
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "request",
+      "event": {
+        "kind": "guest",
+        "text": "Quiero cambiar mi reserva de spa"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "STATUS_REQUEST",
+            "offeringCode": "SPA",
+            "relevantText": "Quiero cambiar mi reserva de spa",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "CHANGE",
+            "replyActionEvidence": "Quiero cambiar mi reserva de spa",
+            "replyActionConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "decline",
+      "event": {
+        "kind": "guest",
+        "text": "Not now",
+        "reply_id": "reservation-confirm:DECLINE",
+        "reply_from_turn": 1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "old-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Confirm",
+        "reply_id": "reservation-confirm:CHANGE",
+        "reply_from_turn": 1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "request-again",
+      "event": {
+        "kind": "guest",
+        "text": "Quiero cambiar mi reserva de spa",
+        "reply_id": "reservation:90000000-0000-4000-8000-000000000001:CHANGE"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "confirm-current",
+      "event": {
+        "kind": "guest",
+        "text": "Confirm",
+        "reply_id": "reservation-confirm:CHANGE",
+        "reply_from_turn": 4
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "EXECUTE_SERVICE_ACTION"
+          ]
+        },
+        {
+          "path": "/tools/0/arguments/actionCode",
+          "op": "equals",
+          "value": "RESERVATION_CHANGE"
+        },
+        {
+          "path": "/backend/initialOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "ACTION_RESERVATION_CHANGE_REQUESTED"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "inspect",
+      "event": {
+        "kind": "backend",
+        "action": "inspect_reservation_action",
+        "data": {
+          "operationId": "90000000-0000-4000-8000-000000000001"
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/executedReservationActions",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/backend/reservationReplayDidNotDuplicate",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "repeat-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Confirm",
+        "reply_id": "reservation-confirm:CHANGE",
+        "reply_from_turn": 4
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        },
+        {
+          "path": "/backend/executedReservationActions",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

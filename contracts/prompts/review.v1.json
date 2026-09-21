@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "beb57224205934de5e418ce6408916fb5e09f67cd4941c7ec02b9d1b338462f1",
-  "reason": "Persist reference selection across maintenance follow-up turns; all prior rules, anchors and mandatory coverage remain protected.",
+  "baseline_index_sha256": "23ad64638395daebb817f9551f1dc92ef15c6d740892e6fd30ab592b62288071",
+  "reason": "Manage SPA bookings after staff acceptance with fresh confirmations; all prior rules, anchors and mandatory coverage remain protected.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/maintenance-reference-followup-review.md"
+  "evidence": "docs/spa-reservation-lifecycle-review.md"
 }

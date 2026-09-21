@@ -1,0 +1,2982 @@
+{
+  "recordedAt": "2026-09-21T22:56:16.694397+00:00",
+  "status": "PASS",
+  "gate": {
+    "status": "PASS",
+    "started_at": "2026-09-21T21:59:10.106885+00:00",
+    "stages": {
+      "prompt-contract": {
+        "status": "PASS",
+        "result": {
+          "baseline_index_sha256": "23ad64638395daebb817f9551f1dc92ef15c6d740892e6fd30ab592b62288071",
+          "review": {
+            "version": 1,
+            "baseline_index_sha256": "23ad64638395daebb817f9551f1dc92ef15c6d740892e6fd30ab592b62288071",
+            "reason": "Manage SPA bookings after staff acceptance with fresh confirmations; all prior rules, anchors and mandatory coverage remain protected.",
+            "reviewer": "Codex local implementation review",
+            "human_approval": false,
+            "evidence": "docs/spa-reservation-lifecycle-review.md"
+          },
+          "limitation": "Recorded implementation review; independent approval is enforced by repository rules."
+        }
+      },
+      "agent-unit": {
+        "status": "PASS",
+        "result": {
+          "passed": 479,
+          "skipped": [
+            "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
+            "tests.test_menu_localization.LiveMenuLocalizationTest.test_initial_english_menu_from_spanish_offerings",
+            "tests.test_menu_localization.LiveMenuLocalizationTest.test_scope_distinguishes_openings_from_specific_requests_and_social_closings",
+            "tests.test_menu_localization.LiveMenuLocalizationTest.test_translation_respects_small_limits_for_custom_labels",
+            "tests.test_menu_localization.LiveMenuLocalizationTest.test_typo_after_previous_welcome_still_returns_menu",
+            "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_explicit_separate_order_is_still_allowed",
+            "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_kitchen_replacement_completes_existing_task",
+            "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_maintenance_negation_does_not_confirm_resolution",
+            "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_polite_order_edit_and_confirmation",
+            "tests.test_v2_scope_live.LiveHotelScopeTest.test_scope_and_existing_workflows"
+          ]
+        }
+      },
+      "offline-conversations": {
+        "status": "PASS",
+        "result": {
+          "counts": {
+            "OFFLINE_PARTIAL_PASS": 59,
+            "NOT_RUN": 9
+          },
+          "pending": [
+            {
+              "id": "SC-009-cancelled-draft-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "cancel-current": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-cancelled-draft-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "cancel-current": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v1-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v2-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-confirm": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-change": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-v3-cancel": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-delivered-buttons-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "used-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "unversioned-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-change": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-confirm": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-delivered-buttons-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "used-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "unversioned-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-change": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "legacy-confirm": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-hypothetical-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "ask": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 0
+                  },
+                  {
+                    "path": "/backend/createdOperations/FAQ",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-hypothetical-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "ask": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 0
+                  },
+                  {
+                    "path": "/backend/createdOperations/FAQ",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-new-direct-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "describe": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-new-direct-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "describe": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-new-menu-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "select": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "describe": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-new-menu-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "select": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "describe": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/createdOperations/MAINTENANCE",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 1
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-recurrence-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "close",
+                "old-negative",
+                "decline",
+                "cancelled-confirmation",
+                "ask-again",
+                "confirm-recurrence",
+                "inspect",
+                "duplicate-old-button"
+              ],
+              "checks_pending": {
+                "resolve": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-recurrence-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "close",
+                "old-negative",
+                "decline",
+                "cancelled-confirmation",
+                "ask-again",
+                "confirm-recurrence",
+                "inspect",
+                "duplicate-old-button"
+              ],
+              "checks_pending": {
+                "resolve": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-reference-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "inspect",
+                "repeat-confirmation"
+              ],
+              "checks_pending": {
+                "report-persistence": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "wrong-reference": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "select-reference": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "confirm-recurrence": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-reference-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "inspect",
+                "repeat-confirmation"
+              ],
+              "checks_pending": {
+                "report-persistence": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "wrong-reference": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "select-reference": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "confirm-recurrence": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-maintenance-timeout",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "close",
+                "old-negative",
+                "confirm-recurrence",
+                "inspect",
+                "duplicate-old-button"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-009-replaced-draft-submitted",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "previous-v1": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ],
+                "previous-v2": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-room-lifecycle-buttons",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "state-kitchen_review",
+                "kitchen_review-change",
+                "state-awaiting_delivery",
+                "awaiting_delivery-change",
+                "state-delivered",
+                "delivered-change",
+                "delivered-cancel",
+                "delivered-confirm"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-009-room-state-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "review-change": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "KITCHEN_REVIEW"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "review-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "KITCHEN_REVIEW"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "accepted-change": [
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/detailedStatus",
+                    "op": "equals",
+                    "value": "AWAITING_DELIVERY"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "accepted-cancel": [
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/detailedStatus",
+                    "op": "equals",
+                    "value": "AWAITING_DELIVERY"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "delivered-change": [
+                  {
+                    "path": "/backend/initialOperations/2/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "delivered-cancel": [
+                  {
+                    "path": "/backend/initialOperations/2/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-change": [
+                  {
+                    "path": "/backend/initialOperations/3/lifecycle",
+                    "op": "equals",
+                    "value": "CANCELLED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/detailedStatus",
+                    "op": "equals",
+                    "value": "CANCELLED_BY_KITCHEN"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-cancel": [
+                  {
+                    "path": "/backend/initialOperations/3/lifecycle",
+                    "op": "equals",
+                    "value": "CANCELLED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/detailedStatus",
+                    "op": "equals",
+                    "value": "CANCELLED_BY_KITCHEN"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-009-room-state-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "review-change": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "KITCHEN_REVIEW"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "review-cancel": [
+                  {
+                    "path": "/backend/initialOperations/0/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "KITCHEN_REVIEW"
+                  },
+                  {
+                    "path": "/backend/initialOperations/0/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "accepted-change": [
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/detailedStatus",
+                    "op": "equals",
+                    "value": "AWAITING_DELIVERY"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "accepted-cancel": [
+                  {
+                    "path": "/backend/initialOperations/1/lifecycle",
+                    "op": "equals",
+                    "value": "WAITING_FOR_STAFF"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/detailedStatus",
+                    "op": "equals",
+                    "value": "AWAITING_DELIVERY"
+                  },
+                  {
+                    "path": "/backend/initialOperations/1/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "delivered-change": [
+                  {
+                    "path": "/backend/initialOperations/2/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "delivered-cancel": [
+                  {
+                    "path": "/backend/initialOperations/2/lifecycle",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/detailedStatus",
+                    "op": "equals",
+                    "value": "DELIVERED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/2/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-change": [
+                  {
+                    "path": "/backend/initialOperations/3/lifecycle",
+                    "op": "equals",
+                    "value": "CANCELLED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/detailedStatus",
+                    "op": "equals",
+                    "value": "CANCELLED_BY_KITCHEN"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "cancelled-cancel": [
+                  {
+                    "path": "/backend/initialOperations/3/lifecycle",
+                    "op": "equals",
+                    "value": "CANCELLED"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/detailedStatus",
+                    "op": "equals",
+                    "value": "CANCELLED_BY_KITCHEN"
+                  },
+                  {
+                    "path": "/backend/initialOperations/3/version",
+                    "op": "equals",
+                    "value": 3
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-010-duplicate-event",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "duplicate"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-010-idempotency-conflict",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "conflict"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-010-retry-after-commit",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "arm-loss",
+                "confirm",
+                "retry",
+                "used-after-recovery"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-011-reservation-cancel-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "inspect",
+                "repeat-confirmation"
+              ],
+              "checks_pending": {
+                "request": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "decline": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "old-confirmation": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "request-again": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "confirm-current": [
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "ACTION_RESERVATION_CANCEL_REQUESTED"
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-011-reservation-cancel-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "inspect",
+                "repeat-confirmation"
+              ],
+              "checks_pending": {
+                "request": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "decline": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "old-confirmation": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "request-again": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "confirm-current": [
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "ACTION_RESERVATION_CANCEL_REQUESTED"
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-011-reservation-change-en",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "inspect",
+                "repeat-confirmation"
+              ],
+              "checks_pending": {
+                "request": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "decline": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "old-confirmation": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "request-again": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "confirm-current": [
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "ACTION_RESERVATION_CHANGE_REQUESTED"
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-011-reservation-change-es",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "inspect",
+                "repeat-confirmation"
+              ],
+              "checks_pending": {
+                "request": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "decline": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "old-confirmation": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "request-again": [
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ],
+                "confirm-current": [
+                  {
+                    "path": "/backend/initialOperations/0/detailedStatus",
+                    "op": "equals",
+                    "value": "ACTION_RESERVATION_CHANGE_REQUESTED"
+                  },
+                  {
+                    "path": "/backend/processStarts",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-012-outbox-retry",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [
+                "execute",
+                "retry"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-013-route-renewal",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "renew",
+                "time"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-014-contact-reassignment",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "transition",
+                "new-request"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-014-new-stay",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "transition",
+                "new-request"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-015-ambiguous-tasks",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "ambiguous": [
+                  {
+                    "path": "/backend/tasks/MAINTENANCE/status",
+                    "op": "equals",
+                    "value": "OPEN"
+                  },
+                  {
+                    "path": "/backend/tasks/SPA/status",
+                    "op": "equals",
+                    "value": "OPEN"
+                  }
+                ],
+                "negative": [
+                  {
+                    "path": "/backend/tasks/MAINTENANCE/status",
+                    "op": "equals",
+                    "value": "COMPLETED"
+                  },
+                  {
+                    "path": "/backend/tasks/MAINTENANCE/result/resolved",
+                    "op": "equals",
+                    "value": false
+                  },
+                  {
+                    "path": "/backend/tasks/SPA/status",
+                    "op": "equals",
+                    "value": "OPEN"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-forbidden-tool",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-foreign-evidence",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-missing-confirmation",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-missing-input",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-stale-version",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-016-unknown-offering",
+              "status": "OFFLINE_PARTIAL_PASS",
+              "not_run_steps": [],
+              "checks_pending": {
+                "invalid-plan": [
+                  {
+                    "path": "/backend/planRejected",
+                    "op": "equals",
+                    "value": true
+                  },
+                  {
+                    "path": "/backend/mutationCount",
+                    "op": "equals",
+                    "value": 0
+                  }
+                ]
+              }
+            },
+            {
+              "id": "SC-017-approved-faq",
+              "status": "NOT_RUN",
+              "not_run_steps": [],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-018-configured-front-desk",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "configure",
+                "desk"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-019-generic-offering",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "configure",
+                "select",
+                "location"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-020-channel-limit",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "translation"
+              ],
+              "checks_pending": {}
+            },
+            {
+              "id": "SC-021-queued-messages",
+              "status": "NOT_RUN",
+              "not_run_steps": [
+                "queue",
+                "first",
+                "second",
+                "fresh-confirmation"
+              ],
+              "checks_pending": {}
+            }
+          ]
+        }
+      },
+      "backend-unit": {
+        "status": "PASS",
+        "result": {
+          "passed": 601,
+          "skipped": [
+            "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
+          ]
+        }
+      },
+      "spring-conversations": {
+        "status": "PASS",
+        "result": {
+          "counts": {
+            "INTEGRATION_PARTIAL_PASS": 68
+          },
+          "pending": []
+        }
+      }
+    },
+    "live_model": "NOT_RUN: explicit separate authorization required",
+    "deployment_authorized": false,
+    "sources": {
+      "agent": {
+        "git_head": "62a1d97335f8c6cbd2bdc7a9d69314d6665b7d8e",
+        "inputs_sha256": "d52c502426ad7493884b651b9bf9b49c4771f10c353b68166a3166ac24e372f2"
+      },
+      "backend": {
+        "git_head": "da0d0c1df6bf049a0eaf94239a6dec8e58a517e7",
+        "inputs_sha256": "fc6707522170cb24dcbf62a19b9010d9f498825c0c3d993c0119228078d0a2b4"
+      }
+    },
+    "finished_at": "2026-09-21T22:04:06.964639+00:00"
+  },
+  "liveModel": {
+    "status": "PASS",
+    "startedAt": "2026-09-21T22:28:05.011902+00:00",
+    "maxCalls": 12,
+    "attemptedCalls": 12,
+    "sources": {
+      "agent": {
+        "git_head": "62a1d97335f8c6cbd2bdc7a9d69314d6665b7d8e",
+        "inputs_sha256": "d52c502426ad7493884b651b9bf9b49c4771f10c353b68166a3166ac24e372f2"
+      },
+      "backend": {
+        "git_head": "da0d0c1df6bf049a0eaf94239a6dec8e58a517e7",
+        "inputs_sha256": "fc6707522170cb24dcbf62a19b9010d9f498825c0c3d993c0119228078d0a2b4"
+      }
+    },
+    "scope": "10 live scope checks and 2 live SPA field-edit checks, plus local confirmation/version checks. Negative cases validate intent classification and reservation-handler nonactivation. No hotel API, real reservation, notification, WhatsApp or deployment.",
+    "cases": [
+      {
+        "id": "scope-1",
+        "locale": "es-MX",
+        "message": "Quiero cancelar mi reserva de spa",
+        "expected": "CANCEL",
+        "scope": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "Quiero cancelar mi reserva de spa",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.99,
+          "detectedLanguage": "es-MX",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "CANCEL",
+          "replyActionEvidence": "Quiero cancelar mi reserva de spa",
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0.0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "reservationHandlerActivated": true,
+        "passed": true,
+        "response": {
+          "schemaVersion": "2.0",
+          "agentTurnId": "10000000-0000-0000-0000-000000000001",
+          "disposition": "RESPONSE_READY",
+          "detectedLanguage": null,
+          "languageDecision": null,
+          "roomServiceDraftEvent": null,
+          "messages": [
+            {
+              "messageDraftId": "1cb86b99-d29e-4de9-bdbb-757f5d8e3a89",
+              "purpose": "CLARIFICATION",
+              "text": "Reservación REQ-20260921-SYNTH001:\nServicio: Herbal massage\nFecha: 2026-10-03\nHora: 17:00 (hora del hotel)\n¿Confirmas que deseas cancelar esta reservación?",
+              "language": "es-MX",
+              "operationIds": [],
+              "conversationTaskIds": [],
+              "interaction": {
+                "type": "BUTTONS",
+                "title": null,
+                "body": "Reservación REQ-20260921-SYNTH001:\nServicio: Herbal massage\nFecha: 2026-10-03\nHora: 17:00 (hora del hotel)\n¿Confirmas que deseas cancelar esta reservación?",
+                "buttonText": "Elegir",
+                "options": [
+                  {
+                    "id": "reservation-confirm:b4fd90b4-ca41-4b3c-8e1e-ffe9992ba450:3:caf1907076214f9ea1c706d21e1e8117:CANCEL",
+                    "label": "Sí, cancelar"
+                  },
+                  {
+                    "id": "reservation-confirm:b4fd90b4-ca41-4b3c-8e1e-ffe9992ba450:3:caf1907076214f9ea1c706d21e1e8117:DECLINE",
+                    "label": "Ahora no"
+                  }
+                ]
+              }
+            }
+          ],
+          "toolCalls": [],
+          "updatedConversationSummary": "{}\n{\"reservationAction\":{\"operationId\":\"b4fd90b4-ca41-4b3c-8e1e-ffe9992ba450\",\"version\":3,\"token\":\"caf1907076214f9ea1c706d21e1e8117\",\"action\":\"CANCEL\"}}",
+          "usage": {
+            "model": "gpt-5.6-terra",
+            "inputTokens": 2802,
+            "cachedInputTokens": 0,
+            "outputTokens": 174,
+            "reasoningTokens": 0,
+            "totalTokens": 2976,
+            "latencyMs": 2
+          },
+          "warnings": []
+        },
+        "proposedToolsAfterFreshConfirmation": [
+          {
+            "toolCallId": "77fbfd1f-be65-4073-a0a3-37f73fd1f3e1",
+            "toolName": "EXECUTE_SERVICE_ACTION",
+            "targetOperationId": "b4fd90b4-ca41-4b3c-8e1e-ffe9992ba450",
+            "targetConversationTaskId": null,
+            "arguments": {
+              "operationId": "b4fd90b4-ca41-4b3c-8e1e-ffe9992ba450",
+              "expectedVersion": 3,
+              "actionCode": "RESERVATION_CANCEL",
+              "input": {},
+              "evidenceMessageIds": [
+                "424a0ed0-ab0e-4824-bd2f-c7892359c27d"
+              ]
+            },
+            "confidence": 1.0,
+            "evidenceMessageIds": [
+              "424a0ed0-ab0e-4824-bd2f-c7892359c27d"
+            ]
+          }
+        ],
+        "staleVersionBlocked": true
+      },
+      {
+        "id": "scope-2",
+        "locale": "en",
+        "message": "Please cancel my spa reservation",
+        "expected": "CANCEL",
+        "scope": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "Please cancel my spa reservation",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.99,
+          "detectedLanguage": "en",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "CANCEL",
+          "replyActionEvidence": "Please cancel my spa reservation",
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0.0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "reservationHandlerActivated": true,
+        "passed": true,
+        "response": {
+          "schemaVersion": "2.0",
+          "agentTurnId": "10000000-0000-0000-0000-000000000001",
+          "disposition": "RESPONSE_READY",
+          "detectedLanguage": null,
+          "languageDecision": null,
+          "roomServiceDraftEvent": null,
+          "messages": [
+            {
+              "messageDraftId": "963d7e9f-87f1-4711-9cb0-646947300254",
+              "purpose": "CLARIFICATION",
+              "text": "Reservation REQ-20260921-SYNTH001:\nService: Herbal massage\nDate: 2026-10-03\nTime: 17:00 (hotel local time)\nDo you confirm that you want to cancel this reservation?",
+              "language": "en",
+              "operationIds": [],
+              "conversationTaskIds": [],
+              "interaction": {
+                "type": "BUTTONS",
+                "title": null,
+                "body": "Reservation REQ-20260921-SYNTH001:\nService: Herbal massage\nDate: 2026-10-03\nTime: 17:00 (hotel local time)\nDo you confirm that you want to cancel this reservation?",
+                "buttonText": "Choose",
+                "options": [
+                  {
+                    "id": "reservation-confirm:d793d04b-57ce-40b5-9f49-edbb8154d36a:3:fd57e128fd674357b624e21f919f9ee6:CANCEL",
+                    "label": "Yes, cancel"
+                  },
+                  {
+                    "id": "reservation-confirm:d793d04b-57ce-40b5-9f49-edbb8154d36a:3:fd57e128fd674357b624e21f919f9ee6:DECLINE",
+                    "label": "Not now"
+                  }
+                ]
+              }
+            }
+          ],
+          "toolCalls": [],
+          "updatedConversationSummary": "{}\n{\"reservationAction\":{\"operationId\":\"d793d04b-57ce-40b5-9f49-edbb8154d36a\",\"version\":3,\"token\":\"fd57e128fd674357b624e21f919f9ee6\",\"action\":\"CANCEL\"}}",
+          "usage": {
+            "model": "gpt-5.6-terra",
+            "inputTokens": 2798,
+            "cachedInputTokens": 0,
+            "outputTokens": 168,
+            "reasoningTokens": 0,
+            "totalTokens": 2966,
+            "latencyMs": 2
+          },
+          "warnings": []
+        },
+        "proposedToolsAfterFreshConfirmation": [
+          {
+            "toolCallId": "d4327ea5-4151-4c43-9b4d-7e46cc757b1b",
+            "toolName": "EXECUTE_SERVICE_ACTION",
+            "targetOperationId": "d793d04b-57ce-40b5-9f49-edbb8154d36a",
+            "targetConversationTaskId": null,
+            "arguments": {
+              "operationId": "d793d04b-57ce-40b5-9f49-edbb8154d36a",
+              "expectedVersion": 3,
+              "actionCode": "RESERVATION_CANCEL",
+              "input": {},
+              "evidenceMessageIds": [
+                "67ecd2cf-5a9f-4334-952e-5541403bedce"
+              ]
+            },
+            "confidence": 1.0,
+            "evidenceMessageIds": [
+              "67ecd2cf-5a9f-4334-952e-5541403bedce"
+            ]
+          }
+        ],
+        "staleVersionBlocked": true
+      },
+      {
+        "id": "scope-3",
+        "locale": "es-MX",
+        "message": "¿Puedes cambiar mi reservación del spa al viernes?",
+        "expected": "CHANGE",
+        "scope": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "¿Puedes cambiar mi reservación del spa al viernes?",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.99,
+          "detectedLanguage": "es-MX",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "CHANGE",
+          "replyActionEvidence": "¿Puedes cambiar mi reservación del spa al viernes?",
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0.0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "reservationHandlerActivated": true,
+        "passed": true,
+        "response": {
+          "schemaVersion": "2.0",
+          "agentTurnId": "10000000-0000-0000-0000-000000000001",
+          "disposition": "RESPONSE_READY",
+          "detectedLanguage": null,
+          "languageDecision": null,
+          "roomServiceDraftEvent": null,
+          "messages": [
+            {
+              "messageDraftId": "47f636f8-3d4d-425c-ab74-a78c390e392a",
+              "purpose": "CLARIFICATION",
+              "text": "Reservación REQ-20260921-SYNTH001:\nServicio: Herbal massage\nFecha: 2026-10-03\nHora: 17:00 (hora del hotel)\n¿Quieres solicitar un cambio? Recogeré los nuevos datos para aprobación del equipo. La reserva confirmada se conserva mientras se revisa.",
+              "language": "es-MX",
+              "operationIds": [],
+              "conversationTaskIds": [],
+              "interaction": {
+                "type": "BUTTONS",
+                "title": null,
+                "body": "Reservación REQ-20260921-SYNTH001:\nServicio: Herbal massage\nFecha: 2026-10-03\nHora: 17:00 (hora del hotel)\n¿Quieres solicitar un cambio? Recogeré los nuevos datos para aprobación del equipo. La reserva confirmada se conserva mientras se revisa.",
+                "buttonText": "Elegir",
+                "options": [
+                  {
+                    "id": "reservation-confirm:103c03fa-2f03-42cb-a6c4-cb2f4b5995ba:3:a9d239e7e7434073a94b7a7973ddb197:CHANGE",
+                    "label": "Solicitar cambio"
+                  },
+                  {
+                    "id": "reservation-confirm:103c03fa-2f03-42cb-a6c4-cb2f4b5995ba:3:a9d239e7e7434073a94b7a7973ddb197:DECLINE",
+                    "label": "Ahora no"
+                  }
+                ]
+              }
+            }
+          ],
+          "toolCalls": [],
+          "updatedConversationSummary": "{}\n{\"reservationAction\":{\"operationId\":\"103c03fa-2f03-42cb-a6c4-cb2f4b5995ba\",\"version\":3,\"token\":\"a9d239e7e7434073a94b7a7973ddb197\",\"action\":\"CHANGE\"}}",
+          "usage": {
+            "model": "gpt-5.6-terra",
+            "inputTokens": 2805,
+            "cachedInputTokens": 0,
+            "outputTokens": 181,
+            "reasoningTokens": 0,
+            "totalTokens": 2986,
+            "latencyMs": 2
+          },
+          "warnings": []
+        },
+        "proposedToolsAfterFreshConfirmation": [
+          {
+            "toolCallId": "d6ab259d-349c-4d74-9383-a09593399e89",
+            "toolName": "EXECUTE_SERVICE_ACTION",
+            "targetOperationId": "103c03fa-2f03-42cb-a6c4-cb2f4b5995ba",
+            "targetConversationTaskId": null,
+            "arguments": {
+              "operationId": "103c03fa-2f03-42cb-a6c4-cb2f4b5995ba",
+              "expectedVersion": 3,
+              "actionCode": "RESERVATION_CHANGE",
+              "input": {},
+              "evidenceMessageIds": [
+                "658bb2c6-8562-4472-9cb3-be4b809c83e0"
+              ]
+            },
+            "confidence": 1.0,
+            "evidenceMessageIds": [
+              "658bb2c6-8562-4472-9cb3-be4b809c83e0"
+            ]
+          }
+        ],
+        "staleVersionBlocked": true
+      },
+      {
+        "id": "scope-4",
+        "locale": "en",
+        "message": "Could you move my spa booking to Friday?",
+        "expected": "CHANGE",
+        "scope": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "Could you move my spa booking to Friday?",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.99,
+          "detectedLanguage": "en",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "CHANGE",
+          "replyActionEvidence": "Could you move my spa booking to Friday?",
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0.0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "reservationHandlerActivated": true,
+        "passed": true,
+        "response": {
+          "schemaVersion": "2.0",
+          "agentTurnId": "10000000-0000-0000-0000-000000000001",
+          "disposition": "RESPONSE_READY",
+          "detectedLanguage": null,
+          "languageDecision": null,
+          "roomServiceDraftEvent": null,
+          "messages": [
+            {
+              "messageDraftId": "9354c8f5-848d-47f7-bcb4-d1306f096750",
+              "purpose": "CLARIFICATION",
+              "text": "Reservation REQ-20260921-SYNTH001:\nService: Herbal massage\nDate: 2026-10-03\nTime: 17:00 (hotel local time)\nWould you like to request a change? I will collect the new details for staff approval. Your confirmed reservation is retained during review.",
+              "language": "en",
+              "operationIds": [],
+              "conversationTaskIds": [],
+              "interaction": {
+                "type": "BUTTONS",
+                "title": null,
+                "body": "Reservation REQ-20260921-SYNTH001:\nService: Herbal massage\nDate: 2026-10-03\nTime: 17:00 (hotel local time)\nWould you like to request a change? I will collect the new details for staff approval. Your confirmed reservation is retained during review.",
+                "buttonText": "Choose",
+                "options": [
+                  {
+                    "id": "reservation-confirm:083add86-d85a-4af3-984f-9b69a3866dfe:3:90282f5781fe46f0bf250721e936a4b0:CHANGE",
+                    "label": "Request change"
+                  },
+                  {
+                    "id": "reservation-confirm:083add86-d85a-4af3-984f-9b69a3866dfe:3:90282f5781fe46f0bf250721e936a4b0:DECLINE",
+                    "label": "Not now"
+                  }
+                ]
+              }
+            }
+          ],
+          "toolCalls": [],
+          "updatedConversationSummary": "{}\n{\"reservationAction\":{\"operationId\":\"083add86-d85a-4af3-984f-9b69a3866dfe\",\"version\":3,\"token\":\"90282f5781fe46f0bf250721e936a4b0\",\"action\":\"CHANGE\"}}",
+          "usage": {
+            "model": "gpt-5.6-terra",
+            "inputTokens": 2801,
+            "cachedInputTokens": 0,
+            "outputTokens": 175,
+            "reasoningTokens": 0,
+            "totalTokens": 2976,
+            "latencyMs": 2
+          },
+          "warnings": []
+        },
+        "proposedToolsAfterFreshConfirmation": [
+          {
+            "toolCallId": "978ef185-84be-41d6-87fc-7e79d0692c4f",
+            "toolName": "EXECUTE_SERVICE_ACTION",
+            "targetOperationId": "083add86-d85a-4af3-984f-9b69a3866dfe",
+            "targetConversationTaskId": null,
+            "arguments": {
+              "operationId": "083add86-d85a-4af3-984f-9b69a3866dfe",
+              "expectedVersion": 3,
+              "actionCode": "RESERVATION_CHANGE",
+              "input": {},
+              "evidenceMessageIds": [
+                "63aa64e0-284d-442c-b787-dabccc34b7a1"
+              ]
+            },
+            "confidence": 1.0,
+            "evidenceMessageIds": [
+              "63aa64e0-284d-442c-b787-dabccc34b7a1"
+            ]
+          }
+        ],
+        "staleVersionBlocked": true
+      },
+      {
+        "id": "scope-5",
+        "locale": "es-MX",
+        "message": "¿Qué pasaría si quisiera cancelar mi reserva de spa?",
+        "expected": "NONE",
+        "scope": {
+          "kind": "HOTEL_QUESTION",
+          "offeringCode": "SPA",
+          "relevantText": "¿Qué pasaría si quisiera cancelar mi reserva de spa?",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.98,
+          "detectedLanguage": "es-MX",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0.0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "reservationHandlerActivated": false,
+        "passed": true
+      },
+      {
+        "id": "scope-6",
+        "locale": "en",
+        "message": "What would happen if I wanted to cancel my spa booking?",
+        "expected": "NONE",
+        "scope": {
+          "kind": "HOTEL_QUESTION",
+          "offeringCode": "SPA",
+          "relevantText": "What would happen if I wanted to cancel my spa booking?",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.98,
+          "detectedLanguage": "en",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0.0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "reservationHandlerActivated": false,
+        "passed": true
+      },
+      {
+        "id": "scope-7",
+        "locale": "es-MX",
+        "message": "No canceles mi reservación de spa",
+        "expected": "NONE",
+        "scope": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "No canceles mi reservación de spa",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.93,
+          "detectedLanguage": "es-MX",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.98,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0.0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "reservationHandlerActivated": false,
+        "passed": true
+      },
+      {
+        "id": "scope-8",
+        "locale": "en",
+        "message": "Do not cancel my spa reservation",
+        "expected": "NONE",
+        "scope": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "Do not cancel my spa reservation",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.94,
+          "detectedLanguage": "en",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0.0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "reservationHandlerActivated": false,
+        "passed": true
+      },
+      {
+        "id": "scope-9",
+        "locale": "es-MX",
+        "message": "Quiero otra reservación de spa, además de la que ya tengo",
+        "expected": "NEW",
+        "scope": {
+          "kind": "SERVICE_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "Quiero otra reservación de spa, además de la que ya tengo",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.98,
+          "detectedLanguage": "es-MX",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0.0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "reservationHandlerActivated": false,
+        "passed": true
+      },
+      {
+        "id": "scope-10",
+        "locale": "en",
+        "message": "I want an additional spa booking, keeping my existing reservation",
+        "expected": "NEW",
+        "scope": {
+          "kind": "SERVICE_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "I want an additional spa booking, keeping my existing reservation",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.99,
+          "detectedLanguage": "en",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0.0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "reservationHandlerActivated": false,
+        "passed": true
+      },
+      {
+        "id": "partial-edit-es-MX",
+        "message": "Solo cambia la hora a las 18:30",
+        "response": {
+          "schemaVersion": "2.0",
+          "agentTurnId": "10000000-0000-0000-0000-000000000001",
+          "disposition": "RESPONSE_READY",
+          "detectedLanguage": null,
+          "languageDecision": null,
+          "roomServiceDraftEvent": null,
+          "messages": [
+            {
+              "messageDraftId": "1bba9759-e870-48f6-a5bd-eaa332a4b72d",
+              "purpose": "CLARIFICATION",
+              "text": "Confirma tu solicitud de SPA:\nServicio: Herbal massage\nFecha: 2026-10-03\nHora: 18:30 (hora del hotel)\nLa disponibilidad está pendiente de confirmación por el personal del SPA.",
+              "language": "es-MX",
+              "operationIds": [
+                "d042e3f8-510a-4a16-845d-fbd2e660d88d"
+              ],
+              "conversationTaskIds": [],
+              "interaction": {
+                "type": "BUTTONS",
+                "title": null,
+                "body": "Confirma tu solicitud de SPA:\nServicio: Herbal massage\nFecha: 2026-10-03\nHora: 18:30 (hora del hotel)\nLa disponibilidad está pendiente de confirmación por el personal del SPA.",
+                "buttonText": "Elegir",
+                "options": [
+                  {
+                    "id": "spa:8b6e9442-3e93-4d7c-8535-8181ef0f756b:UPDATE:990a8ffe-f08c-454e-ba7a-353afc2349ae",
+                    "label": "Confirmar cambios"
+                  },
+                  {
+                    "id": "spa:8b6e9442-3e93-4d7c-8535-8181ef0f756b:CHANGE",
+                    "label": "Cambiar"
+                  },
+                  {
+                    "id": "spa:8b6e9442-3e93-4d7c-8535-8181ef0f756b:CANCEL",
+                    "label": "Cancelar"
+                  }
+                ]
+              }
+            }
+          ],
+          "toolCalls": [],
+          "updatedConversationSummary": "{\"spaTaskFocus\":\"8b6e9442-3e93-4d7c-8535-8181ef0f756b\",\"spaOperationFocus\":\"d042e3f8-510a-4a16-845d-fbd2e660d88d\",\"spaTasks\":{\"8b6e9442-3e93-4d7c-8535-8181ef0f756b\":{\"version\":4,\"capturedFields\":{\"serviceName\":\"Herbal massage\",\"reservationDate\":\"2026-10-03\",\"reservationTime\":\"18:30\"},\"unresolvedFields\":{},\"operationId\":\"d042e3f8-510a-4a16-845d-fbd2e660d88d\",\"taskType\":\"SPA_RESERVATION_CHANGE_DETAILS\",\"awaitingConfirmation\":true,\"confirmationToken\":\"990a8ffe-f08c-454e-ba7a-353afc2349ae\"}}}",
+          "usage": {
+            "model": "gpt-5.6-terra",
+            "inputTokens": 836,
+            "cachedInputTokens": 0,
+            "outputTokens": 85,
+            "reasoningTokens": 0,
+            "totalTokens": 921,
+            "latencyMs": 1721
+          },
+          "warnings": []
+        },
+        "passed": true,
+        "proposedTools": [
+          {
+            "toolCallId": "28456fa5-74c7-4090-b410-88eac7fa4280",
+            "toolName": "COMPLETE_CONVERSATION_TASK",
+            "targetOperationId": "d042e3f8-510a-4a16-845d-fbd2e660d88d",
+            "targetConversationTaskId": "8b6e9442-3e93-4d7c-8535-8181ef0f756b",
+            "arguments": {
+              "conversationTaskId": "8b6e9442-3e93-4d7c-8535-8181ef0f756b",
+              "expectedVersion": 4,
+              "result": {
+                "decision": "UPDATE",
+                "serviceName": "Herbal massage",
+                "reservationDate": "2026-10-03",
+                "reservationTime": "18:30"
+              }
+            },
+            "confidence": 1.0,
+            "evidenceMessageIds": [
+              "54e930ad-8809-44a6-b76a-e4c3d58187ea"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "partial-edit-en",
+        "message": "Please change only the time to 6:30 pm",
+        "response": {
+          "schemaVersion": "2.0",
+          "agentTurnId": "10000000-0000-0000-0000-000000000001",
+          "disposition": "RESPONSE_READY",
+          "detectedLanguage": null,
+          "languageDecision": null,
+          "roomServiceDraftEvent": null,
+          "messages": [
+            {
+              "messageDraftId": "d21e9469-47c0-4f83-b713-ac935ddca903",
+              "purpose": "CLARIFICATION",
+              "text": "Confirm your SPA request:\nService: Herbal massage\nDate: 2026-10-03\nTime: 18:30 (hotel local time)\nAvailability is pending confirmation by the SPA staff.",
+              "language": "en",
+              "operationIds": [
+                "83d4136f-e3eb-414b-b715-266918b62104"
+              ],
+              "conversationTaskIds": [],
+              "interaction": {
+                "type": "BUTTONS",
+                "title": null,
+                "body": "Confirm your SPA request:\nService: Herbal massage\nDate: 2026-10-03\nTime: 18:30 (hotel local time)\nAvailability is pending confirmation by the SPA staff.",
+                "buttonText": "Choose",
+                "options": [
+                  {
+                    "id": "spa:edf4a8fe-4edb-4e79-b7bd-09e224c614cf:UPDATE:1b10cbf3-2add-4c06-82ad-1145e4a0722c",
+                    "label": "Confirm changes"
+                  },
+                  {
+                    "id": "spa:edf4a8fe-4edb-4e79-b7bd-09e224c614cf:CHANGE",
+                    "label": "Change"
+                  },
+                  {
+                    "id": "spa:edf4a8fe-4edb-4e79-b7bd-09e224c614cf:CANCEL",
+                    "label": "Cancel"
+                  }
+                ]
+              }
+            }
+          ],
+          "toolCalls": [],
+          "updatedConversationSummary": "{\"spaTaskFocus\":\"edf4a8fe-4edb-4e79-b7bd-09e224c614cf\",\"spaOperationFocus\":\"83d4136f-e3eb-414b-b715-266918b62104\",\"spaTasks\":{\"edf4a8fe-4edb-4e79-b7bd-09e224c614cf\":{\"version\":4,\"capturedFields\":{\"serviceName\":\"Herbal massage\",\"reservationDate\":\"2026-10-03\",\"reservationTime\":\"18:30\"},\"unresolvedFields\":{},\"operationId\":\"83d4136f-e3eb-414b-b715-266918b62104\",\"taskType\":\"SPA_RESERVATION_CHANGE_DETAILS\",\"awaitingConfirmation\":true,\"confirmationToken\":\"1b10cbf3-2add-4c06-82ad-1145e4a0722c\"}}}",
+          "usage": {
+            "model": "gpt-5.6-terra",
+            "inputTokens": 837,
+            "cachedInputTokens": 0,
+            "outputTokens": 83,
+            "reasoningTokens": 0,
+            "totalTokens": 920,
+            "latencyMs": 1817
+          },
+          "warnings": []
+        },
+        "passed": true,
+        "proposedTools": [
+          {
+            "toolCallId": "4a55d296-72c1-4be7-9e4c-5da532974860",
+            "toolName": "COMPLETE_CONVERSATION_TASK",
+            "targetOperationId": "83d4136f-e3eb-414b-b715-266918b62104",
+            "targetConversationTaskId": "edf4a8fe-4edb-4e79-b7bd-09e224c614cf",
+            "arguments": {
+              "conversationTaskId": "edf4a8fe-4edb-4e79-b7bd-09e224c614cf",
+              "expectedVersion": 4,
+              "result": {
+                "decision": "UPDATE",
+                "serviceName": "Herbal massage",
+                "reservationDate": "2026-10-03",
+                "reservationTime": "18:30"
+              }
+            },
+            "confidence": 1.0,
+            "evidenceMessageIds": [
+              "fe2c7e28-8ccf-433e-806c-e1306e4947e6"
+            ]
+          }
+        ]
+      }
+    ],
+    "model": "gpt-5.6-terra",
+    "configuration": {
+      "requested_model": "gpt-5.6-terra",
+      "generation": {
+        "reasoning": {
+          "effort": "none"
+        },
+        "max_output_tokens": 4096
+      },
+      "api_base": "https://api.openai.com/v1",
+      "sdk_retries": 0,
+      "response_localization": "Not separately evaluated; deterministic ES/EN responses inspected",
+      "translation_cache": "shared within run; model interpretation still reevaluated each turn"
+    },
+    "calls": 12,
+    "totalTokens": 31591,
+    "callDetails": [
+      {
+        "purpose": "V2_HOTEL_SCOPE",
+        "prompt_sha256": "7cce1b69a7bfde6ab1dc5c43a5f3d1025872698fd02a9e4c345e8b522bdab9a0",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 2802,
+          "cachedInputTokens": 0,
+          "outputTokens": 174,
+          "reasoningTokens": 0,
+          "totalTokens": 2976
+        },
+        "response_id": "resp_0a6db4f866962f59006ab1af78873087d1b1e33394d86fa1a6",
+        "output": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "Quiero cancelar mi reserva de spa",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.99,
+          "detectedLanguage": "es-MX",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "CANCEL",
+          "replyActionEvidence": "Quiero cancelar mi reserva de spa",
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "elapsed_ms": 5492
+      },
+      {
+        "purpose": "V2_HOTEL_SCOPE",
+        "prompt_sha256": "1b8dcd24c5c1eaf7fce69c689c631b9877c1ab66b730f6e7a489143b965e73c9",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 2798,
+          "cachedInputTokens": 0,
+          "outputTokens": 168,
+          "reasoningTokens": 0,
+          "totalTokens": 2966
+        },
+        "response_id": "resp_09652d5bed4182e8006ab1af7bbc8087d1b166137f3097a455",
+        "output": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "Please cancel my spa reservation",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.99,
+          "detectedLanguage": "en",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "CANCEL",
+          "replyActionEvidence": "Please cancel my spa reservation",
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "elapsed_ms": 3371
+      },
+      {
+        "purpose": "V2_HOTEL_SCOPE",
+        "prompt_sha256": "b984e62420575564549bb9682bcb4eb203228f50d73bb8f8431bc449c1bb0be2",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 2805,
+          "cachedInputTokens": 0,
+          "outputTokens": 181,
+          "reasoningTokens": 0,
+          "totalTokens": 2986
+        },
+        "response_id": "resp_0482e578c1454756006ab1af7f2fc087d189178d54564b8010",
+        "output": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "¿Puedes cambiar mi reservación del spa al viernes?",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.99,
+          "detectedLanguage": "es-MX",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "CHANGE",
+          "replyActionEvidence": "¿Puedes cambiar mi reservación del spa al viernes?",
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "elapsed_ms": 3028
+      },
+      {
+        "purpose": "V2_HOTEL_SCOPE",
+        "prompt_sha256": "f3fe3491a4e3a78702709a8f9282d80e9878dccf08681eca68f94e5e9ff6942c",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 2801,
+          "cachedInputTokens": 0,
+          "outputTokens": 175,
+          "reasoningTokens": 0,
+          "totalTokens": 2976
+        },
+        "response_id": "resp_0bebec5e66b03b4f006ab1af822d8487d1af6392b3633b4a41",
+        "output": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "Could you move my spa booking to Friday?",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.99,
+          "detectedLanguage": "en",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "CHANGE",
+          "replyActionEvidence": "Could you move my spa booking to Friday?",
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "elapsed_ms": 2538
+      },
+      {
+        "purpose": "V2_HOTEL_SCOPE",
+        "prompt_sha256": "333e72c18a69b35cb899d4ac6d4ec34b0c2f1d72a5bb6387abb37a148c2dc4f2",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 2806,
+          "cachedInputTokens": 0,
+          "outputTokens": 174,
+          "reasoningTokens": 0,
+          "totalTokens": 2980
+        },
+        "response_id": "resp_07ff7dd76effb598006ab1af85f66c87d1bdf83d0b7ca3cf37",
+        "output": {
+          "kind": "HOTEL_QUESTION",
+          "offeringCode": "SPA",
+          "relevantText": "¿Qué pasaría si quisiera cancelar mi reserva de spa?",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.98,
+          "detectedLanguage": "es-MX",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "elapsed_ms": 4600
+      },
+      {
+        "purpose": "V2_HOTEL_SCOPE",
+        "prompt_sha256": "5d85eaaf0c8bbda8a43b4c1b684f9be133cf40c5ab757979a4b2a1b80cabe516",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 2804,
+          "cachedInputTokens": 0,
+          "outputTokens": 172,
+          "reasoningTokens": 0,
+          "totalTokens": 2976
+        },
+        "response_id": "resp_06857c98ee0651c5006ab1af89526887d1abbc16844a295211",
+        "output": {
+          "kind": "HOTEL_QUESTION",
+          "offeringCode": "SPA",
+          "relevantText": "What would happen if I wanted to cancel my spa booking?",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.98,
+          "detectedLanguage": "en",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "elapsed_ms": 2528
+      },
+      {
+        "purpose": "V2_HOTEL_SCOPE",
+        "prompt_sha256": "b4123436e4ff6ce2b4a18a5156e3437ae8c66c762fe3026a13a0fa4febd7d543",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 2803,
+          "cachedInputTokens": 0,
+          "outputTokens": 168,
+          "reasoningTokens": 0,
+          "totalTokens": 2971
+        },
+        "response_id": "resp_08ead12840728a8e006ab1af8be1ac87d187599991a1fa8da4",
+        "output": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "No canceles mi reservación de spa",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.93,
+          "detectedLanguage": "es-MX",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.98,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "elapsed_ms": 2829
+      },
+      {
+        "purpose": "V2_HOTEL_SCOPE",
+        "prompt_sha256": "e5de7dff2fc8c3da631fd1833048c5fedaf218326e8139f9503fdb87fe71b018",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 2799,
+          "cachedInputTokens": 0,
+          "outputTokens": 164,
+          "reasoningTokens": 0,
+          "totalTokens": 2963
+        },
+        "response_id": "resp_08112aca90811956006ab1af8eae6887d186664b7685175996",
+        "output": {
+          "kind": "STATUS_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "Do not cancel my spa reservation",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.94,
+          "detectedLanguage": "en",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "elapsed_ms": 2408
+      },
+      {
+        "purpose": "V2_HOTEL_SCOPE",
+        "prompt_sha256": "451f8434931e146cbb808c9f73e15666b0813cd64f3d914da4107e835062b1c9",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 2809,
+          "cachedInputTokens": 0,
+          "outputTokens": 174,
+          "reasoningTokens": 0,
+          "totalTokens": 2983
+        },
+        "response_id": "resp_0721ebd15ba95394006ab1af91296087d199819ba82d6c8bce",
+        "output": {
+          "kind": "SERVICE_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "Quiero otra reservación de spa, además de la que ya tengo",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.98,
+          "detectedLanguage": "es-MX",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "elapsed_ms": 3127
+      },
+      {
+        "purpose": "V2_HOTEL_SCOPE",
+        "prompt_sha256": "2bb806d1147417195759355743dc9bed62bef73e486723621ed75d8dbe59d90b",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 2804,
+          "cachedInputTokens": 0,
+          "outputTokens": 169,
+          "reasoningTokens": 0,
+          "totalTokens": 2973
+        },
+        "response_id": "resp_0a5b50e7392d22d2006ab1af94408887d1b0be7f934bf59c0b",
+        "output": {
+          "kind": "SERVICE_REQUEST",
+          "offeringCode": "SPA",
+          "relevantText": "I want an additional spa booking, keeping my existing reservation",
+          "hasRequestDetails": false,
+          "separateRequest": false,
+          "containsUnrelatedTopic": false,
+          "confidence": 0.99,
+          "detectedLanguage": "en",
+          "requestedLanguage": null,
+          "languageConfidence": 0.99,
+          "languageChangeOnly": false,
+          "replyAction": "NONE",
+          "replyActionEvidence": null,
+          "replyActionConfidence": 0.99,
+          "selectionCode": null,
+          "selectionAttempted": false,
+          "selectionEvidence": null,
+          "selectionConfidence": 0,
+          "existingOrderAction": "NONE",
+          "existingOrderEvidence": null,
+          "existingOrderConfidence": 0.99,
+          "maintenanceFollowUp": "NONE",
+          "maintenanceFollowUpEvidence": null,
+          "maintenanceFollowUpConfidence": 0.99
+        },
+        "elapsed_ms": 2508
+      },
+      {
+        "purpose": "V2_SPA_EXTRACTION",
+        "prompt_sha256": "f7ab95ee8b11ef22f4d1a32ca8362bf6b6e5f0f18cfe239fa742d3776f824666",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 836,
+          "cachedInputTokens": 0,
+          "outputTokens": 85,
+          "reasoningTokens": 0,
+          "totalTokens": 921
+        },
+        "response_id": "resp_0be44429a2dd4697006ab1af96c0e487d1a1d21b2eef26dc77",
+        "output": {
+          "serviceName": {
+            "status": "UNCHANGED",
+            "value": null,
+            "evidence": null,
+            "confidence": 1
+          },
+          "reservationDate": {
+            "status": "UNCHANGED",
+            "value": null,
+            "evidence": null,
+            "confidence": 1
+          },
+          "reservationTime": {
+            "status": "RESOLVED",
+            "value": "18:30",
+            "evidence": "a las 18:30",
+            "confidence": 1
+          }
+        },
+        "elapsed_ms": 1704
+      },
+      {
+        "purpose": "V2_SPA_EXTRACTION",
+        "prompt_sha256": "b0c97636c2388ce53ed7f5c26595bb343430437b3bc25f7aec3d9dcd713b2119",
+        "status": "SUCCEEDED",
+        "usage": {
+          "inputTokens": 837,
+          "cachedInputTokens": 0,
+          "outputTokens": 83,
+          "reasoningTokens": 0,
+          "totalTokens": 920
+        },
+        "response_id": "resp_0c3ad3585ecc7d78006ab1af98782c87d1a4f8de765df180ee",
+        "output": {
+          "serviceName": {
+            "status": "UNCHANGED",
+            "value": null,
+            "evidence": null,
+            "confidence": 1
+          },
+          "reservationDate": {
+            "status": "UNCHANGED",
+            "value": null,
+            "evidence": null,
+            "confidence": 1
+          },
+          "reservationTime": {
+            "status": "RESOLVED",
+            "value": "18:30",
+            "evidence": "6:30 pm",
+            "confidence": 1
+          }
+        },
+        "elapsed_ms": 1808
+      }
+    ],
+    "finishedAt": "2026-09-21T22:28:41.211813+00:00",
+    "sourcesUnchanged": true
+  },
+  "whatsapp": "PENDING: user phone verification after deployment; no guest messages sent."
+}

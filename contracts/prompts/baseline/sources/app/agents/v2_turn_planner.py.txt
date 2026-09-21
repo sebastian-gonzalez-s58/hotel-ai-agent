@@ -13,6 +13,7 @@ from app.core.config import settings
 from app.core.errors import AgentModelError
 from app.agents.v2_scope_router import ScopeDecision, classify_hotel_scope
 from app.agents.maintenance_recurrence import plan_maintenance_recurrence
+from app.agents.reservation_actions import plan_reservation_action
 from app.agents.room_service_status import existing_order_message, resolve_order, status_message
 from app.agents.social_opening import classify_social_opening
 from app.agents.schema_validation import satisfies_schema
@@ -68,6 +69,14 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
             response.detectedLanguage = language_decision.locale if language_decision else None
             response = localize_response(request, response, started_at)
         return _bind_room_confirmation(request, response)
+    reservation = plan_reservation_action(request, latest)
+    if reservation is not None:
+        response = _deterministic_turn_response(request, started_at, **reservation)
+        response.languageDecision = language_decision
+        if language_enabled(request):
+            response.detectedLanguage = language_decision.locale if language_decision else None
+            response = localize_response(request, response, started_at)
+        return response
     maintenance = plan_maintenance_recurrence(request, _latest_capture_state(request), latest)
     if maintenance is not None:
         response = _deterministic_turn_response(request, started_at, **maintenance)
@@ -99,8 +108,11 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
                 and request.availableOfferings and not scope.containsUnrelatedTopic):
             opening, opening_usage = classify_social_opening(latest.text)
         maintenance = plan_maintenance_recurrence(request, _latest_capture_state(request), latest, scope)
+        reservation = plan_reservation_action(request, latest, scope)
         existing_message = existing_order_message(request, latest, scope, _latest_capture_state(request))
-        if maintenance is not None:
+        if reservation is not None:
+            response = _deterministic_turn_response(request, started_at, **reservation)
+        elif maintenance is not None:
             response = _deterministic_turn_response(request, started_at, **maintenance)
         elif existing_message is not None:
             response = _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
