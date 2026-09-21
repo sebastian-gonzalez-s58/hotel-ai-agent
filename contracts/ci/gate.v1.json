@@ -470,7 +470,18 @@
       "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_reference_reply_prompts_confirmation_then_starts_original_issue",
       "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_reference_selection_does_not_intercept_after_unrelated_outbound",
       "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_reference_uses_current_authorized_snapshot_and_candidate_set",
-      "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_unknown_reference_can_be_corrected_without_restarting_issue_capture"
+      "tests.test_maintenance_reference_followup.MaintenanceReferenceFollowupTest.test_unknown_reference_can_be_corrected_without_restarting_issue_capture",
+      "tests.test_reservation_actions.ReservationActionsTest.test_cancelled_and_served_reservations_do_not_restart",
+      "tests.test_reservation_actions.ReservationActionsTest.test_change_explains_staff_approval_and_preserves_current_reservation",
+      "tests.test_reservation_actions.ReservationActionsTest.test_decline_prevents_later_confirmation",
+      "tests.test_reservation_actions.ReservationActionsTest.test_historical_draft_confirm_does_not_start_another_reservation",
+      "tests.test_reservation_actions.ReservationActionsTest.test_old_menu_only_prompts_and_fresh_confirmation_executes_current_version",
+      "tests.test_reservation_actions.ReservationActionsTest.test_unknown_or_mismatched_binding_never_selects_most_recent_reservation",
+      "tests.test_reservation_actions.ReservationActionsTest.test_version_changes_replaced_or_consumed_prompts_cannot_mutate",
+      "tests.test_reservation_actions.ReservationActionsTest.test_written_intent_requires_unambiguous_reservation_and_current_evidence",
+      "tests.test_reservation_actions.ReservationActionsTest.test_cancelled_draft_buttons_explain_cancellation_without_restarting",
+      "tests.test_reservation_actions.ReservationActionsTest.test_explicit_existing_reference_is_not_consumed_by_another_pending_booking",
+      "tests.test_reservation_actions.ReservationActionsTest.test_replaced_draft_buttons_keep_current_draft_untouched"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
@@ -1074,7 +1085,20 @@
       "com.chatbotinn.router.processing.MaintenanceButtonContextResolverTest.closedTaskRetainsSourceIssue",
       "com.chatbotinn.router.processing.MaintenanceButtonContextResolverTest.anotherGuestOrStayCannotReadHistoricalDetails",
       "com.chatbotinn.router.processing.MaintenanceButtonContextResolverTest.unknownAndMalformedTasksDoNotGuessAnOperation",
-      "com.chatbotinn.router.processing.MaintenanceButtonContextResolverTest.recurrenceIsBoundToOriginalNotNewestOperation"
+      "com.chatbotinn.router.processing.MaintenanceButtonContextResolverTest.recurrenceIsBoundToOriginalNotNewestOperation",
+      "com.chatbotinn.process.conversationtask.SpaReservationV2ProcessIntegrationTest.confirmedReservationKeepsItsSlotUntilStaffApprovesAChangeAndCanStillBeCancelled",
+      "com.chatbotinn.process.conversationtask.SpaReservationV2ProcessIntegrationTest.cancellationInterruptsPendingStaffReviewBeforeConfirmation",
+      "com.chatbotinn.process.conversationtask.SpaReservationV2ProcessIntegrationTest.abandonedChangePreservesConfirmedReservationAndCancellationClosesItsGuestTask",
+      "com.chatbotinn.process.conversationtask.SpaReservationV2ProcessIntegrationTest.legacyConfirmedBookingIsResumedOnceWithoutSendingAnotherConfirmation",
+      "com.chatbotinn.process.conversationtask.SpaReservationV2ProcessIntegrationTest.legacyPendingReviewMigratesWithoutLosingItsFolioAndCanBeCancelled",
+      "com.chatbotinn.orchestration.v2.service.ReservationActionPolicyTest.onlyFreshEmittedVersionBoundButtonAuthorizesAction",
+      "com.chatbotinn.orchestration.v2.service.ReservationActionPolicyTest.rejectsHistoricalMenuWrongOperationVersionAndAction",
+      "com.chatbotinn.orchestration.v2.service.ReservationActionPolicyTest.rejectsReplacedConsumedAndQueuedBeforePrompt",
+      "com.chatbotinn.process.conversationtask.SpaReservationV2ProcessIntegrationTest.legacyGuestAlternativeKeepsItsTaskAndTimeoutAfterMigration",
+      "com.chatbotinn.router.processing.ReservationButtonContextResolverTest.currentMenuRequiresMatchingGuestStayAndOffering",
+      "com.chatbotinn.router.processing.ReservationButtonContextResolverTest.historicalTaskBindsItsOwnOperation",
+      "com.chatbotinn.router.processing.ReservationButtonContextResolverTest.submittedDraftBindsCommittedStartAndUnknownDraftDoesNotGuess",
+      "com.chatbotinn.process.conversationtask.SpaReservationV2ProcessIntegrationTest.rejectingAnInitialReservationDoesNotClaimTheGuestCancelledIt"
     ],
     "allowed_skips": [
       "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
@@ -2858,6 +2882,248 @@
           }
         ]
       }
+    },
+    "SC-011-reservation-cancel-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current"
+      ],
+      "not_run_steps": [
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "checks_pending": {
+        "request": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "decline": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "old-confirmation": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "request-again": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "confirm-current": [
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "ACTION_RESERVATION_CANCEL_REQUESTED"
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "SC-011-reservation-cancel-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current"
+      ],
+      "not_run_steps": [
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "checks_pending": {
+        "request": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "decline": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "old-confirmation": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "request-again": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "confirm-current": [
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "ACTION_RESERVATION_CANCEL_REQUESTED"
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "SC-011-reservation-change-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current"
+      ],
+      "not_run_steps": [
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "checks_pending": {
+        "request": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "decline": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "old-confirmation": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "request-again": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "confirm-current": [
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "ACTION_RESERVATION_CHANGE_REQUESTED"
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "SC-011-reservation-change-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current"
+      ],
+      "not_run_steps": [
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "checks_pending": {
+        "request": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "decline": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "old-confirmation": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "request-again": [
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ],
+        "confirm-current": [
+          {
+            "path": "/backend/initialOperations/0/detailedStatus",
+            "op": "equals",
+            "value": "ACTION_RESERVATION_CHANGE_REQUESTED"
+          },
+          {
+            "path": "/backend/processStarts",
+            "op": "equals",
+            "value": 0
+          }
+        ]
+      }
+    },
+    "SC-011-reservation-terminal-en": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "cancelled",
+        "served"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-terminal-es": {
+      "status": "OFFLINE_PARTIAL_PASS",
+      "turn_ids": [
+        "cancelled",
+        "served"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
     }
   },
   "integration": {
@@ -3516,6 +3782,80 @@
         "confirm-recurrence",
         "inspect",
         "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-cancel-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-cancel-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-change-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-change-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-terminal-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "cancelled",
+        "served"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-terminal-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "cancelled",
+        "served"
       ],
       "not_run_steps": [],
       "checks_pending": {}

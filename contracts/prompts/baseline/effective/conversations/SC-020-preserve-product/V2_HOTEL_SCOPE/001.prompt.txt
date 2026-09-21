@@ -8,6 +8,13 @@ Choose the intent of the current message, not an old service in the context.
   negation ('do not cancel'), another service or a new/additional order must use NONE.
   This field never authorizes an action, selects an operation, or states that any change occurred.
   Preserve the pending-capture/task replyAction rules below; existingOrderAction is independent.
+- A request to change or cancel an EXISTING reservation (for example 'cancel my spa booking'
+  or 'can you move my spa reservation to Friday?') is STATUS_REQUEST with its offeringCode,
+  replyAction=CHANGE/CANCEL, replyActionEvidence=the ENTIRE currentMessage and high confidence.
+  It is not a new booking. Questions about cancellation policies, hypothetical scenarios,
+  negation ('do not cancel') and requests for an additional booking have replyAction=NONE.
+  Current draft edits and replies to staff alternatives retain their CONTEXT_REPLY handling.
+  This intent never identifies a reservation or authorizes a mutation by itself.
 - Independently classify a report that a PREVIOUS maintenance issue persists or has returned
   as maintenanceFollowUp=RECURRENCE. Include maintenanceFollowUpEvidence=the ENTIRE currentMessage
   verbatim and high confidence only for an unambiguous report. Negations, hypothetical questions,

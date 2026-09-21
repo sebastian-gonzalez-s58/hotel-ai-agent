@@ -783,7 +783,13 @@
       "fixturePaths": [
         "tests/conversation_regression/fixtures/cases/SC-011-spa-date.json",
         "tests/conversation_regression/fixtures/cases/SC-011-spa-name.json",
-        "tests/conversation_regression/fixtures/cases/SC-011-spa-treatment-alternatives.json"
+        "tests/conversation_regression/fixtures/cases/SC-011-spa-treatment-alternatives.json",
+        "tests/conversation_regression/fixtures/cases/SC-011-reservation-change-es.json",
+        "tests/conversation_regression/fixtures/cases/SC-011-reservation-cancel-es.json",
+        "tests/conversation_regression/fixtures/cases/SC-011-reservation-terminal-es.json",
+        "tests/conversation_regression/fixtures/cases/SC-011-reservation-change-en.json",
+        "tests/conversation_regression/fixtures/cases/SC-011-reservation-cancel-en.json",
+        "tests/conversation_regression/fixtures/cases/SC-011-reservation-terminal-en.json"
       ]
     },
     {

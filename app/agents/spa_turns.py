@@ -77,7 +77,7 @@ def preserve_spa_state(request, response, scope=None):
     summary = (response.updatedConversationSummary if response.updatedConversationSummary is not None
                else request.conversation.summary)
     new = summary_state(summary)
-    missing = {key: old[key] for key in ("spaDraft", "spaTasks", "spaTaskFocus", "spaOperationFocus")
+    missing = {key: old[key] for key in ("spaDraft", "spaDraftHistory", "spaTasks", "spaTaskFocus", "spaOperationFocus")
                if key in old and key not in new}
     new.update(missing)
     message = next((m for m in request.conversation.recentMessages if m.messageId == request.trigger.messageId), None)
@@ -442,11 +442,19 @@ def _completion_result(request, state):
 
 def started_spa_summary(request):
     state = summary_state(request.conversation.summary)
+    _remember_draft(state, state.get("spaDraft"), "SUBMITTED")
     state["spaDraft"] = None
     if state.get("pendingOffering") == "SPA":
         for key in ("pendingOffering", "capturedFields", "awaitingExplicitConfirmation", "readyToStart"):
             state.pop(key, None)
     return _summary(request.conversation.summary, state)
+
+
+def _remember_draft(state, draft, status):
+    if isinstance(draft, dict) and draft.get("id"):
+        history = state.get("spaDraftHistory") or {}
+        history[draft["id"]] = status
+        state["spaDraftHistory"] = dict(list(history.items())[-20:])
 
 
 def validate_spa_call(request, call, tasks_by_id):
@@ -599,9 +607,18 @@ def plan_spa_turn(request: AgentTurnRequest, scope=None):
         return None
     draft = state.get("spaDraft")
     if new_spa:
+        _remember_draft(state, draft, "REPLACED")
         draft = {"id": str(uuid4()), "capturedFields": {}, "unresolvedFields": {}}
     elif not isinstance(draft, dict) and state.get("pendingOffering") == "SPA":
         draft = {"id": str(uuid4()), "capturedFields": _valid_fields(state.get("capturedFields")), "unresolvedFields": {}}
+    if button and button[0] == "spa-draft" and (not isinstance(draft, dict) or button[1] != draft.get("id")):
+        prior = (state.get("spaDraftHistory") or {}).get(button[1])
+        if prior == "CANCELLED":
+            return _reply(request, state, _text(request, "Esa solicitud de SPA ya fue cancelada. El botón anterior no la reactiva. Puedes iniciar una reservación nueva.",
+                                               "That SPA request was cancelled. The earlier button does not reactivate it. You can start a new reservation."))
+        if prior == "REPLACED":
+            return _reply(request, state, _text(request, "Ese botón pertenece a una solicitud de SPA anterior. Conservé los datos de la solicitud actual; usa su último resumen para confirmar.",
+                                               "That button belongs to an earlier SPA request. I kept the current request details; use its latest summary to confirm."))
     if not isinstance(draft, dict):
         if button:
             return _reply(request, state, _text(request, "Esa reserva de SPA ya no está pendiente.", "That SPA draft is no longer pending."))
@@ -657,6 +674,7 @@ def _capture(request, state, draft, message, button, offering, task, prompt_only
                 draft["submittedDecision"] = "CANCEL"
                 return _reply(request, state, calls=[_task_call(task, message, {"decision": "CANCEL"})])
         else:
+            _remember_draft(state, draft, "CANCELLED")
             state["spaDraft"] = None
             for key in ("pendingOffering", "capturedFields", "readyToStart", "awaitingExplicitConfirmation"):
                 state.pop(key, None)

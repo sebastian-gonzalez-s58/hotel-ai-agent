@@ -77,6 +77,10 @@ class ConversationSession:
         self.request.trigger = TurnTrigger(type="INBOUND_MESSAGE", messageId=message_id,
                                            eventPayload={"languageContext": dict(self.language)})
         parts = (reply_id or '').split(':')
+        if parts[0] in {'reservation', 'reservation-confirm'} and len(parts) in {3, 5}:
+            if any(str(o.operationId)==parts[1] and o.offeringCode=='SPA'
+                   for o in [*self.request.activeOperations, *self.request.recentOperations]):
+                self.request.trigger.eventPayload['reservationButtonContext']={'operationId':parts[1]}
         if len(parts) == 4 and parts[:2] == ['confirmation', 'ROOM_SERVICE'] and parts[2] in self.room_button_bindings:
             self.request.trigger.eventPayload['roomServiceButtonContext'] = {'operationId': self.room_button_bindings[parts[2]]}
         if len(parts) == 4 and parts[:2] == ['confirmation', 'ROOM_SERVICE'] and self.room_menu_history.get(parts[2]):
