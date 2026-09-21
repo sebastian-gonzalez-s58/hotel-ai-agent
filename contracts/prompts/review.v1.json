@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "1063d5b027a3902f9fd3c631d8e08f32c2187e97e659d693b1869c97711ddf65",
-  "reason": "Require explicit maintenance recurrence confirmation, preserve original details and reject stale buttons; retain prior rules and mandatory coverage.",
+  "baseline_index_sha256": "c3efe335d08f3f2879a444f0fd89a8609b31e8da78d4fd15ca7caf042dae98c0",
+  "reason": "Keep new maintenance complaints independent of closed history; explicit recurrence and prior mandatory coverage remain protected.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/maintenance-recurrence-review.md"
+  "evidence": "docs/maintenance-new-request-review.md"
 }

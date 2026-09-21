@@ -23,7 +23,8 @@ def plan_maintenance_recurrence(request, state, latest, scope=None):
     text = latest.text.strip().lower()
     context = request.trigger.eventPayload.get('maintenanceButtonContext') or {}
     source = context.get('source')
-    written = bool(scope and scope.maintenanceFollowUp == 'RECURRENCE'
+    written = bool(scope and scope.kind in {'SERVICE_REQUEST', 'CONTEXT_REPLY', 'STATUS_REQUEST'}
+                   and scope.maintenanceFollowUp == 'RECURRENCE'
                    and scope.maintenanceFollowUpConfidence >= .9
                    and scope.maintenanceFollowUpEvidence == latest.text)
 

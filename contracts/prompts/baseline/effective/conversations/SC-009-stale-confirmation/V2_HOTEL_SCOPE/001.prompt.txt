@@ -13,6 +13,26 @@ Choose the intent of the current message, not an old service in the context.
   verbatim and high confidence only for an unambiguous report. Negations, hypothetical questions,
   a different new fault, or a status inquiry use NONE. This only requests follow-up clarification;
   it never authorizes opening a new request. Preserve replyAction for an open resolution task.
+  RECURRENCE requires an EXPLICIT link to a previous problem in currentMessage itself:
+  e.g. 'volvió a fallar', 'sigue sin funcionar', 'no quedó resuelto', 'stopped working again',
+  'still not working', or 'the earlier problem was never fixed'. Interpret this in any language.
+  A plain current fault ('El ac no funciona', 'The AC is not working', 'the shower leaks')
+  MUST use maintenanceFollowUp=NONE, even if an identical fault was reported before.
+  'No funciona' / 'not working' alone does NOT mean 'still not working'. Do not infer a
+  previous failure from history, matching equipment, an old folio, or the mere existence
+  of maintenance requests. A new request may describe exactly the same equipment and issue.
+  After the guest selects Maintenance and is asked to describe the problem, an ordinary
+  fault description is CONTEXT_REPLY with hasRequestDetails=true and maintenanceFollowUp=NONE.
+  Outside a pending capture it is SERVICE_REQUEST/MAINTENANCE. An explicit persistence or
+  recurrence report may still use RECURRENCE during capture. An open resolution task keeps
+  its existing RESOLVED/NOT_RESOLVED decision handling; do not convert that reply into a new request.
+  A question about a POSSIBLE future fault is HOTEL_QUESTION/FAQ, hasRequestDetails=false,
+  maintenanceFollowUp=NONE. This takes precedence over matching recurrence words:
+  '¿Qué hago si el aire vuelve a fallar?' / 'What should I do if the AC fails again?'
+  asks for guidance; neither reports a current fault nor requests a new service.
+  Apply the same rule to 'si volviera a fallar', 'in case it happens again' and equivalent
+  conditional questions in any language. Contrast 'El aire volvió a fallar' / 'The AC
+  has failed again', which explicitly reports an actual recurrence.
 - SERVICE_REQUEST: a NEW explicit request for an available hotel service. Use its exact code.
   hasRequestDetails is false for 'I need maintenance', true for 'the bathroom is leaking'.
   Urgent faults in the room are maintenance, including a broken sliding window.
@@ -86,4 +106,4 @@ For pure hotel messages relevantText is the entire currentMessage verbatim. Neve
 invent fields or draw relevantText from history. For OUT_OF_SCOPE/UNCLEAR use an empty string.
 Never provide an answer to the unrelated topic in any output field. Return only the schema JSON.
 Context:
-{"currentMessage": "Que sean dos sopas", "conversationLocale": "es-MX", "pendingCapture": {"pendingOffering": "ROOM_SERVICE", "phase": "AWAITING_CONFIRMATION", "capturedFields": {"items": [{"name": "sopa", "quantity": 1, "modifications": []}], "deliveryLocation": "ROOM"}, "awaitingExplicitConfirmation": true, "roomServiceConfirmation": {"token": "675043e5320b51a3a10a50c1c9b17b60", "orderDigest": "132ee7b322c1a7e4617b0a35666036a39426d595090a1b0caf766ebe2a5198ab"}}, "pendingSelection": {"offeringCode": "ROOM_SERVICE", "fieldCode": "deliveryLocation", "title": "Lugar de entrega", "options": [{"code": "ROOM", "label": "Habitacion", "translations": ["Room"]}, {"code": "DOCK_1", "label": "Muelle 1", "translations": ["Dock 1"]}, {"code": "DOCK_2", "label": "Muelle 2", "translations": ["Dock 2"]}, {"code": "POOL_1", "label": "Alberca 1", "translations": ["Pool 1"]}, {"code": "POOL_2", "label": "Alberca 2", "translations": ["Pool 2"]}], "currentValue": "ROOM"}, "maintenanceRequests": [], "roomServiceOrders": [], "lastAssistantMessage": "Confirmación de pedido\n\nArtículos:\n- 1 x sopa\n\nLugar de entrega: Habitacion\n\n¿Deseas confirmar, cambiar o cancelar el pedido?\nhttps://hotel.example/menu", "offerings": [{"code": "ROOM_SERVICE", "name": "Servicio a la habitacion", "description": "Alimentos y bebidas"}, {"code": "SPA", "name": "Reservación de spa", "description": "Servicios y tratamientos de SPA"}, {"code": "FAQ", "name": "Preguntas frecuentes", "description": "Información y políticas del hotel"}, {"code": "MAINTENANCE", "name": "Mantenimiento", "description": "Reparaciones y problemas en las instalaciones"}, {"code": "FRONT_DESK", "name": "Recepcion", "description": "Contacto directo"}], "activeOperations": []}
+{"currentMessage": "Que sean dos sopas", "conversationLocale": "es-MX", "pendingCapture": {"pendingOffering": "ROOM_SERVICE", "phase": "AWAITING_CONFIRMATION", "capturedFields": {"items": [{"name": "sopa", "quantity": 1, "modifications": []}], "deliveryLocation": "ROOM"}, "awaitingExplicitConfirmation": true, "roomServiceConfirmation": {"token": "b2a8e653e0cb5923838e4c0157b1d0b0", "orderDigest": "132ee7b322c1a7e4617b0a35666036a39426d595090a1b0caf766ebe2a5198ab"}}, "pendingSelection": {"offeringCode": "ROOM_SERVICE", "fieldCode": "deliveryLocation", "title": "Lugar de entrega", "options": [{"code": "ROOM", "label": "Habitacion", "translations": ["Room"]}, {"code": "DOCK_1", "label": "Muelle 1", "translations": ["Dock 1"]}, {"code": "DOCK_2", "label": "Muelle 2", "translations": ["Dock 2"]}, {"code": "POOL_1", "label": "Alberca 1", "translations": ["Pool 1"]}, {"code": "POOL_2", "label": "Alberca 2", "translations": ["Pool 2"]}], "currentValue": "ROOM"}, "roomServiceOrders": [], "lastAssistantMessage": "Confirmación de pedido\n\nArtículos:\n- 1 x sopa\n\nLugar de entrega: Habitacion\n\n¿Deseas confirmar, cambiar o cancelar el pedido?\nhttps://hotel.example/menu", "offerings": [{"code": "ROOM_SERVICE", "name": "Servicio a la habitacion", "description": "Alimentos y bebidas"}, {"code": "SPA", "name": "Reservación de spa", "description": "Servicios y tratamientos de SPA"}, {"code": "FAQ", "name": "Preguntas frecuentes", "description": "Información y políticas del hotel"}, {"code": "MAINTENANCE", "name": "Mantenimiento", "description": "Reparaciones y problemas en las instalaciones"}, {"code": "FRONT_DESK", "name": "Recepcion", "description": "Contacto directo"}], "activeOperations": []}

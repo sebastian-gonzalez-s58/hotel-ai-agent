@@ -151,7 +151,13 @@
         "SC-009-replaced-draft-submitted",
         "SC-009-maintenance-recurrence-es",
         "SC-009-maintenance-recurrence-en",
-        "SC-009-maintenance-timeout"
+        "SC-009-maintenance-timeout",
+        "SC-009-maintenance-new-menu-es",
+        "SC-009-maintenance-new-direct-es",
+        "SC-009-maintenance-new-menu-en",
+        "SC-009-maintenance-new-direct-en",
+        "SC-009-maintenance-hypothetical-es",
+        "SC-009-maintenance-hypothetical-en"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -190,7 +196,8 @@
         "tests/test_conversation_regression_library.py",
         "tests/test_v2_service_start_acknowledgements.py",
         "tests/test_room_service_status.py",
-        "tests/test_maintenance_recurrence.py"
+        "tests/test_maintenance_recurrence.py",
+        "tests/test_maintenance_new_request.py"
       ]
     },
     {
@@ -233,7 +240,13 @@
         "SC-009-replaced-draft-submitted",
         "SC-009-maintenance-recurrence-es",
         "SC-009-maintenance-recurrence-en",
-        "SC-009-maintenance-timeout"
+        "SC-009-maintenance-timeout",
+        "SC-009-maintenance-new-menu-es",
+        "SC-009-maintenance-new-direct-es",
+        "SC-009-maintenance-new-menu-en",
+        "SC-009-maintenance-new-direct-en",
+        "SC-009-maintenance-hypothetical-es",
+        "SC-009-maintenance-hypothetical-en"
       ],
       "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
       "effective_globs": [
@@ -261,7 +274,8 @@
         "tests/test_multilingual_understanding.py",
         "tests/test_pending_language_switch.py",
         "tests/test_room_service_status.py",
-        "tests/test_maintenance_recurrence.py"
+        "tests/test_maintenance_recurrence.py",
+        "tests/test_maintenance_new_request.py"
       ]
     },
     {
