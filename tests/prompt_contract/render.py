@@ -96,6 +96,9 @@ def effective_prompts():
             {"catalogItemId": "SYNTHETIC-POOL", "question": "Pool hours", "answer": "The pool closes at 22:00."}]}
         probe("boundary/V2_FAQ_SEMANTIC_RETRIEVAL", faq_grounding,
               lambda: faq_grounding.resolve_semantic_faq(request, search, time.perf_counter()))
+        from app.services import catalog_orders
+        probe("boundary/V2_CATALOG_MATCH", catalog_orders, lambda: catalog_orders._semantic("classic burger", [
+            {"id": "SYNTHETIC-BURGER", "code": "BURGER", "label": "Hamburguesa Clásica", "categoryLabel": "Hamburguesas"}]))
         from app.services.openai_client import OpenAiJsonResult
         from app.services.telemetry_client import OpenAiTokenUsage
 

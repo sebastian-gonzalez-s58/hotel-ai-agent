@@ -50,7 +50,7 @@ MODEL_MODULES = (
     "app.services.openai_client", "app.agents.v2_scope_router",
     "app.agents.v2_turn_planner", "app.agents.spa_turns", "app.agents.social_opening",
     "app.services.input_understanding", "app.services.localized_content",
-    "app.services.faq_grounding",
+    "app.services.faq_grounding", "app.services.catalog_orders",
 )
 
 

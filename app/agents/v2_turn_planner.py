@@ -25,6 +25,8 @@ from app.services.openai_client import call_openai_json_result
 from app.services.conversation_language import language_enabled, greeting_language, resolve_language
 from app.services.localized_content import localize_response, template
 from app.services.catalog_selection import pending_catalog_selection, ordered_capture_fields as _ordered_guest_capture_fields
+from app.services.catalog_orders import (catalog_for, normalize_order, pending_choice, apply_choice,
+                                         clarification as catalog_clarification)
 from app.services.faq_grounding import is_semantic_search, resolve_semantic_faq, restore_grounded_faq
 from app.services.input_understanding import (
     understanding_turn, understanding_enabled, record_scope_action, semantic_action, semantic_action_offering, understand_order,
@@ -1168,13 +1170,17 @@ def _room_service_operation_task_plan(
     latest_inbound = _latest_inbound_message(request)
     if understanding_enabled() and latest_inbound:
         reply_id = latest_inbound.interactionReplyId or ""
-        if reply_id and not reply_id.startswith("room-service-change:"):
+        if reply_id and not reply_id.startswith(("room-service-change:", "catalog-choice:", "catalog-replacement:")):
             return None
         task = _select_understood_task(request, latest_inbound, candidates)
         if candidates and task is None and not _latest_capture_state(request).get("pendingOffering"):
             return _task_decision_clarification(request, started_at)
     if task is None or latest_inbound is None:
         return None
+
+    offering = next((o for o in request.availableOfferings if o.offeringCode == "ROOM_SERVICE"), None)
+    if task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS" and catalog_for(offering, "items"):
+        return _catalog_replacement_plan(request, started_at, task, offering, latest_inbound)
 
     if task.taskType == "ROOM_SERVICE_KITCHEN_CHANGE_DECISION":
         decision = _room_service_confirmation_action(latest_inbound)
@@ -1226,6 +1232,64 @@ def _room_service_operation_task_plan(
         }],
         updated_summary=request.conversation.summary,
     )
+
+
+def _catalog_replacement_plan(request, started_at, task, offering, message):
+    state = deepcopy(_latest_capture_state(request))
+    drafts = state.setdefault("catalogReplacementTasks", {})
+    key = str(task.conversationTaskId)
+    draft = drafts.get(key, {})
+    if draft.get("version") != task.version:
+        draft = {"version": task.version, "items": []}
+    drafts[key] = draft
+    old = draft.get("items", [])
+    reply = message.interactionReplyId or ""
+    expected = f"catalog-replacement:{key}:{draft.get('token')}:CONFIRM"
+    choice = pending_choice(draft.get("pending"), message)
+    if reply == expected and draft.get("token"):
+        items, pending = normalize_order(offering, old, semantic=False)
+        if items and not pending and items == old:
+            return _deterministic_turn_response(request, started_at, disposition="TOOL_CALLS_REQUIRED", messages=[],
+                tool_calls=[{"toolCallId": str(uuid4()), "toolName": "COMPLETE_CONVERSATION_TASK",
+                    "targetOperationId": str(task.operationId), "targetConversationTaskId": key,
+                    "arguments": {"conversationTaskId": key, "expectedVersion": task.version, "result": {"items": items}},
+                    "confidence": 1.0, "evidenceMessageIds": [str(message.messageId)]}], updated_summary=request.conversation.summary)
+    else:
+        items = deepcopy(old)
+        if choice:
+            index = draft["pending"]["itemIndex"]
+            items[index] = apply_choice(items[index], draft["pending"], choice)
+        elif not reply:
+            extracted = understand_order(request, message, items, allow_partial=True, require_full=not bool(items))
+            if extracted is not None:
+                items = extracted
+        items, pending = normalize_order(offering, items)
+    draft.update(items=items, pending=pending)
+    draft.pop("token", None)
+    if pending:
+        output = catalog_clarification(request, offering, "items", pending)
+    elif not items or any(type(i.get("quantity")) is not int or i["quantity"] < 1 for i in items):
+        output = _room_service_replacement_order_prompt(request, task)
+    else:
+        draft["token"] = str(uuid4())
+        output = _room_service_confirmation_message(request, offering, {"items": items})
+        spanish = request.guest.preferredLanguage.lower().startswith("es")
+        output["text"] = output["text"].rsplit("\n", 1)[0] + ("\nConfirma el pedido actualizado o escribe los cambios." if spanish else
+                       "\nConfirm the updated order or type your changes.")
+        output["interaction"] = {"type": "BUTTONS", "body": output["text"][:1024], "options": [{
+            "id": f"catalog-replacement:{key}:{draft['token']}:CONFIRM", "label": "Confirmar" if spanish else "Confirm"}]}
+    output["operationIds"] = [str(task.operationId)]
+    output["conversationTaskIds"] = []
+    messages = [output]
+    if output.get("interaction") and len(output["text"]) > 1024:
+        # Send the complete summary before a separate confirmation control.
+        summary = {**output, "interaction": None}
+        output = deepcopy(output)
+        output["text"] = "Confirma el pedido actualizado." if request.guest.preferredLanguage.lower().startswith("es") else "Confirm the updated order."
+        output["interaction"]["body"] = output["text"]
+        messages = [summary, output]
+    return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY", messages=messages,
+                                       updated_summary=json.dumps(state, ensure_ascii=False))
 
 
 def _room_service_kitchen_change_decision_message(request, task) -> dict:
@@ -1324,6 +1388,19 @@ def _room_service_draft_plan(
             updated_summary="{}",
         )
 
+    catalog_pending = state.get("catalogPending")
+    choice = pending_choice(catalog_pending, latest_inbound)
+    if choice and catalog_for(offering, "items"):
+        index = catalog_pending.get("itemIndex")
+        if type(index) is int and 0 <= index < len(captured.get("items", [])):
+            captured = deepcopy(captured)
+            captured["items"][index] = apply_choice(captured["items"][index], catalog_pending, choice)
+            return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                    **_room_service_capture_output(request, offering, captured, unresolved_location))
+    if (latest_inbound.interactionReplyId or "").startswith("catalog-choice:"):
+        return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                **_room_service_capture_output(request, offering, captured, unresolved_location))
+
     if unresolved_location and action in {"CHANGE", "CONFIRM"}:
         return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
                 messages=[location_prompt or _order_clarification_message(request)],
@@ -1354,6 +1431,11 @@ def _room_service_draft_plan(
         delivery_location = captured.get("deliveryLocation")
         if not items or not isinstance(delivery_location, str) or not delivery_location:
             return None
+        checked, pending = normalize_order(offering, captured.get("items", []), semantic=False)
+        if pending or checked != captured.get("items"):
+            captured = {**captured, "items": checked}
+            return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                    **_room_service_capture_output(request, offering, captured, unresolved_location))
         evidence_message_id = str(latest_inbound.messageId)
         return _deterministic_turn_response(
             request,
@@ -1397,7 +1479,7 @@ def _room_service_draft_plan(
                             "INPUT_RETRY" if order_understanding_failed() else "NEEDS_CLARIFICATION"))
         return None
     captured["items"] = items
-    if understanding_enabled():
+    if understanding_enabled() or catalog_for(offering, "items"):
         return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
                 **_room_service_capture_output(request, offering, captured, unresolved_location))
     if unresolved_location:
@@ -1852,6 +1934,11 @@ def _validate_plan(
         _validate_status_call(call, offerings)
         _validate_conversation_task_call(call, tasks_by_id)
         if call.toolName == DomainToolName.START_SERVICE and call.arguments.get("offeringCode") == "ROOM_SERVICE":
+            item_input = call.arguments.get("input", {}).get("items", [])
+            checked, pending = normalize_order(offerings.get("ROOM_SERVICE"), item_input, semantic=False)
+            if pending or checked != item_input:
+                raise AgentModelError("Room-service selection does not match the current catalog and prices")
+        if call.toolName == DomainToolName.START_SERVICE and call.arguments.get("offeringCode") == "ROOM_SERVICE":
             if request.trigger.eventPayload.get('confirmationQueuedBeforePrompt') is True:
                 raise AgentModelError('Queued confirmation predates the presented room-service summary')
             latest = _latest_inbound_message(request)
@@ -1860,7 +1947,10 @@ def _validate_plan(
                         _room_service_confirmation_action(latest) != "CONFIRM"
                         or call.arguments.get("input") != _latest_capture_state(request).get("capturedFields"))):
                 raise AgentModelError("Room-service button does not authorize the current captured order")
-        if understanding_enabled():
+        target_task = tasks_by_id.get(call.targetConversationTaskId)
+        strict_replacement = (target_task and target_task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS"
+                              and catalog_for(offerings.get("ROOM_SERVICE"), "items"))
+        if understanding_enabled() or strict_replacement:
             _validate_understood_call(request, call, tasks_by_id)
         validate_spa_call(request, call, tasks_by_id)
         if call.toolName.value == "COMPLETE_CONVERSATION_TASK" and call.targetConversationTaskId:
@@ -1925,6 +2015,16 @@ def _validate_understood_call(request, call, tasks_by_id):
             if expected not in {"CHANGE", "CANCEL"} or result.get("decision") != expected:
                 raise AgentModelError("Kitchen-change decision does not match current guest evidence")
         else:
+            offering = next((o for o in request.availableOfferings if o.offeringCode == "ROOM_SERVICE"), None)
+            if catalog_for(offering, "items"):
+                draft = _latest_capture_state(request).get("catalogReplacementTasks", {}).get(str(task.conversationTaskId), {})
+                checked, pending = normalize_order(offering, draft.get("items", []), semantic=False)
+                expected_reply = f"catalog-replacement:{task.conversationTaskId}:{draft.get('token')}:CONFIRM"
+                if (draft.get("version") != task.version or not draft.get("token") or pending
+                        or not checked or checked != draft.get("items") or result.get("items") != checked
+                        or latest.interactionReplyId != expected_reply):
+                    raise AgentModelError("Replacement requires confirmation of the current catalog selection")
+                return
             items = understand_order(request, latest, [], require_full=True)
             if items is None or result.get("items") != items:
                 raise AgentModelError("Replacement order does not match current guest evidence")
@@ -2447,6 +2547,7 @@ def _coerce_order_items(value, *, allow_partial=False) -> list[dict]:
             "name": name,
             **({} if missing_quantity else {"quantity": quantity}),
             "modifications": [str(entry) for entry in modifications if str(entry).strip()],
+            **({"catalogSelection": deepcopy(item["catalogSelection"])} if isinstance(item.get("catalogSelection"), dict) else {}),
         })
     return items
 
@@ -2550,8 +2651,18 @@ def _room_service_confirmation_message(request: AgentTurnRequest, offering, capt
     spanish = request.guest.preferredLanguage.lower().startswith("es")
     items = _coerce_order_items(captured.get("items"))
     item_lines = [f"- {item['quantity']} x {item['name']}"
+                  + (" — " + "; ".join(item["catalogSelection"].get("optionNames", []))
+                     if item.get("catalogSelection", {}).get("optionNames") else "")
                   + (" (" + "; ".join(item["modifications"]) + ")" if item["modifications"] else "")
+                  + (f" — {item['catalogSelection']['currency']} {item['catalogSelection']['lineTotal']}"
+                     if item.get("catalogSelection", {}).get("lineTotal") else "")
                   for item in items]
+    if items and all(i.get("catalogSelection", {}).get("lineTotal") for i in items):
+        currencies = {i["catalogSelection"]["currency"] for i in items}
+        if len(currencies) == 1:
+            from decimal import Decimal
+            total = sum((Decimal(i["catalogSelection"]["lineTotal"]) for i in items), Decimal(0))
+            item_lines.append(f"\nTotal: {next(iter(currencies))} {total:.2f}")
     destination = _capture_value_label(
         offering,
         "deliveryLocation",
@@ -2611,6 +2722,13 @@ def _order_clarification_message(request: AgentTurnRequest) -> dict:
 
 def _room_service_capture_output(request, offering, captured, unresolved_location=False):
     """BC-001/002/006: keep partial drafts; confirmation needs quantities and location."""
+    checked, catalog_pending = normalize_order(offering, captured.get("items", []))
+    captured = {**captured, "items": checked}
+    if catalog_pending:
+        summary = json.loads(_room_service_summary(captured, False, "NEEDS_CATALOG_SELECTION"))
+        summary["catalogPending"] = catalog_pending
+        return {"messages": [catalog_clarification(request, offering, "items", catalog_pending)],
+                "updated_summary": json.dumps(summary, ensure_ascii=False, separators=(",", ":"))}
     pending = [item for item in captured.get("items", []) if item.get("quantity") is None]
     if pending:
         message = _order_clarification_message(request)
@@ -2699,7 +2817,7 @@ def _ensure_explicit_capture_confirmation(
         **context["completedValues"],
         context["fieldCode"]: items,
     }
-    if understanding_enabled():
+    if understanding_enabled() or catalog_for(offering, "items"):
         output = _room_service_capture_output(request, offering, completed_values)
         messages[:] = output["messages"]
         normalized.update(disposition="RESPONSE_READY", toolCalls=[], updatedConversationSummary=output["updated_summary"])
@@ -2942,9 +3060,9 @@ def _ensure_configured_field_capture(
         items = _coerce_order_items(captured.get("items"), allow_partial=True)
         location = _structured_capture_value(latest_inbound.interactionReplyId)
         if items and location:
-            # BC-003 / BC-013: a location selection must not normalize existing items.
+            # Preserve guest wording; strict catalog drafts also recheck their live selections.
             captured["deliveryLocation"] = location
-            if any(item.get("quantity") is None for item in items):
+            if catalog_for(offering, "items") or any(item.get("quantity") is None for item in items):
                 output = _room_service_capture_output(request, offering, captured)
                 messages[:] = output["messages"]
                 normalized.update(disposition="RESPONSE_READY", toolCalls=[], updatedConversationSummary=output["updated_summary"])
