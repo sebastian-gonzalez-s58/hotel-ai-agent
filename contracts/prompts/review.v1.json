@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "23ad64638395daebb817f9551f1dc92ef15c6d740892e6fd30ab592b62288071",
-  "reason": "Manage SPA bookings after staff acceptance with fresh confirmations; all prior rules, anchors and mandatory coverage remain protected.",
+  "baseline_index_sha256": "b74fd053c961e440b5c3971fae6af2ed43da3de29f45e48e6cc7cba45edda401",
+  "reason": "Remove initial SPA draft cancel buttons while retaining final confirmation and existing task controls; prior rules and coverage remain protected.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/spa-reservation-lifecycle-review.md"
+  "evidence": "docs/spa-capture-messages-review.md"
 }

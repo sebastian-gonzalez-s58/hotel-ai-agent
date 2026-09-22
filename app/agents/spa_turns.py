@@ -667,7 +667,7 @@ def _capture(request, state, draft, message, button, offering, task, prompt_only
     action = button[2] if button else _action(message) if message and not prompt_only else None
     prefix = "spa:" + str(task.conversationTaskId) if task else "spa-draft:" + draft["id"]
     confirm_action = "UPDATE" if task else "CONFIRM"
-    cancel_options = _options(request, prefix, ("CANCEL",))
+    cancel_options = _options(request, prefix, ("CANCEL",)) if task else None
     if action == "CANCEL":
         if task:
             if _can_call(request, DomainToolName.COMPLETE_CONVERSATION_TASK):
