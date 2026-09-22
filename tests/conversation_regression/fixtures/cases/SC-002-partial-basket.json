@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "id": "SC-002-partial-basket",
+  "scenario_id": "SC-002",
+  "title": "Artículos completos e incompletos",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_ITEMS",
+    "capturedFields": {},
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "order",
+      "event": {
+        "kind": "guest",
+        "text": "Quiero gorditas y una sopa de pollo"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items/0/name",
+          "op": "equals",
+          "value": "gorditas"
+        },
+        {
+          "path": "/state/capturedFields/items/1/quantity",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "absent"
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": false
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Quiero gorditas y una sopa de pollo",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "REPLACE",
+            "edits": [
+              {
+                "action": "ADD",
+                "existingItemIndex": null,
+                "name": "gorditas",
+                "nameEvidence": "gorditas",
+                "quantity": null,
+                "quantityEvidence": null,
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "gorditas"
+              },
+              {
+                "action": "ADD",
+                "existingItemIndex": null,
+                "name": "sopa de pollo",
+                "nameEvidence": "sopa de pollo",
+                "quantity": 1,
+                "quantityEvidence": "una",
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "una sopa de pollo"
+              }
+            ],
+            "confidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "quantity",
+      "event": {
+        "kind": "guest",
+        "text": "Dos gorditas"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        },
+        {
+          "path": "/state/capturedFields/items/1/name",
+          "op": "equals",
+          "value": "sopa de pollo"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Dos gorditas",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "PATCH",
+            "edits": [
+              {
+                "action": "UPDATE",
+                "existingItemIndex": 0,
+                "name": null,
+                "nameEvidence": null,
+                "quantity": 2,
+                "quantityEvidence": "Dos",
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "Dos gorditas"
+              }
+            ],
+            "confidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "location",
+      "event": {
+        "kind": "guest",
+        "text": "Habitación",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:ROOM"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/deliveryLocation",
+          "op": "equals",
+          "value": "ROOM"
+        },
+        {
+          "path": "/state/capturedFields/items/1/quantity",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/message_purposes",
+          "op": "contains",
+          "value": "CONFIRMATION"
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "confirm-order",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        },
+        {
+          "path": "/tools/0/arguments/input",
+          "op": "equals",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "name": "gorditas",
+                "quantity": 2,
+                "modifications": []
+              },
+              {
+                "name": "sopa de pollo",
+                "quantity": 1,
+                "modifications": []
+              }
+            ]
+          }
+        }
+      ],
+      "model_replies": []
+    }
+  ]
+}

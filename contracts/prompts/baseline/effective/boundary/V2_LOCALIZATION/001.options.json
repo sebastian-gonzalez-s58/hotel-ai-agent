@@ -1,0 +1,34 @@
+{
+  "purpose": "V2_LOCALIZATION",
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "texts": {
+        "additionalProperties": false,
+        "properties": {
+          "text_0": {
+            "maxLength": 96,
+            "minLength": 1,
+            "type": "string"
+          },
+          "text_1": {
+            "maxLength": 20,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "text_0",
+          "text_1"
+        ],
+        "type": "object"
+      }
+    },
+    "required": [
+      "texts"
+    ],
+    "type": "object"
+  },
+  "response_schema_name": "localized_texts_v2",
+  "strict_schema": true
+}

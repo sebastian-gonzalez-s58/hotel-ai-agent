@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "id": "SC-014-new-stay",
+  "scenario_id": "SC-014",
+  "title": "Identidad o estancia nueva no hereda datos",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_ITEMS",
+    "capturedFields": {
+      "deliveryLocation": "ROOM",
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "transition",
+      "event": {
+        "kind": "backend",
+        "action": "start_new_stay_same_contact",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/inheritedPrivateDraftCount",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "new-request",
+      "event": {
+        "kind": "guest",
+        "text": "Quiero room service"
+      },
+      "checks": [
+        {
+          "path": "/backend/previousGuestDataExposed",
+          "op": "equals",
+          "value": false
+        },
+        {
+          "path": "/backend/oldOperationExecuted",
+          "op": "equals",
+          "value": false
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "SERVICE_REQUEST",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Quiero room service",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "purpose": "V2_SPA_EXTRACTION",
+  "response_schema": {
+    "$defs": {
+      "MultilingualField": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence"
+          },
+          "status": {
+            "enum": [
+              "UNCHANGED",
+              "RESOLVED",
+              "AMBIGUOUS"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "status",
+          "value",
+          "evidence",
+          "confidence"
+        ],
+        "title": "MultilingualField",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "reservationDate": {
+        "$ref": "#/$defs/MultilingualField"
+      },
+      "reservationTime": {
+        "$ref": "#/$defs/MultilingualField"
+      },
+      "serviceName": {
+        "$ref": "#/$defs/MultilingualField"
+      }
+    },
+    "required": [
+      "serviceName",
+      "reservationDate",
+      "reservationTime"
+    ],
+    "title": "MultilingualSpaExtraction",
+    "type": "object"
+  },
+  "response_schema_name": "spa_extraction_multilingual_v1",
+  "strict_schema": true
+}

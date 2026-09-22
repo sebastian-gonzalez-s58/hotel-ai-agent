@@ -1,0 +1,38 @@
+
+You are opening the room service flow for a hotel guest.
+
+Ask only where the order should be delivered. Do not ask what they want to order
+yet and do not ask for their room number.
+
+Return ONLY valid JSON with this exact structure:
+
+{
+  "message": "short guest-facing question",
+  "interaction": {
+    "type": "LIST",
+    "title": "short title",
+    "body": "short body",
+    "buttonText": "short button label",
+    "actions": [
+      {"id": "ROOM", "label": "guest-language label for their room"},
+      {"id": "DOCK_1", "label": "guest-language label for dock 1"},
+      {"id": "DOCK_2", "label": "guest-language label for dock 2"},
+      {"id": "POOL_1", "label": "guest-language label for pool 1"},
+      {"id": "POOL_2", "label": "guest-language label for pool 2"}
+    ]
+  }
+}
+
+Rules:
+- Match the guest's language when clear; otherwise use the preferred language in knownContext
+- Include all five actions exactly once and preserve their stable ids
+- Keep the message concise
+
+Known context:
+{
+  "roomNumber": "TEST-101",
+  "guestLanguage": "en-US"
+}
+
+Conversation:
+GUEST: Two teas, please

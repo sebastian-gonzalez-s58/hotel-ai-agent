@@ -1,0 +1,274 @@
+{
+  "hotel": {
+    "schemaVersion": "2.0",
+    "agentTurnId": "10000000-0000-4000-8000-000000000001",
+    "traceId": "synthetic-regression",
+    "trigger": {
+      "type": "INBOUND_MESSAGE"
+    },
+    "hotel": {
+      "hotelId": "20000000-0000-4000-8000-000000000001",
+      "hotelCode": "SYNTHETIC_REGRESSION",
+      "name": "Synthetic Test Hotel",
+      "timeZone": "America/Mexico_City",
+      "defaultLanguage": "es-MX"
+    },
+    "guest": {
+      "guestId": "30000000-0000-4000-8000-000000000001",
+      "stayId": "40000000-0000-4000-8000-000000000001",
+      "displayName": "Test Guest",
+      "roomNumber": "TEST-101",
+      "preferredLanguage": "es-MX"
+    },
+    "conversation": {
+      "contactThreadId": "50000000-0000-4000-8000-000000000001",
+      "conversationId": "60000000-0000-4000-8000-000000000001",
+      "conversationRouteId": "70000000-0000-4000-8000-000000000001",
+      "channel": "CONSOLE",
+      "status": "OPEN",
+      "summary": "",
+      "recentMessages": []
+    },
+    "activeOperations": [],
+    "recentOperations": [],
+    "availableOfferings": [
+      {
+        "offeringCode": "ROOM_SERVICE",
+        "name": "Servicio a la habitacion",
+        "description": "Alimentos y bebidas",
+        "executionMode": "PROCESS",
+        "inputSchema": {
+          "type": "object",
+          "required": [
+            "deliveryLocation",
+            "items"
+          ],
+          "properties": {
+            "deliveryLocation": {
+              "type": "string",
+              "title": "Lugar de entrega",
+              "x-source": "GUEST",
+              "x-chatbotinn-capture": {
+                "inputMode": "SINGLE_SELECT",
+                "displayOrder": 10,
+                "introMessage": "¿Dónde deseas recibir tu pedido?",
+                "catalog": {
+                  "code": "ROOM_SERVICE_DELIVERY_LOCATIONS",
+                  "name": "Lugares de entrega",
+                  "type": "OPTION_LIST",
+                  "options": [
+                    {
+                      "id": "1",
+                      "code": "ROOM",
+                      "label": "Habitacion"
+                    },
+                    {
+                      "id": "2",
+                      "code": "DOCK_1",
+                      "label": "Muelle 1"
+                    },
+                    {
+                      "id": "3",
+                      "code": "DOCK_2",
+                      "label": "Muelle 2"
+                    },
+                    {
+                      "id": "4",
+                      "code": "POOL_1",
+                      "label": "Alberca 1"
+                    },
+                    {
+                      "id": "5",
+                      "code": "POOL_2",
+                      "label": "Alberca 2"
+                    }
+                  ]
+                }
+              }
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              },
+              "title": "Productos",
+              "x-source": "GUEST",
+              "x-chatbotinn-capture": {
+                "inputMode": "CATALOG_ITEMS",
+                "displayOrder": 20,
+                "introMessage": "Consulta el menú digital e indica productos, cantidades y modificaciones.",
+                "catalog": {
+                  "code": "ROOM_SERVICE_MENU",
+                  "name": "Menu",
+                  "type": "MENU",
+                  "externalUrl": "https://hotel.example/menu",
+                  "options": []
+                }
+              }
+            }
+          },
+          "additionalProperties": false,
+          "x-chatbotinn-localization": {
+            "version": 1,
+            "variants": {
+              "en": {
+                "Habitacion": "Room",
+                "Alberca 1": "Pool 1",
+                "Alberca 2": "Pool 2",
+                "Muelle 1": "Dock 1",
+                "Muelle 2": "Dock 2"
+              }
+            }
+          }
+        },
+        "requiresExplicitGuestConfirmation": true
+      },
+      {
+        "offeringCode": "SPA",
+        "name": "Reservación de spa",
+        "description": "Servicios y tratamientos de SPA",
+        "executionMode": "PROCESS",
+        "inputSchema": {
+          "type": "object",
+          "required": [
+            "serviceName",
+            "reservationDate",
+            "reservationTime"
+          ],
+          "properties": {
+            "serviceName": {
+              "type": "string",
+              "title": "Servicio de SPA",
+              "x-source": "GUEST",
+              "x-chatbotinn-capture": {
+                "inputMode": "CATALOG_ITEMS",
+                "displayOrder": 10,
+                "introMessage": "En este enlace puedes consultar los servicios que ofrecemos en el SPA. Indícanos cuál deseas reservar.",
+                "catalog": {
+                  "code": "SPA_SERVICES",
+                  "name": "Servicios de SPA",
+                  "type": "BOOKABLE_SERVICE",
+                  "externalUrl": "https://hotel.example/spa",
+                  "options": []
+                }
+              }
+            },
+            "reservationDate": {
+              "type": "string",
+              "format": "date",
+              "title": "Fecha deseada",
+              "x-source": "GUEST",
+              "x-chatbotinn-capture": {
+                "inputMode": "DATE",
+                "displayOrder": 20,
+                "introMessage": "¿Para qué fecha deseas hacer la reservación?"
+              }
+            },
+            "reservationTime": {
+              "type": "string",
+              "format": "time",
+              "title": "Hora deseada",
+              "x-source": "GUEST",
+              "x-chatbotinn-capture": {
+                "inputMode": "TIME",
+                "displayOrder": 30,
+                "introMessage": "¿A qué hora deseas la reservación?"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "requiresExplicitGuestConfirmation": true
+      },
+      {
+        "offeringCode": "FAQ",
+        "name": "Preguntas frecuentes",
+        "description": "Información y políticas del hotel",
+        "executionMode": "KNOWLEDGE",
+        "inputSchema": {
+          "type": "object",
+          "required": [
+            "question"
+          ],
+          "properties": {
+            "question": {
+              "type": "string",
+              "title": "Pregunta",
+              "x-source": "GUEST",
+              "x-chatbotinn-capture": {
+                "inputMode": "FREE_TEXT",
+                "displayOrder": 10,
+                "introMessage": "¿Qué información necesitas sobre el hotel?"
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "requiresExplicitGuestConfirmation": false
+      },
+      {
+        "offeringCode": "MAINTENANCE",
+        "name": "Mantenimiento",
+        "description": "Reparaciones y problemas en las instalaciones",
+        "executionMode": "PROCESS",
+        "inputSchema": {
+          "type": "object",
+          "required": [
+            "issue"
+          ],
+          "properties": {
+            "issue": {
+              "type": "string",
+              "title": "Problema",
+              "x-source": "GUEST",
+              "x-chatbotinn-capture": {
+                "inputMode": "FREE_TEXT",
+                "displayOrder": 10,
+                "introMessage": "Describe el problema que necesitas reportar."
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "requiresExplicitGuestConfirmation": false
+      },
+      {
+        "offeringCode": "FRONT_DESK",
+        "name": "Recepcion",
+        "description": "Contacto directo",
+        "executionMode": "PROCESS",
+        "inputSchema": {
+          "type": "object",
+          "required": [],
+          "additionalProperties": false,
+          "properties": {
+            "handoffReason": {
+              "type": "string"
+            }
+          }
+        },
+        "catalogCodes": [],
+        "requiresExplicitGuestConfirmation": false
+      }
+    ],
+    "toolPolicy": {
+      "allowedTools": [
+        "LIST_AVAILABLE_OFFERINGS",
+        "GET_OFFERING_DEFINITION",
+        "SEARCH_CATALOG",
+        "SEARCH_KNOWLEDGE",
+        "LIST_ACTIVE_OPERATIONS",
+        "GET_OPERATION",
+        "GET_OPERATION_STATUS",
+        "START_SERVICE",
+        "SAVE_CONVERSATION_TASK_PROGRESS",
+        "COMPLETE_CONVERSATION_TASK",
+        "EXECUTE_SERVICE_ACTION"
+      ],
+      "maxToolCalls": 8,
+      "allowMultipleConversationTaskCompletions": false
+    },
+    "previousToolResults": [],
+    "createdAt": "2026-10-01T16:00:00Z"
+  }
+}

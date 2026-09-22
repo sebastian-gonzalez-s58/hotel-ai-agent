@@ -1,0 +1,107 @@
+{
+  "scope": "local-sandbox",
+  "status": "PASS",
+  "started_at": "2026-09-21T07:08:42.183688+00:00",
+  "finished_at": "2026-09-21T07:12:23.698588+00:00",
+  "sources": {
+    "agent": {
+      "git_head": "24f6d0be5cae9f07d79a6ce69c590cbb007569a0",
+      "inputs_sha256": "5ab8d04e7cae6a88bd0b2e82aef92a69a9f60fea04778acf5155b3126c9d09fb"
+    },
+    "backend": {
+      "git_head": "9e239235e634bc451b386c977760643d42c289e8",
+      "inputs_sha256": "0cb03d6c6075e29680b4c49aca49395235c9903514edab4f730ab4bd7a195cb8"
+    }
+  },
+  "gate_report": "../../../target/ci/coverage21-gate/summary.json",
+  "gate_summary": "../../../target/ci/coverage21-gate/summary.md",
+  "agent_unit": {
+    "passed": 424,
+    "skipped": [
+      "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_initial_english_menu_from_spanish_offerings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_scope_distinguishes_openings_from_specific_requests_and_social_closings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_translation_respects_small_limits_for_custom_labels",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_typo_after_previous_welcome_still_returns_menu",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_explicit_separate_order_is_still_allowed",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_kitchen_replacement_completes_existing_task",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_maintenance_negation_does_not_confirm_resolution",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_polite_order_edit_and_confirmation",
+      "tests.test_v2_scope_live.LiveHotelScopeTest.test_scope_and_existing_workflows"
+    ]
+  },
+  "backend_unit": {
+    "passed": 569,
+    "skipped": [
+      "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
+    ]
+  },
+  "offline": {
+    "OFFLINE_PARTIAL_PASS": 35,
+    "NOT_RUN": 8
+  },
+  "integration": {
+    "INTEGRATION_PARTIAL_PASS": 43
+  },
+  "completed_pending_cases": [
+    "SC-008-language-evidence",
+    "SC-011-spa-date",
+    "SC-012-outbox-retry",
+    "SC-013-route-renewal",
+    "SC-014-contact-reassignment",
+    "SC-014-new-stay",
+    "SC-015-ambiguous-tasks",
+    "SC-016-forbidden-tool",
+    "SC-016-foreign-evidence",
+    "SC-016-missing-confirmation",
+    "SC-016-missing-input",
+    "SC-016-stale-version",
+    "SC-016-unknown-offering",
+    "SC-017-approved-faq",
+    "SC-017-unknown-faq",
+    "SC-018-configured-front-desk",
+    "SC-019-ambiguous-selection",
+    "SC-019-generic-offering",
+    "SC-020-channel-limit",
+    "SC-020-preserve-product",
+    "SC-021-queued-messages"
+  ],
+  "mandatory_integration_cases": 43,
+  "mandatory_integration_turns": 110,
+  "pending_integration_steps": 0,
+  "pending_integration_checks": 0,
+  "repeated_integration": {
+    "report": "../../../target/ci/coverage21-repeat-final.json",
+    "cases": 43,
+    "repetitions": 2,
+    "passed_case_runs": 86,
+    "limitation": "The existing SC-012-failed-edit extra closure was restored afterward and passed separately and in the final gate."
+  },
+  "prompt_contract": {
+    "documents": 257,
+    "critical_anchors": 14,
+    "removed_documents": 0,
+    "review": "../../../docs/coverage21-prompt-review.md"
+  },
+  "negative_gate_tests_passed": 17,
+  "local_python": "3.12.14",
+  "local_java": "24",
+  "new_api_calls": 0,
+  "new_api_tokens": 0,
+  "remote_enforcement_active": false,
+  "deployment_authorized": false,
+  "limitations": [
+    "Spring context, conversation persistence, turns, tool registry and service operations use real code and H2.",
+    "Offering schemas/catalog snapshots and guest/stay lookup are fixture providers.",
+    "FAQ search and approved-answer validation are real services over synthetic approved or empty catalog snapshots.",
+    "Tool-result fixture steps inspect recorded synchronous agent turns and the final persisted state of that guest turn, not intermediate database commits.",
+    "BPM process port and outbound delivery are simulated; no router or WhatsApp connection.",
+    "Python planner is real over loopback HTTP; model replies scripted and response localization bypassed.",
+    "Outbox retry and channel limits use the real worker/localizer with a scripted translation client and delivery gateway.",
+    "Queued inbounds are persisted together then processed sequentially; this does not establish concurrent worker safety.",
+    "Does not test PostgreSQL migrations, production HTTP authentication or every environment event.",
+    "Eight Python-only cases remain NOT_RUN; backend-dependent offline checks remain explicitly pending.",
+    "Model interpretation and translation quality use synthetic responses and are not certified by this run.",
+    "GitHub branch rules, paired SHA variables/token and Render activation remain unapplied."
+  ]
+}

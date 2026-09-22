@@ -1,0 +1,234 @@
+{
+  "purpose": "V2_HOTEL_SCOPE",
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "confidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+      },
+      "containsUnrelatedTopic": {
+        "title": "Containsunrelatedtopic",
+        "type": "boolean"
+      },
+      "detectedLanguage": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Detectedlanguage"
+      },
+      "existingOrderAction": {
+        "enum": [
+          "NONE",
+          "CHANGE",
+          "CANCEL"
+        ],
+        "title": "Existingorderaction",
+        "type": "string"
+      },
+      "existingOrderConfidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Existingorderconfidence",
+        "type": "number"
+      },
+      "existingOrderEvidence": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Existingorderevidence"
+      },
+      "hasRequestDetails": {
+        "title": "Hasrequestdetails",
+        "type": "boolean"
+      },
+      "kind": {
+        "enum": [
+          "SERVICE_REQUEST",
+          "HOTEL_QUESTION",
+          "CONTEXT_REPLY",
+          "STATUS_REQUEST",
+          "NAVIGATION",
+          "SOCIAL",
+          "OUT_OF_SCOPE",
+          "UNCLEAR"
+        ],
+        "title": "Kind",
+        "type": "string"
+      },
+      "languageChangeOnly": {
+        "title": "Languagechangeonly",
+        "type": "boolean"
+      },
+      "languageConfidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Languageconfidence",
+        "type": "number"
+      },
+      "maintenanceFollowUp": {
+        "enum": [
+          "NONE",
+          "RECURRENCE"
+        ],
+        "title": "Maintenancefollowup",
+        "type": "string"
+      },
+      "maintenanceFollowUpConfidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Maintenancefollowupconfidence",
+        "type": "number"
+      },
+      "maintenanceFollowUpEvidence": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Maintenancefollowupevidence"
+      },
+      "offeringCode": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Offeringcode"
+      },
+      "relevantText": {
+        "maxLength": 20000,
+        "title": "Relevanttext",
+        "type": "string"
+      },
+      "replyAction": {
+        "enum": [
+          "NONE",
+          "CONFIRM",
+          "CHANGE",
+          "CANCEL",
+          "RESOLVED",
+          "NOT_RESOLVED",
+          "AMBIGUOUS"
+        ],
+        "title": "Replyaction",
+        "type": "string"
+      },
+      "replyActionConfidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Replyactionconfidence",
+        "type": "number"
+      },
+      "replyActionEvidence": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Replyactionevidence"
+      },
+      "requestedLanguage": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Requestedlanguage"
+      },
+      "selectionAttempted": {
+        "title": "Selectionattempted",
+        "type": "boolean"
+      },
+      "selectionCode": {
+        "enum": [
+          null,
+          "ROOM",
+          "DOCK_1",
+          "DOCK_2",
+          "POOL_1",
+          "POOL_2"
+        ],
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "selectionConfidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Selectionconfidence",
+        "type": "number"
+      },
+      "selectionEvidence": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Selectionevidence"
+      },
+      "separateRequest": {
+        "title": "Separaterequest",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "kind",
+      "offeringCode",
+      "relevantText",
+      "hasRequestDetails",
+      "separateRequest",
+      "containsUnrelatedTopic",
+      "confidence",
+      "detectedLanguage",
+      "requestedLanguage",
+      "languageConfidence",
+      "languageChangeOnly",
+      "replyAction",
+      "replyActionEvidence",
+      "replyActionConfidence",
+      "selectionCode",
+      "selectionAttempted",
+      "selectionEvidence",
+      "selectionConfidence",
+      "existingOrderAction",
+      "existingOrderEvidence",
+      "existingOrderConfidence",
+      "maintenanceFollowUp",
+      "maintenanceFollowUpEvidence",
+      "maintenanceFollowUpConfidence"
+    ],
+    "title": "ScopeDecision",
+    "type": "object"
+  },
+  "response_schema_name": "hotel_scope_v2",
+  "strict_schema": true
+}

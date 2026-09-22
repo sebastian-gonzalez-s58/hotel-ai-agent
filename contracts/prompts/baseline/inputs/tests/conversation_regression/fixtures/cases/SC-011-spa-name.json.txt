@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "id": "SC-011-spa-name",
+  "scenario_id": "SC-011",
+  "title": "Aclarar tratamiento sin pedir fecha",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "SPA",
+    "capturedFields": {},
+    "spaDraft": {
+      "id": "80000000-0000-4000-8000-000000000001",
+      "capturedFields": {},
+      "unresolvedFields": {},
+      "awaitingConfirmation": false
+    }
+  },
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "ambiguous",
+      "event": {
+        "kind": "guest",
+        "text": "Un Masaje herbal"
+      },
+      "checks": [
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "serviceName"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "YYYY-MM-DD"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [
+        "La pregunta debe referirse al tratamiento; una fecha no resuelve esta ambigüedad."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Un Masaje herbal",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_SPA_EXTRACTION",
+          "payload": {
+            "serviceName": {
+              "status": "AMBIGUOUS",
+              "value": null,
+              "evidence": "Un Masaje herbal",
+              "confidence": 0.6
+            },
+            "reservationDate": {
+              "status": "UNCHANGED",
+              "value": null,
+              "evidence": null,
+              "confidence": 1
+            },
+            "reservationTime": {
+              "status": "UNCHANGED",
+              "value": null,
+              "evidence": null,
+              "confidence": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
