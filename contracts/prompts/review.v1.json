@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "b74fd053c961e440b5c3971fae6af2ed43da3de29f45e48e6cc7cba45edda401",
-  "reason": "Remove initial SPA draft cancel buttons while retaining final confirmation and existing task controls; prior rules and coverage remain protected.",
+  "baseline_index_sha256": "9d9c1ad129f127d615c89a22af589c15e120cadc2db72ea47fbfc9d3a130963f",
+  "reason": "Add strict catalog selection safeguards and require SPA lock release and lightweight catalog metadata regressions; retain all prior prompt guarantees.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/spa-capture-messages-review.md"
+  "evidence": "docs/catalog-validation-review.md"
 }

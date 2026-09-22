@@ -274,7 +274,7 @@ def _captured_values(request, response):
             for key, value in data.items():
                 if key in {"name", "serviceName"} and isinstance(value, str):
                     values.append(value)
-                elif key == "modifications" and isinstance(value, list):
+                elif key in {"modifications", "optionNames"} and isinstance(value, list):
                     values.extend(item for item in value if isinstance(item, str))
                 elif isinstance(value, (dict, list)):
                     collect(value)

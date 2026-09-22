@@ -97,6 +97,13 @@
       "prompt_id": "PR-001",
       "rule_id": "BC-014",
       "text": "exactly one COMPLETE_CONVERSATION_TASK"
+    },
+    {
+      "id": "PA-015",
+      "prompt_id": "PR-013",
+      "rule_id": "BC-012",
+      "document_glob": "effective/boundary/V2_CATALOG_MATCH/*.prompt.txt",
+      "text": "Never substitute a similar product, choose a flavor/protein/size the guest did not specify,"
     }
   ],
   "baseline_origin": "Current sandbox with fixes 1–5; not a production approval",
@@ -724,6 +731,34 @@
       "unit_files": [
         "tests/test_multilingual_understanding.py"
       ]
+    },
+    {
+      "id": "PR-013",
+      "name": "Resolución de selecciones contra catálogo activo",
+      "rule_ids": [
+        "BC-001",
+        "BC-002",
+        "BC-003",
+        "BC-006",
+        "BC-012",
+        "BC-013"
+      ],
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-002-partial-basket",
+        "SC-003-spa-split-time",
+        "SC-009-stale-confirmation"
+      ],
+      "sources": [
+        "app/services/catalog_orders.py"
+      ],
+      "unit_files": [
+        "tests/test_catalog_orders.py"
+      ],
+      "effective_globs": [
+        "effective/boundary/V2_CATALOG_MATCH/*"
+      ],
+      "coverage_note": "Strict catalog selections are exercised by deterministic unit journeys and opt-in synthetic live evaluation; legacy conversation replays retain their historical fixture catalogs."
     }
   ],
   "scope": "local-sandbox",

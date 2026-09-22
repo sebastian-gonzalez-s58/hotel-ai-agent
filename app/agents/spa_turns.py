@@ -14,6 +14,8 @@ from app.core.errors import AgentDependencyError, AgentModelError, AgentTimeoutE
 from app.schemas.v2_turns import AgentTurnRequest, DomainToolName
 from app.services.openai_client import call_openai_json_result
 from app.services.input_understanding import understanding_enabled, semantic_action, extraction_timeout
+from app.services.catalog_orders import (catalog_for, resolve_selection, display_service,
+    pending_choice, apply_choice, clarification as catalog_clarification)
 
 
 SPA_TASK_TYPES = {"SPA_ALTERNATIVE_DECISION", "SPA_RESERVATION_CHANGE_DETAILS"}
@@ -463,6 +465,16 @@ def validate_spa_call(request, call, tasks_by_id):
     complete = call.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK and task and task.taskType in SPA_TASK_TYPES
     if not start and not complete:
         return
+    offering = next((o for o in request.availableOfferings if o.offeringCode == "SPA"), None)
+    catalog = catalog_for(offering, "serviceName")
+    values = call.arguments.get("input", {}) if start else call.arguments.get("result", {})
+    service_name = values.get("serviceName")
+    if complete and values.get("decision") == "ACCEPT":
+        service_name = _proposed_fields(task).get("serviceName")
+    if catalog and service_name:
+        selected, pending = resolve_selection(catalog, service_name, [], semantic=False)
+        if pending or display_service(selected) != service_name:
+            raise AgentModelError("SPA service is not a current canonical catalog selection")
     message = next((m for m in request.conversation.recentMessages if m.messageId == request.trigger.messageId), None)
     if (request.trigger.type != "INBOUND_MESSAGE" or message is None or message.actor != "GUEST"
             or message.direction != "INBOUND" or call.evidenceMessageIds != [message.messageId]):
@@ -538,7 +550,7 @@ def plan_spa_turn(request: AgentTurnRequest, scope=None):
     if reply_id.startswith(("spa:", "spa-draft:", "confirmation:SPA:")) and not button:
         return _reply(request, state, _text(request, "Esa opción de SPA ya no está vigente. Usa la solicitud actual.",
                                           "That SPA option is no longer current. Use the current request."))
-    if reply_id and not button and not new_spa:
+    if reply_id and not button and not new_spa and not reply_id.startswith("catalog-choice:"):
         return None
 
     explicitly_targeted = bool(button or request.trigger.conversationTaskId or request.trigger.operationId or
@@ -644,6 +656,10 @@ def _plan_task(request, state, task, message, button, offering):
                         prompt_only=message is None or bool(button and button[2] == "SELECT"))
     proposed = _proposed_fields(task)
     valid_proposal = len(proposed) == 3 and not _schedule_issue(request, proposed)
+    catalog = catalog_for(offering, "serviceName")
+    if valid_proposal and catalog:
+        selected, pending = resolve_selection(catalog, proposed["serviceName"], [], semantic=False)
+        valid_proposal = not pending and display_service(selected) == proposed["serviceName"]
     action = button[2] if button else _action(message) if message else None
     if button and button[3]:
         action = None
@@ -679,6 +695,28 @@ def _capture(request, state, draft, message, button, offering, task, prompt_only
             for key in ("pendingOffering", "capturedFields", "readyToStart", "awaitingExplicitConfirmation"):
                 state.pop(key, None)
             return _reply(request, state, _text(request, "La solicitud de SPA fue cancelada.", "The SPA draft was cancelled."))
+    catalog = catalog_for(offering, "serviceName")
+    choice = pending_choice(draft.get("catalogPending"), message)
+    if choice and catalog:
+        row = {"name": fields.get("serviceName", ""), "modifications": [],
+               "catalogSelection": draft.get("catalogSelection", {})}
+        row = apply_choice(row, draft["catalogPending"], choice)
+        draft["catalogSelection"] = row["catalogSelection"]
+        draft.pop("catalogPending", None)
+        draft["awaitingConfirmation"] = False
+        prompt_only = False
+        message = None
+    elif message and (message.interactionReplyId or "").startswith("catalog-choice:"):
+        prompt_only = True
+    if catalog and draft.get("awaitingConfirmation"):
+        old = draft.get("catalogSelection")
+        selected, pending = resolve_selection(catalog, (old or {}).get("requestedName", fields.get("serviceName", "")), [], old, semantic=False)
+        if pending or selected != old:
+            draft["awaitingConfirmation"] = False
+            draft.pop("confirmationToken", None)
+            action = None
+            message = None
+            prompt_only = False
     confirmed = action in {"CONFIRM", confirm_action} and draft.get("awaitingConfirmation")
     if button and confirmed and (button[2] != confirm_action or button[3] != draft.get("confirmationToken")):
         confirmed = False
@@ -709,9 +747,34 @@ def _capture(request, state, draft, message, button, offering, task, prompt_only
         draft["awaitingConfirmation"] = False
         draft.pop("confirmationToken", None)
         fields, unresolved, usage, changed = _extract(request, message, fields, unresolved)
-        if not changed:
+        if not changed and not (catalog and fields.get("serviceName")):
             draft.update(capturedFields=fields, unresolvedFields=unresolved)
             return _reply(request, state, _prompt(request, offering, fields, unresolved), task=task, usage=usage, options=cancel_options)
+    if catalog and fields.get("serviceName"):
+        old = draft.get("catalogSelection")
+        name = fields["serviceName"]
+        if old and name in {old.get("name"), display_service(old)}:
+            name = old.get("requestedName", name)
+        else:
+            old = None
+        selected, pending = resolve_selection(catalog, name, [], old)
+        if selected:
+            draft["catalogSelection"] = selected
+            fields["serviceName"] = display_service(selected)
+        elif not old:
+            draft.pop("catalogSelection", None)
+        draft.update(capturedFields=fields, unresolvedFields=unresolved)
+        if not task: state["capturedFields"] = fields
+        if pending:
+            draft["catalogPending"] = pending
+            draft["awaitingConfirmation"] = False
+            draft.pop("confirmationToken", None)
+            reply = _reply(request, state, task=task, usage=usage)
+            message_dict = catalog_clarification(request, offering, "serviceName", pending)
+            if task: message_dict["operationIds"] = [str(task.operationId)]
+            reply.update(disposition="RESPONSE_READY", messages=[message_dict])
+            return reply
+        draft.pop("catalogPending", None)
     issue = _schedule_issue(request, fields)
     if issue:
         unresolved[issue] = fields.pop(issue)
@@ -724,6 +787,9 @@ def _capture(request, state, draft, message, button, offering, task, prompt_only
     draft["awaitingConfirmation"] = True
     draft["confirmationToken"] = str(uuid4())
     text = _text(request, "Confirma tu solicitud de SPA:\n", "Confirm your SPA request:\n") + _fields_text(request, fields)
+    if catalog and draft.get("catalogSelection", {}).get("unitPrice"):
+        selected = draft["catalogSelection"]
+        text += _text(request, "\nPrecio publicado: ", "\nListed price: ") + selected["currency"] + " " + selected["unitPrice"]
     text += _text(request, "\nLa disponibilidad está pendiente de confirmación por el personal del SPA.",
                   "\nAvailability is pending confirmation by the SPA staff.")
     return _reply(request, state, text, task=task, usage=usage,
