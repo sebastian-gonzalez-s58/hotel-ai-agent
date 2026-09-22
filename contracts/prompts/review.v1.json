@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "9d9c1ad129f127d615c89a22af589c15e120cadc2db72ea47fbfc9d3a130963f",
-  "reason": "Add strict catalog selection safeguards and require SPA lock release and lightweight catalog metadata regressions; retain all prior prompt guarantees.",
+  "baseline_index_sha256": "331e591394bf3e2f3d3a5ed48097b9b77d2732dfa39e16a67d84c2609b9a344d",
+  "reason": "Offer optional complements with scoped skip/done decisions; preserve all previous prompt guarantees and require new regressions.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/catalog-validation-review.md"
+  "evidence": "docs/catalog-option-offers-review.md"
 }

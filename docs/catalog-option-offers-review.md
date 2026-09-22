@@ -1,0 +1,17 @@
+# Optional catalog complements
+
+Scope: sandbox agent, backend and dashboard working copies. No digital menu, checkout, bucket upload, push or deployment is part of this implementation validation.
+
+Existing group selection limits retain their meaning. A separate offerToGuest flag controls whether the bot proactively offers an optional group. V23 defaults the flag to false and enables it for existing optional food groups only; other item types and required-selection rules retain their values. Group create/PATCH APIs expose the flag, and omission in PATCH preserves it.
+
+The agent captures mandatory choices before optional offers. Optional offers show adjustments, allow an explicit skip, and persist SELECTING/SELECTED/DECLINED decisions per item and group. Multiple selections can be toggled and completed with Done. Large groups paginate within the ten-option channel limit. Complete, unambiguous replies to the current option question bypass global intent classification so 'no thanks' cannot cancel the whole order. Unrecognized portions of an extra request are never silently dropped. Existing item/price/availability validation remains enforced at confirmation and by Spring.
+
+Directly supplied extras survive an earlier mandatory choice. A unique final noun can identify an option such as pollo / Pechuga de Pollo; ambiguous nouns do not choose a variant. Allergy statements never select a paid extra. Preparation notes are retained; mixed extra/restriction text that cannot be resolved completely requires clarification. This is conservative matching, not unrestricted semantic equivalence.
+
+Dashboard: add/edit/delete groups and options, independent required/offer controls, selection bounds, display order, price adjustments and option availability. Existing IDs are preserved on edits. Failed saves retain the form. The editor warns when available options cannot satisfy a group's minimum.
+
+Review of target/catalog-offers-prompt-review/report.json: five snapshot changes (gate policy, new test source, manifest registration, planner source, catalog resolver source). No effective model prompts changed and no existing anchor or required case was removed. Thirteen new agent tests and three new backend tests are mandatory; the existing catalog batching persistence test also checks the new flag survives reload. This is Codex implementation review, not independent human approval.
+
+Focused validation: 36 agent tests passed; 23 backend tests passed including the SQL migration. Dashboard: 57 tests passed, production build/typecheck/lint and changed-file formatting passed. Two Chrome E2E tests passed against the final build, including desktop/mobile layout, independent offer/requirement controls, price changes and availability. Screenshots are in the dashboard test-results directory and were visually reviewed. No new OpenAI calls were made. Each option is charged once per plate; quantities of the same extra remain outside this change. Remote WhatsApp behavior remains to be checked after a separately authorized deployment.
+
+Final paired gate PASS: target/ci/catalog-option-offers/summary.json. 515 agent tests passed; 619 backend tests passed; all 68 Spring/H2 cases met required integration coverage. The opt-in live tests and dedicated integration adapter retain their established skip policy in the unit stages. Source fingerprints and reviewed baseline matched. Validation report: tests/conversation_regression/reports/catalog-option-offers.json. No commits, pushes, remote data edits or deployments were performed for this change.

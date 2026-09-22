@@ -504,7 +504,20 @@
       "tests.test_catalog_orders.CatalogExtraTest.test_unknown_extra_cannot_be_smuggled_in_as_free_text",
       "tests.test_catalog_orders.CatalogExtraTest.test_multiselect_required_group_collects_each_explicit_choice",
       "tests.test_catalog_orders.CatalogVariantCorrectionTest.test_explicit_variant_choice_removes_contradictory_standalone_notes_only",
-      "tests.test_catalog_orders.CatalogMalformedInputTest.test_malformed_model_arguments_fail_closed_without_an_unhandled_exception"
+      "tests.test_catalog_orders.CatalogMalformedInputTest.test_malformed_model_arguments_fail_closed_without_an_unhandled_exception",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_required_variant_precedes_optional_offer_and_decline_survives_salsa_edit",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_multiple_extras_toggle_then_done_produces_exact_total",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_disabled_or_empty_offers_do_not_block_and_single_optional_choice_is_not_automatic",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_skip_and_done_have_english_text_and_draft_scoped_buttons",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_direct_named_extras_are_not_reasked_and_allergy_never_selects_an_extra",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_free_text_selects_multiple_available_options_without_inventing_ids",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_partial_match_does_not_discard_unknown_extras_or_preparation_notes",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_declining_after_multiple_selection_does_not_leave_paid_notes_in_summary",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_removed_selection_blocks_and_price_change_recomputes_without_reoffering",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_large_group_pages_keep_skip_reachable_without_losing_selection",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_decline_belongs_to_item_and_never_skips_another_item",
+      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_no_thanks_is_bound_to_extras_without_global_scope_or_order_cancellation",
+      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_offer_skip_stale_button_and_confirm_create_only_current_order"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
@@ -1136,7 +1149,10 @@
       "com.chatbotinn.agent.v2.service.AgentOfferingInputSchemaFactoryTest.strictItemCaptureAdvertisesCatalogPolicyPricesAndOptions",
       "com.chatbotinn.orchestration.v2.service.ServiceLifecycleServicePersistenceTest.liveCatalogPriceAndAvailabilityAreCheckedBeforeCreatingEachOrder",
       "com.chatbotinn.orchestration.v2.service.ServiceLifecycleServicePersistenceTest.catalogRejectionDoesNotStartProcessOrPersistOperation",
-      "com.chatbotinn.orchestration.v2.service.ConversationTaskServicePersistenceTest.catalogRejectionLeavesTaskPendingWithoutProcessCorrelation"
+      "com.chatbotinn.orchestration.v2.service.ConversationTaskServicePersistenceTest.catalogRejectionLeavesTaskPendingWithoutProcessCorrelation",
+      "com.chatbotinn.architecture.config.CatalogOptionOfferMigrationTest.enablesOnlyExistingOptionalFoodGroupsWithoutChangingSelectionRequirements",
+      "com.chatbotinn.catalog.service.CatalogItemServiceTest.offeringOptionalGroupDoesNotMakeSelectionRequiredAndPatchPreservesPolicy",
+      "com.chatbotinn.catalog.service.CatalogItemServiceTest.groupWithoutOfferPolicyRetainsLegacyDefaultAndInvalidLimitsAreRejected"
     ],
     "allowed_skips": [
       "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
