@@ -753,7 +753,8 @@
         "app/services/catalog_orders.py"
       ],
       "unit_files": [
-        "tests/test_catalog_orders.py"
+        "tests/test_catalog_orders.py",
+        "tests/test_catalog_option_offers.py"
       ],
       "effective_globs": [
         "effective/boundary/V2_CATALOG_MATCH/*"

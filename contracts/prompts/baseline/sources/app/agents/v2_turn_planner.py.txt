@@ -98,6 +98,7 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     opening_usage = None
     if (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
             and latest is not None and not latest.interactionReplyId
+            and not _pending_catalog_option_answer(request, latest)
             and not (not understanding_enabled() and _has_pending_maintenance_resolution_task(request)
                      and _maintenance_resolution_value(latest) is not None)
             and not _is_greeting_turn(request) and _capture_selection(request, latest) is None):
@@ -189,6 +190,19 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
             response = localize_response(request, response, started_at)
     return _bind_room_confirmation(request, response, new_draft=bool(
         scope and scope.separateRequest and scope.offeringCode == 'ROOM_SERVICE'))
+
+
+def _pending_catalog_option_answer(request, message):
+    """A reply to an offered option is not a global cancellation or order approval."""
+    state = _latest_capture_state(request)
+    pending = [state.get('catalogPending'), (state.get('spaDraft') or {}).get('catalogPending')]
+    drafts = state.get('catalogReplacementTasks', {})
+    for operation in request.activeOperations:
+        for task in operation.pendingConversationTasks:
+            draft = drafts.get(str(task.conversationTaskId), {})
+            if draft.get('version') == task.version:
+                pending.append(draft.get('pending'))
+    return any(p and p.get('kind') == 'OPTION' and pending_choice(p, message) for p in pending)
 
 
 def _with_catalog_selection(request, selection, code):
