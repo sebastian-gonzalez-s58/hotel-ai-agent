@@ -43,6 +43,19 @@ def choice_label(item):
     return item["label"] + (" — " + item["categoryLabel"] if item.get("categoryLabel") else "")
 
 
+def is_catalog_value_reply(request, text):
+    """Menu names are business data, not evidence of a new conversation language."""
+    value = re.sub(r'^\d+\s+(?:x\s+)?', '', folded(text))
+    for offering in request.availableOfferings:
+        for field in offering.inputSchema.get('properties', {}):
+            for item in _choices(catalog_for(offering, field) or {}):
+                names = [item['label'], choice_label(item), item['code'], *item.get('aliases', [])]
+                names.extend(o['name'] for g in item.get('optionGroups', []) for o in g.get('options', []))
+                if value and value in {folded(name) for name in names}:
+                    return True
+    return False
+
+
 def _semantic(name, options):
     context = {"requestedName": name, "candidates": [{"id": o["id"], "name": o["label"],
                "category": o.get("categoryLabel", ""), "description": o.get("description", "")[:500]}
@@ -274,7 +287,12 @@ def pending_choice(pending, message):
         if value in {'listo', 'eso es todo', 'done', 'that s all', 'nothing else', 'nada mas'}:
             return next((c for c in pending['choices'] if c.get('action') == 'DONE'), None)
     exact = [c for c in pending["choices"] if folded(message.text) == folded(c["label"])]
-    if len(exact) == 1: return exact[0]
+    if len(exact) == 1:
+        if pending['kind'] == 'OPTION' and pending.get('maximumSelections', 1) > 1 and not exact[0].get('action'):
+            if pending.get('minimumSelections', 0) <= 1:
+                return {'action': 'SELECT_SET', 'ids': [exact[0]['id']]}
+            return None
+        return exact[0]
     if pending['kind'] == 'OPTION':
         matched = _matched_options([message.text], [{'name': c['label'], **c} for c in pending['choices'] if not c.get('action')])
         if matched and _only_option_request(message.text, matched) and pending.get('minimumSelections', 0) <= len(matched) <= pending.get('maximumSelections', 1):
@@ -330,14 +348,21 @@ def apply_choice(row, pending, choice):
 
 def clarification(request, offering, field, pending):
     es = request.guest.preferredLanguage.lower().startswith("es")
+    multiple = pending['kind'] == 'OPTION' and pending.get('maximumSelections', 1) > 1
     name = pending["requestedName"][:160]
     if pending["kind"] == "OPTION":
         text = (f'Para «{name}», elige {pending["groupName"]}.' if es else f'For “{name}”, choose {pending["groupName"]}.')
         if pending.get('optionalOffer'):
             text = (f'¿Quieres agregar {pending["groupName"]} a «{name}»? Puedes elegir hasta {pending["maximumSelections"]} opciones o continuar sin extras.' if es else
                     f'Would you like to add {pending["groupName"]} to “{name}”? Choose up to {pending["maximumSelections"]} options or continue without extras.')
-            if any(c.get('selected') for c in pending['choices']):
+            if not multiple and any(c.get('selected') for c in pending['choices']):
                 text += (' Pulsa Listo para continuar; vuelve a seleccionar una opción para quitarla.' if es else ' Select Done to continue; select an option again to remove it.')
+        if multiple:
+            text += (f' Escribe en un solo mensaje las opciones que deseas (máximo {pending["maximumSelections"]}).' if es else
+                     f' Type all the options you would like in one message (up to {pending["maximumSelections"]}).')
+            if pending.get('minimumSelections', 0):
+                text += (f' Debes elegir al menos {pending["minimumSelections"]}.' if es else
+                         f' Please choose at least {pending["minimumSelections"]}.')
     elif pending["kind"] == "MODIFIER":
         text = (f'No encuentro el extra «{name}» entre las opciones de este artículo. Elige un extra del catálogo o indica que lo quite; conservaré el resto del pedido.' if es else
                 f'I cannot find the extra “{name}” among this item’s options. Choose a catalog extra or ask me to remove it; I will keep the rest of your order.')
@@ -349,6 +374,8 @@ def clarification(request, offering, field, pending):
     page_size = 8 if pending['kind'] == 'OPTION' else 10
     page = min(max(pending.get('page', 0), 0), max(0, (len(pending['choices']) - 1) // page_size))
     visible = pending['choices'][page * page_size:(page + 1) * page_size]
+    if multiple:
+        visible = [c for c in pending['choices'] if c.get('action') != 'DONE']
     def label(c):
         if c.get('action') == 'SKIP': return 'Sin extras' if es else 'No extras'
         if c.get('action') == 'DONE': return 'Listo' if es else 'Done'
@@ -362,6 +389,8 @@ def clarification(request, offering, field, pending):
         if show: options.append({'id': 'catalog-choice:' + pending['token'] + ':' + suffix, 'label': caption})
     if options:
         text += "\n" + "\n".join("- " + label(c) for c in visible)
+    if multiple:
+        options = []
     url = (catalog_for(offering, field) or {}).get("externalUrl")
     if url: text += "\n" + url
     return {"purpose": "CLARIFICATION", "text": text, "language": request.guest.preferredLanguage,

@@ -1,0 +1,13 @@
+# Catalog cardinality and conversation language review
+
+Multiple-selection groups (maximumSelections > 1) now show options and prices in plain text, without a WhatsApp list or buttons. A natural-language answer selects the requested set; one exact option also completes an optional group. Required minima and maximum limits still apply. Existing single-selection menus and old scoped button handling remain covered.
+
+Names from the catalog, including a leading numeric quantity, no longer constitute evidence for changing the session language. Explicit language requests still take precedence. This fixes a reproduced pathway from English to Spanish when a catalog name is classified as a Spanish service request; the user confirmed that the affected message was the pre-confirmation summary with buttons. The regression now explicitly checks its title, body and Confirm/Change/Cancel labels in English.
+
+Sandbox data review: both Chilaquiles Clásicos and Chilaquiles Rellenos Extras groups changed from maximum 5 to maximum 1, as requested by the user. Both still have minimum 0 and offerToGuest true, with IDs, prices and available options preserved. Salsas, Preparación, Combinación, Sabores, cocktail variants, SPA Duración and product Fragancia are single-choice groups. Ensalada Tropical Extras also changed from maximum 4 to maximum 1 in sandbox following the user’s clarification; IDs, options and prices remain unchanged. Do not infer a maximum from the number of options.
+
+Four new mandatory regressions cover text-only multiple selections, exact single-option completion, single-protein conflicts/required multi-select minima, and English confirmation after catalog replies (one method covers both language policy and the confirmation). Existing tests for legacy scoped menus, prices, stale selections, explicit declines and mandatory variants remain enforced. No effective model prompts or behavioral anchors were removed. No live model calls were made.
+
+Focused validation: 17 catalog offer tests pass. Complete paired gate PASS: 519 agent tests, 619 backend tests and all 68 required Spring/H2 conversation cases. Ten existing opt-in live tests skipped; no new model calls. Changes are local; only the two explicitly requested catalog limits have been updated remotely in sandbox. No Telware changes.
+
+Follow-up validation: 39 focused catalog/language tests pass after adding three assertions for the English summary buttons. Runtime sources are unchanged from the complete paired gate; its historical fingerprint predates this test-only strengthening. No push or agent deployment performed.

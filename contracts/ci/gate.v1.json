@@ -517,7 +517,11 @@
       "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_large_group_pages_keep_skip_reachable_without_losing_selection",
       "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_decline_belongs_to_item_and_never_skips_another_item",
       "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_no_thanks_is_bound_to_extras_without_global_scope_or_order_cancellation",
-      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_offer_skip_stale_button_and_confirm_create_only_current_order"
+      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_offer_skip_stale_button_and_confirm_create_only_current_order",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_multiple_options_are_text_only_and_one_named_option_finishes_the_group",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_single_protein_rejects_combination_and_required_multiple_has_no_buttons",
+      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_natural_multiple_reply_keeps_english_summary_and_does_not_repeat_offer",
+      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_catalog_name_does_not_switch_english_confirmation_to_spanish"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
