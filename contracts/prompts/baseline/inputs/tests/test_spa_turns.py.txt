@@ -151,6 +151,7 @@ class SpaTurnsTest(unittest.TestCase):
         request.conversation.recentMessages[0].interactionReplyId = "offering:SPA"
         response = plan_v2_turn(request)
         self.assertIn("https://spa.example/catalog", response.messages[0].text)
+        self.assertIsNone(response.messages[0].interaction)
         self.assertEqual([], response.toolCalls)
         self.extract.assert_not_called()
 
@@ -168,6 +169,7 @@ class SpaTurnsTest(unittest.TestCase):
         response = self.capture(request, {k: v for k, v in VALUES.items() if k != "reservationTime"},
                                 {"reservationTime": "a las 5"})
         self.assertIn("24 horas", response.messages[0].text)
+        self.assertIsNone(response.messages[0].interaction)
         self.assertEqual([], response.toolCalls)
         self.contextual()
         request = follow_up(request, response, "de la tarde")
