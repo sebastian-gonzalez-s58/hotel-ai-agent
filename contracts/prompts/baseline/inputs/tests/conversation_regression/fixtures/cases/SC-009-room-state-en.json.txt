@@ -1,0 +1,631 @@
+{
+  "schema_version": 1,
+  "id": "SC-009-room-state-en",
+  "scenario_id": "SC-009",
+  "title": "Room-service existing-order changes use persisted state (en)",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "en-US",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "initial_operations": [
+    {
+      "operationId": "93000000-0000-4000-8000-000000000001",
+      "offeringCode": "ROOM_SERVICE",
+      "referenceCode": "TEST-REVIEW",
+      "lifecycle": "WAITING_FOR_STAFF",
+      "detailedStatus": "KITCHEN_REVIEW",
+      "summary": "Synthetic delivered order",
+      "input": {
+        "deliveryLocation": "ROOM",
+        "items": [
+          {
+            "name": "sopa",
+            "quantity": 1,
+            "modifications": []
+          }
+        ]
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 3
+    },
+    {
+      "operationId": "93000000-0000-4000-8000-000000000002",
+      "offeringCode": "ROOM_SERVICE",
+      "referenceCode": "TEST-ACCEPTED",
+      "lifecycle": "WAITING_FOR_STAFF",
+      "detailedStatus": "AWAITING_DELIVERY",
+      "summary": "Synthetic delivered order",
+      "input": {
+        "deliveryLocation": "ROOM",
+        "items": [
+          {
+            "name": "sopa",
+            "quantity": 1,
+            "modifications": []
+          }
+        ]
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 3
+    },
+    {
+      "operationId": "93000000-0000-4000-8000-000000000003",
+      "offeringCode": "ROOM_SERVICE",
+      "referenceCode": "TEST-DELIVERED",
+      "lifecycle": "COMPLETED",
+      "detailedStatus": "DELIVERED",
+      "summary": "Synthetic delivered order",
+      "input": {
+        "deliveryLocation": "ROOM",
+        "items": [
+          {
+            "name": "sopa",
+            "quantity": 1,
+            "modifications": []
+          }
+        ]
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 3
+    },
+    {
+      "operationId": "93000000-0000-4000-8000-000000000004",
+      "offeringCode": "ROOM_SERVICE",
+      "referenceCode": "TEST-CANCELLED",
+      "lifecycle": "CANCELLED",
+      "detailedStatus": "CANCELLED_BY_KITCHEN",
+      "summary": "Synthetic delivered order",
+      "input": {
+        "deliveryLocation": "ROOM",
+        "items": [
+          {
+            "name": "sopa",
+            "quantity": 1,
+            "modifications": []
+          }
+        ]
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 3
+    }
+  ],
+  "steps": [
+    {
+      "id": "review-change",
+      "event": {
+        "kind": "guest",
+        "text": "Please change TEST-REVIEW"
+      },
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "awaiting kitchen review"
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "TEST-REVIEW"
+        },
+        {
+          "path": "/backend/initialOperations/0/lifecycle",
+          "op": "equals",
+          "value": "WAITING_FOR_STAFF"
+        },
+        {
+          "path": "/backend/initialOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "KITCHEN_REVIEW"
+        },
+        {
+          "path": "/backend/initialOperations/0/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Please change TEST-REVIEW",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "existingOrderAction": "CHANGE",
+            "existingOrderEvidence": "Please change TEST-REVIEW",
+            "existingOrderConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "review-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "Please cancel TEST-REVIEW"
+      },
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "awaiting kitchen review"
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "TEST-REVIEW"
+        },
+        {
+          "path": "/backend/initialOperations/0/lifecycle",
+          "op": "equals",
+          "value": "WAITING_FOR_STAFF"
+        },
+        {
+          "path": "/backend/initialOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "KITCHEN_REVIEW"
+        },
+        {
+          "path": "/backend/initialOperations/0/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Please cancel TEST-REVIEW",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "existingOrderAction": "CANCEL",
+            "existingOrderEvidence": "Please cancel TEST-REVIEW",
+            "existingOrderConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "accepted-change",
+      "event": {
+        "kind": "guest",
+        "text": "Please change TEST-ACCEPTED"
+      },
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "awaiting delivery"
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "TEST-ACCEPTED"
+        },
+        {
+          "path": "/backend/initialOperations/1/lifecycle",
+          "op": "equals",
+          "value": "WAITING_FOR_STAFF"
+        },
+        {
+          "path": "/backend/initialOperations/1/detailedStatus",
+          "op": "equals",
+          "value": "AWAITING_DELIVERY"
+        },
+        {
+          "path": "/backend/initialOperations/1/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Please change TEST-ACCEPTED",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "existingOrderAction": "CHANGE",
+            "existingOrderEvidence": "Please change TEST-ACCEPTED",
+            "existingOrderConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "accepted-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "Please cancel TEST-ACCEPTED"
+      },
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "awaiting delivery"
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "TEST-ACCEPTED"
+        },
+        {
+          "path": "/backend/initialOperations/1/lifecycle",
+          "op": "equals",
+          "value": "WAITING_FOR_STAFF"
+        },
+        {
+          "path": "/backend/initialOperations/1/detailedStatus",
+          "op": "equals",
+          "value": "AWAITING_DELIVERY"
+        },
+        {
+          "path": "/backend/initialOperations/1/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Please cancel TEST-ACCEPTED",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "existingOrderAction": "CANCEL",
+            "existingOrderEvidence": "Please cancel TEST-ACCEPTED",
+            "existingOrderConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "delivered-change",
+      "event": {
+        "kind": "guest",
+        "text": "Please change TEST-DELIVERED"
+      },
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "already been delivered"
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "TEST-DELIVERED"
+        },
+        {
+          "path": "/backend/initialOperations/2/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/initialOperations/2/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        },
+        {
+          "path": "/backend/initialOperations/2/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Please change TEST-DELIVERED",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "existingOrderAction": "CHANGE",
+            "existingOrderEvidence": "Please change TEST-DELIVERED",
+            "existingOrderConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "delivered-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "Please cancel TEST-DELIVERED"
+      },
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "already been delivered"
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "TEST-DELIVERED"
+        },
+        {
+          "path": "/backend/initialOperations/2/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/initialOperations/2/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        },
+        {
+          "path": "/backend/initialOperations/2/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Please cancel TEST-DELIVERED",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "existingOrderAction": "CANCEL",
+            "existingOrderEvidence": "Please cancel TEST-DELIVERED",
+            "existingOrderConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "cancelled-change",
+      "event": {
+        "kind": "guest",
+        "text": "Please change TEST-CANCELLED"
+      },
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "already cancelled by the kitchen"
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "TEST-CANCELLED"
+        },
+        {
+          "path": "/backend/initialOperations/3/lifecycle",
+          "op": "equals",
+          "value": "CANCELLED"
+        },
+        {
+          "path": "/backend/initialOperations/3/detailedStatus",
+          "op": "equals",
+          "value": "CANCELLED_BY_KITCHEN"
+        },
+        {
+          "path": "/backend/initialOperations/3/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Please change TEST-CANCELLED",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "existingOrderAction": "CHANGE",
+            "existingOrderEvidence": "Please change TEST-CANCELLED",
+            "existingOrderConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "cancelled-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "Please cancel TEST-CANCELLED"
+      },
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "already cancelled by the kitchen"
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "TEST-CANCELLED"
+        },
+        {
+          "path": "/backend/initialOperations/3/lifecycle",
+          "op": "equals",
+          "value": "CANCELLED"
+        },
+        {
+          "path": "/backend/initialOperations/3/detailedStatus",
+          "op": "equals",
+          "value": "CANCELLED_BY_KITCHEN"
+        },
+        {
+          "path": "/backend/initialOperations/3/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Please cancel TEST-CANCELLED",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "existingOrderAction": "CANCEL",
+            "existingOrderEvidence": "Please cancel TEST-CANCELLED",
+            "existingOrderConfidence": 1
+          }
+        }
+      ]
+    }
+  ]
+}

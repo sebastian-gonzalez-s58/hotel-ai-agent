@@ -1,0 +1,58 @@
+{
+  "status": "PASS",
+  "sources": {
+    "agent": {
+      "git_head": "5aa1bbb08153ddcb0181c2f0f2fb7ab288a68eb1",
+      "inputs_sha256": "caaa73fa41ff6c144fe37fac996f4a9f9a69e4b157fa3c4107163fd41357ea52"
+    },
+    "backend": {
+      "git_head": "466d845666c9ec292033249f3990ed9c2c7e7e36",
+      "inputs_sha256": "8ebb19bafa551fd955de30153b0fec510b87611410d434170dcbd0d6e3bcbaf9"
+    }
+  },
+  "started_at": "2026-09-21T16:31:25.193220+00:00",
+  "finished_at": "2026-09-21T16:35:18.742860+00:00",
+  "agent_unit": {
+    "passed": 442,
+    "skipped": [
+      "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_initial_english_menu_from_spanish_offerings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_scope_distinguishes_openings_from_specific_requests_and_social_closings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_translation_respects_small_limits_for_custom_labels",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_typo_after_previous_welcome_still_returns_menu",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_explicit_separate_order_is_still_allowed",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_kitchen_replacement_completes_existing_task",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_maintenance_negation_does_not_confirm_resolution",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_polite_order_edit_and_confirmation",
+      "tests.test_v2_scope_live.LiveHotelScopeTest.test_scope_and_existing_workflows"
+    ]
+  },
+  "backend_unit": {
+    "passed": 578,
+    "skipped": [
+      "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
+    ]
+  },
+  "integration": {
+    "counts": {
+      "INTEGRATION_PARTIAL_PASS": 51
+    },
+    "pending": []
+  },
+  "mandatory_integration_turns": 182,
+  "scope": "Deterministic runtime and persisted Spring/H2 menu history; model replies and external process effects are synthetic.",
+  "added_cases": [
+    "SC-009-cancelled-draft-es",
+    "SC-009-cancelled-draft-en",
+    "SC-009-replaced-draft-submitted"
+  ],
+  "compatibility": "Optional runtime-only response metadata is declared in Python, Java and OpenAPI; legacy responses without it are accepted.",
+  "prior_failed_gate": "room-draft-gate caught a missing OpenAPI property; corrected and revalidated with a fresh complete run.",
+  "rules_retained": true,
+  "mandatory_prior_coverage_retained": true,
+  "snapshot_documents": 315,
+  "changed_documents": 25,
+  "live_model_calls": 0,
+  "deployed": false,
+  "remote_enforcement_verified": false
+}

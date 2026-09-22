@@ -1,0 +1,86 @@
+name: Conversation regression
+
+on:
+  push:
+  pull_request:
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conversation-gate:
+    name: conversation-gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          path: agent
+          persist-credentials: false
+      - name: Require an immutable backend revision
+        env:
+          PAIR_SHA: ${{ vars.CONVERSATION_BACKEND_SHA }}
+          READ_TOKEN: ${{ secrets.CONVERSATION_READ_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          assert re.fullmatch(r'[0-9a-f]{40}', os.environ['PAIR_SHA']), 'Set CONVERSATION_BACKEND_SHA to the full reviewed commit SHA'
+          assert os.environ['READ_TOKEN'], 'Configure a contents-read token for the paired repository'
+          PY
+      - uses: actions/checkout@v6
+        with:
+          repository: sebastian-gonzalez-s58/chatbotinn_cristalino_dev
+          ref: ${{ vars.CONVERSATION_BACKEND_SHA }}
+          token: ${{ secrets.CONVERSATION_READ_TOKEN }}
+          path: backend
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify paired checkout and record toolchain
+        env:
+          PAIR_SHA: ${{ vars.CONVERSATION_BACKEND_SHA }}
+        run: |
+          test "$(git -C backend rev-parse HEAD)" = "$PAIR_SHA"
+          python --version
+          java -version
+          mvn --version
+      - name: Install test dependencies
+        run: python -m pip install -r agent/requirements.txt
+      - name: Run all mandatory checks
+        id: gate
+        working-directory: agent
+        run: python -m tests.ci_gate.run --backend ../backend --out ../gate-report
+      - name: Publish check summary
+        if: always()
+        run: |
+          if [ -f gate-report/summary.md ]; then
+            cat gate-report/summary.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Conversation gate BLOCKED: mandatory execution or report missing.' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: conversation-gate-${{ github.run_id }}-${{ github.run_attempt }}
+          path: gate-report/
+          if-no-files-found: error
+          retention-days: 30
+      - name: Reject skipped or missing gate
+        if: always()
+        env:
+          GATE_OUTCOME: ${{ steps.gate.outcome }}
+        run: |
+          python3 - <<'PY'
+          import json, os
+          assert os.environ['GATE_OUTCOME'] == 'success', 'Mandatory gate failed or was not executed'
+          with open('gate-report/summary.json') as stream:
+              assert json.load(stream)['status'] == 'PASS', 'Missing successful evidence'
+          PY

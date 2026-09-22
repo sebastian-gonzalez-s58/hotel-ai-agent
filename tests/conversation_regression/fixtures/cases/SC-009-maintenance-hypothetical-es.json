@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "id": "SC-009-maintenance-hypothetical-es",
+  "scenario_id": "SC-009",
+  "title": "Hypothetical maintenance question cannot become recurrence (es-MX)",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "initial_operations": [
+    {
+      "operationId": "90000000-0000-4000-8000-000000000001",
+      "referenceCode": "TEST-OP-1",
+      "offeringCode": "MAINTENANCE",
+      "lifecycle": "COMPLETED",
+      "detailedStatus": "RESOLUTION_CONFIRMED",
+      "summary": "Air conditioner fault",
+      "input": {
+        "issue": "The AC is not working"
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 1
+    },
+    {
+      "operationId": "90000000-0000-4000-8000-000000000002",
+      "referenceCode": "TEST-OP-2",
+      "offeringCode": "MAINTENANCE",
+      "lifecycle": "COMPLETED",
+      "detailedStatus": "RESOLUTION_CONFIRMED",
+      "summary": "Air conditioner fault",
+      "input": {
+        "issue": "The AC is not working"
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 1
+    }
+  ],
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "ask",
+      "event": {
+        "kind": "guest",
+        "text": "¿Qué hago si el aire vuelve a fallar?"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "SEARCH_KNOWLEDGE"
+          ]
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/backend/createdOperations/MAINTENANCE",
+          "op": "equals",
+          "value": 0
+        },
+        {
+          "path": "/backend/createdOperations/FAQ",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/backend/initialOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/initialOperations/1/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "HOTEL_QUESTION",
+            "offeringCode": "FAQ",
+            "relevantText": "¿Qué hago si el aire vuelve a fallar?",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "maintenanceFollowUp": "RECURRENCE",
+            "maintenanceFollowUpEvidence": "¿Qué hago si el aire vuelve a fallar?",
+            "maintenanceFollowUpConfidence": 1
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "id": "SC-017-approved-faq",
+  "scenario_id": "SC-017",
+  "title": "FAQ responde solo desde fuente aprobada",
+  "origin": "successful_path",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "live_model",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "question",
+      "event": {
+        "kind": "guest",
+        "text": "At what time does the pool close?"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "contains",
+          "value": "SEARCH_KNOWLEDGE"
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "HOTEL_QUESTION",
+            "offeringCode": "FAQ",
+            "relevantText": "At what time does the pool close?",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "source",
+      "event": {
+        "kind": "tool_result",
+        "action": "provide_approved_faq",
+        "data": {
+          "question": "¿A qué hora cierra la alberca?",
+          "answer": "La alberca cierra a las 22:00.",
+          "sourceId": "92000000-0000-4000-8000-000000000001"
+        }
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "contains",
+          "value": "START_SERVICE"
+        },
+        {
+          "path": "/tools/0/arguments/offeringCode",
+          "op": "equals",
+          "value": "FAQ"
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_FAQ_SEMANTIC_RETRIEVAL",
+          "payload": {
+            "status": "ANSWERABLE",
+            "sourceId": "92000000-0000-4000-8000-000000000001",
+            "sameSubject": true,
+            "fullyAnswers": true,
+            "conflictingSources": false,
+            "confidence": 1,
+            "supportingQuotes": [
+              "La alberca cierra a las 22:00."
+            ],
+            "answer": "The pool closes at 22:00. Can I help you with anything else?"
+          }
+        },
+        {
+          "purpose": "V2_FAQ_GROUNDING_CHECK",
+          "payload": {
+            "supported": true,
+            "sameSubject": true,
+            "fullyAnswers": true,
+            "noConflictingSources": true,
+            "preservesNegations": true,
+            "correctLanguage": true,
+            "naturalAndNonredundant": true,
+            "hasBriefHelpOffer": true,
+            "confidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "started",
+      "event": {
+        "kind": "tool_result",
+        "action": "complete_service_start",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "22:00"
+        }
+      ],
+      "review": [
+        "Responder en inglés solo sobre alberca, no horario de todo el hotel."
+      ],
+      "model_replies": []
+    }
+  ]
+}

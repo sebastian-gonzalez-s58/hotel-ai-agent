@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "id": "SC-007-language-switch",
+  "scenario_id": "SC-007",
+  "title": "Idioma cambia; borrador no",
+  "origin": "successful_path",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "AWAITING_CONFIRMATION",
+    "capturedFields": {
+      "deliveryLocation": "ROOM",
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": true
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "live_model",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "language",
+      "event": {
+        "kind": "guest",
+        "text": "Please speak English"
+      },
+      "checks": [
+        {
+          "path": "/guest/preferredLanguage",
+          "op": "equals",
+          "value": "en"
+        },
+        {
+          "path": "/response/languageDecision/source",
+          "op": "equals",
+          "value": "EXPLICIT"
+        },
+        {
+          "path": "/state/capturedFields/items",
+          "op": "equals",
+          "value": [
+            {
+              "name": "sopa",
+              "quantity": 1,
+              "modifications": []
+            }
+          ]
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {
+            "pendingOffering": "ROOM_SERVICE",
+            "phase": "AWAITING_CONFIRMATION",
+            "capturedFields": {
+              "deliveryLocation": "ROOM",
+              "items": [
+                {
+                  "name": "sopa",
+                  "quantity": 1,
+                  "modifications": []
+                }
+              ]
+            },
+            "awaitingExplicitConfirmation": true
+          }
+        },
+        {
+          "path": "/response/messages/0/language",
+          "op": "equals",
+          "value": "en"
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "SOCIAL",
+            "offeringCode": null,
+            "relevantText": "Please speak English",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0,
+            "requestedLanguage": "en",
+            "languageConfidence": 1,
+            "languageChangeOnly": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "confirm",
+      "event": {
+        "kind": "guest",
+        "text": "Confirm"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "contains",
+          "value": "START_SERVICE"
+        },
+        {
+          "path": "/tools/0/arguments/input/items",
+          "op": "equals",
+          "value": [
+            {
+              "name": "sopa",
+              "quantity": 1,
+              "modifications": []
+            }
+          ]
+        },
+        {
+          "path": "/tools/0/arguments/input",
+          "op": "equals",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "name": "sopa",
+                "quantity": 1,
+                "modifications": []
+              }
+            ]
+          }
+        },
+        {
+          "path": "/guest/preferredLanguage",
+          "op": "equals",
+          "value": "en"
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Confirm",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "CONFIRM",
+            "replyActionEvidence": "Confirm",
+            "replyActionConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "started",
+      "event": {
+        "kind": "tool_result",
+        "action": "complete_service_start",
+        "data": {}
+      },
+      "model_replies": [],
+      "checks": [
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/environment/operationInputs/ROOM_SERVICE",
+          "op": "equals",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "name": "sopa",
+                "quantity": 1,
+                "modifications": []
+              }
+            ]
+          }
+        },
+        {
+          "path": "/guest/preferredLanguage",
+          "op": "equals",
+          "value": "en"
+        },
+        {
+          "path": "/response/messages/0/language",
+          "op": "equals",
+          "value": "en"
+        },
+        {
+          "path": "/state/pendingOffering",
+          "op": "absent"
+        },
+        {
+          "path": "/state/roomServiceDraft",
+          "op": "absent"
+        }
+      ]
+    }
+  ]
+}

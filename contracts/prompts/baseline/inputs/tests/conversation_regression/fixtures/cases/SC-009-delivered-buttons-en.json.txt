@@ -1,0 +1,275 @@
+{
+  "schema_version": 1,
+  "id": "SC-009-delivered-buttons-en",
+  "scenario_id": "SC-009",
+  "title": "Botones antiguos después de entrega (en)",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "en-US",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "initial_operations": [
+    {
+      "operationId": "92000000-0000-4000-8000-000000000001",
+      "offeringCode": "ROOM_SERVICE",
+      "referenceCode": "TEST-DELIVERED",
+      "lifecycle": "COMPLETED",
+      "detailedStatus": "DELIVERED",
+      "summary": "Synthetic delivered order",
+      "input": {
+        "deliveryLocation": "ROOM",
+        "items": [
+          {
+            "name": "sopa",
+            "quantity": 1,
+            "modifications": []
+          }
+        ]
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 3
+    }
+  ],
+  "steps": [
+    {
+      "id": "used-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "Cancel",
+        "reply_id": "confirmation:ROOM_SERVICE:used:CANCEL"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "cannot identify"
+        },
+        {
+          "path": "/backend/initialOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/initialOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        },
+        {
+          "path": "/backend/initialOperations/0/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "unversioned-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "Cancel",
+        "reply_id": "confirmation:ROOM_SERVICE:CANCEL"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "cannot identify"
+        },
+        {
+          "path": "/backend/initialOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/initialOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        },
+        {
+          "path": "/backend/initialOperations/0/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "legacy-cancel",
+      "event": {
+        "kind": "guest",
+        "text": "Cancel",
+        "reply_id": "CANCEL_ORDER"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "cannot identify"
+        },
+        {
+          "path": "/backend/initialOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/initialOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        },
+        {
+          "path": "/backend/initialOperations/0/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "legacy-change",
+      "event": {
+        "kind": "guest",
+        "text": "Cancel",
+        "reply_id": "CHANGE_ORDER"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "cannot identify"
+        },
+        {
+          "path": "/backend/initialOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/initialOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        },
+        {
+          "path": "/backend/initialOperations/0/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "legacy-confirm",
+      "event": {
+        "kind": "guest",
+        "text": "Cancel",
+        "reply_id": "CONFIRM_ORDER"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state",
+          "op": "equals",
+          "value": {}
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "cannot identify"
+        },
+        {
+          "path": "/backend/initialOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/initialOperations/0/detailedStatus",
+          "op": "equals",
+          "value": "DELIVERED"
+        },
+        {
+          "path": "/backend/initialOperations/0/version",
+          "op": "equals",
+          "value": 3
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

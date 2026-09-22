@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "id": "SC-019-ambiguous-selection",
+  "scenario_id": "SC-019",
+  "title": "Dos ubicaciones no autorizan elegir",
+  "origin": "successful_path",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_ITEMS",
+    "capturedFields": {},
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "location",
+      "event": {
+        "kind": "guest",
+        "text": "Pool 1 o habitación"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/deliveryLocation",
+          "op": "absent"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [
+        "Pedir escoger una ubicación."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Pool 1 o habitación",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0,
+            "selectionAttempted": true,
+            "selectionCode": null,
+            "selectionEvidence": "Pool 1 o habitación",
+            "selectionConfidence": 0
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "id": "SC-009-maintenance-reference-es",
+  "scenario_id": "SC-009",
+  "title": "Written recurrence: select reference, confirm original issue and prevent duplication (es)",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "initial_operations": [
+    {
+      "operationId": "90000000-0000-4000-8000-000000000001",
+      "referenceCode": "TEST-OP-1",
+      "offeringCode": "MAINTENANCE",
+      "lifecycle": "COMPLETED",
+      "detailedStatus": "RESOLUTION_CONFIRMED",
+      "summary": "Air conditioner fault",
+      "input": {
+        "issue": "El ac no funciona"
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 1
+    },
+    {
+      "operationId": "90000000-0000-4000-8000-000000000002",
+      "referenceCode": "TEST-OP-2",
+      "offeringCode": "MAINTENANCE",
+      "lifecycle": "COMPLETED",
+      "detailedStatus": "RESOLUTION_CONFIRMED",
+      "summary": "Air conditioner fault",
+      "input": {
+        "issue": "The shower leaks"
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 1
+    }
+  ],
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "report-persistence",
+      "event": {
+        "kind": "guest",
+        "text": "El problema sigue persistiendo"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        },
+        {
+          "path": "/state/maintenanceRecurrence/phase",
+          "op": "equals",
+          "value": "AWAITING_REFERENCE"
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "SERVICE_REQUEST",
+            "offeringCode": "MAINTENANCE",
+            "relevantText": "El problema sigue persistiendo",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "maintenanceFollowUp": "RECURRENCE",
+            "maintenanceFollowUpEvidence": "El problema sigue persistiendo",
+            "maintenanceFollowUpConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "wrong-reference",
+      "event": {
+        "kind": "guest",
+        "text": "REQ-UNKNOWN"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        },
+        {
+          "path": "/state/maintenanceRecurrence/phase",
+          "op": "equals",
+          "value": "AWAITING_REFERENCE"
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "select-reference",
+      "event": {
+        "kind": "guest",
+        "text": "TEST-OP-1"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        },
+        {
+          "path": "/state/maintenanceRecurrence/source/input/issue",
+          "op": "equals",
+          "value": "El ac no funciona"
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "confirm-recurrence",
+      "event": {
+        "kind": "guest",
+        "text": "sí"
+      },
+      "checks": [
+        {
+          "path": "/tools/0/arguments/input/issue",
+          "op": "equals",
+          "value": "El ac no funciona"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "inspect",
+      "event": {
+        "kind": "backend",
+        "action": "inspect_maintenance_recurrence",
+        "data": {
+          "operationId": "90000000-0000-4000-8000-000000000001"
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/recurrenceInput/issue",
+          "op": "equals",
+          "value": "El ac no funciona"
+        },
+        {
+          "path": "/backend/sourceStillCompleted",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/replayDidNotDuplicate",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "repeat-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Open new request",
+        "reply_id": "maintenance-recurrence:CONFIRM",
+        "reply_from_turn": 3
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

@@ -1,0 +1,731 @@
+{
+  "anchors": [
+    {
+      "document_glob": "effective/builders/V2_AGENT_TURN/*",
+      "id": "PA-001",
+      "prompt_id": "PR-001",
+      "rule_id": "BC-008",
+      "text": "Propose only tools listed in toolPolicy.allowedTools."
+    },
+    {
+      "document_glob": "effective/builders/V2_AGENT_TURN/*",
+      "id": "PA-002",
+      "prompt_id": "PR-001",
+      "rule_id": "BC-001",
+      "text": "Preserve its offering and every captured field."
+    },
+    {
+      "document_glob": "effective/builders/V2_AGENT_TURN/*",
+      "id": "PA-003",
+      "prompt_id": "PR-001",
+      "rule_id": "BC-006",
+      "text": "Only a pure, unambiguous approval is confirmation."
+    },
+    {
+      "document_glob": "effective/conversations/*/V2_HOTEL_SCOPE/*.prompt.txt",
+      "id": "PA-004",
+      "prompt_id": "PR-002",
+      "rule_id": "BC-003",
+      "text": "hasRequestDetails=true and replyAction=NONE, so the order extractor can apply that removal."
+    },
+    {
+      "document_glob": "effective/conversations/*/V2_HOTEL_SCOPE/*.prompt.txt",
+      "id": "PA-005",
+      "prompt_id": "PR-002",
+      "rule_id": "BC-013",
+      "text": "Do not require the guest to repeat the order."
+    },
+    {
+      "document_glob": "effective/conversations/*/V2_HOTEL_SCOPE/*.prompt.txt",
+      "id": "PA-006",
+      "prompt_id": "PR-002",
+      "rule_id": "BC-005",
+      "text": "requestedLanguage is non-null ONLY when the guest explicitly asks to speak that language."
+    },
+    {
+      "document_glob": "effective/conversations/*/V2_ORDER_UNDERSTANDING/*.prompt.txt",
+      "id": "PA-007",
+      "prompt_id": "PR-012",
+      "rule_id": "BC-001",
+      "text": "Never default an absent, uncertain, fractional or conflicting quantity to 1."
+    },
+    {
+      "document_glob": "effective/conversations/*/V2_SPA_EXTRACTION/*.prompt.txt",
+      "id": "PA-008",
+      "prompt_id": "PR-004",
+      "rule_id": "BC-003",
+      "text": "For a reply containing only a time, all other fields are UNCHANGED; preserve existing treatment/date."
+    },
+    {
+      "document_glob": "effective/conversations/*/V2_SPA_EXTRACTION/*.prompt.txt",
+      "id": "PA-009",
+      "prompt_id": "PR-004",
+      "rule_id": "BC-013",
+      "text": "Keep the original treatment wording, without translating it or adding scheduling words."
+    },
+    {
+      "document_glob": "effective/boundary/V2_FAQ_SEMANTIC_RETRIEVAL/*.prompt.txt",
+      "id": "PA-010",
+      "prompt_id": "PR-006",
+      "rule_id": "BC-011",
+      "text": "Never select the closest unrelated FAQ just because it is the only one."
+    },
+    {
+      "document_glob": "effective/boundary/V2_FAQ_GROUNDING_CHECK/*.prompt.txt",
+      "id": "PA-011",
+      "prompt_id": "PR-007",
+      "rule_id": "BC-011",
+      "text": "preservesNegations: no dropped restrictions, exceptions, qualifiers, negations, or invented certainty."
+    },
+    {
+      "document_glob": "effective/boundary/V2_LOCALIZATION/*.prompt.txt",
+      "id": "PA-012",
+      "prompt_id": "PR-008",
+      "rule_id": "BC-013",
+      "text": "negations, quantities, product names and ALL [[P...]] placeholders exactly once."
+    },
+    {
+      "document_glob": "effective/builders/capabilities/*",
+      "id": "PA-013",
+      "prompt_id": "PR-009",
+      "rule_id": "BC-012",
+      "text": "Treat offering definitions and tool resources as authoritative"
+    },
+    {
+      "document_glob": "effective/boundary/V2_AGENT_TURN_REPAIR/002.prompt.txt",
+      "id": "PA-014",
+      "prompt_id": "PR-001",
+      "rule_id": "BC-014",
+      "text": "exactly one COMPLETE_CONVERSATION_TASK"
+    }
+  ],
+  "baseline_origin": "Current sandbox with fixes 1–5; not a production approval",
+  "prompts": [
+    {
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-002-partial-basket",
+        "SC-003-spa-split-time",
+        "SC-004-edit-location",
+        "SC-005-edit-items",
+        "SC-006-interrupt-resume",
+        "SC-007-language-partial",
+        "SC-007-language-switch",
+        "SC-008-language-evidence",
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-010-duplicate-event",
+        "SC-010-idempotency-conflict",
+        "SC-010-tool-failure",
+        "SC-011-spa-date",
+        "SC-011-spa-name",
+        "SC-011-spa-treatment-alternatives",
+        "SC-012-failed-edit",
+        "SC-012-outbox-retry",
+        "SC-015-ambiguous-tasks",
+        "SC-016-forbidden-tool",
+        "SC-016-foreign-evidence",
+        "SC-016-missing-confirmation",
+        "SC-016-missing-input",
+        "SC-016-stale-version",
+        "SC-016-unknown-offering",
+        "SC-017-approved-faq",
+        "SC-017-unknown-faq",
+        "SC-018-configured-front-desk",
+        "SC-018-direct-front-desk",
+        "SC-019-ambiguous-selection",
+        "SC-019-button",
+        "SC-019-code",
+        "SC-019-generic-offering",
+        "SC-019-translation",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product",
+        "SC-021-queued-messages",
+        "SC-006-partial-resume",
+        "SC-010-retry-after-commit",
+        "SC-009-room-lifecycle-buttons",
+        "SC-009-room-state-en",
+        "SC-009-room-state-es",
+        "SC-009-cancelled-draft-es",
+        "SC-009-cancelled-draft-en",
+        "SC-009-replaced-draft-submitted",
+        "SC-009-maintenance-recurrence-es",
+        "SC-009-maintenance-recurrence-en",
+        "SC-009-maintenance-timeout",
+        "SC-009-maintenance-new-menu-es",
+        "SC-009-maintenance-new-direct-es",
+        "SC-009-maintenance-new-menu-en",
+        "SC-009-maintenance-new-direct-en",
+        "SC-009-maintenance-hypothetical-es",
+        "SC-009-maintenance-hypothetical-en",
+        "SC-009-maintenance-reference-es",
+        "SC-009-maintenance-reference-en",
+        "SC-011-reservation-change-es",
+        "SC-011-reservation-cancel-es",
+        "SC-011-reservation-terminal-es",
+        "SC-011-reservation-change-en",
+        "SC-011-reservation-cancel-en",
+        "SC-011-reservation-terminal-en"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/builders/V2_AGENT_TURN/*",
+        "effective/conversations/*/V2_AGENT_TURN/*",
+        "effective/boundary/V2_AGENT_TURN_REPAIR/*"
+      ],
+      "id": "PR-001",
+      "name": "Planificador V2, captura y reparación",
+      "rule_ids": [
+        "BC-001",
+        "BC-002",
+        "BC-003",
+        "BC-004",
+        "BC-005",
+        "BC-006",
+        "BC-007",
+        "BC-008",
+        "BC-009",
+        "BC-011",
+        "BC-012",
+        "BC-013",
+        "BC-014"
+      ],
+      "sources": [
+        "app/prompts/v2_turn.py",
+        "app/agents/v2_turn_planner.py"
+      ],
+      "unit_files": [
+        "tests/test_v2_turn_planner.py",
+        "tests/test_multilingual_understanding.py",
+        "tests/test_room_service_interruptions.py",
+        "tests/test_pending_language_switch.py",
+        "tests/test_room_service_confirmation_versions.py",
+        "tests/test_service_start_failures.py",
+        "tests/test_conversation_regression_library.py",
+        "tests/test_v2_service_start_acknowledgements.py",
+        "tests/test_room_service_status.py",
+        "tests/test_maintenance_recurrence.py",
+        "tests/test_maintenance_new_request.py",
+        "tests/test_maintenance_reference_followup.py",
+        "tests/test_reservation_actions.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-003-spa-split-time",
+        "SC-004-edit-location",
+        "SC-005-edit-items",
+        "SC-006-interrupt-resume",
+        "SC-007-language-partial",
+        "SC-007-language-switch",
+        "SC-008-language-evidence",
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-010-duplicate-event",
+        "SC-010-idempotency-conflict",
+        "SC-010-tool-failure",
+        "SC-011-spa-date",
+        "SC-011-spa-name",
+        "SC-011-spa-treatment-alternatives",
+        "SC-012-failed-edit",
+        "SC-012-outbox-retry",
+        "SC-015-ambiguous-tasks",
+        "SC-018-configured-front-desk",
+        "SC-018-direct-front-desk",
+        "SC-019-ambiguous-selection",
+        "SC-019-button",
+        "SC-019-code",
+        "SC-019-generic-offering",
+        "SC-019-translation",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product",
+        "SC-021-queued-messages",
+        "SC-006-partial-resume",
+        "SC-009-room-lifecycle-buttons",
+        "SC-009-room-state-en",
+        "SC-009-room-state-es",
+        "SC-009-cancelled-draft-es",
+        "SC-009-cancelled-draft-en",
+        "SC-009-replaced-draft-submitted",
+        "SC-009-maintenance-recurrence-es",
+        "SC-009-maintenance-recurrence-en",
+        "SC-009-maintenance-timeout",
+        "SC-009-maintenance-new-menu-es",
+        "SC-009-maintenance-new-direct-es",
+        "SC-009-maintenance-new-menu-en",
+        "SC-009-maintenance-new-direct-en",
+        "SC-009-maintenance-hypothetical-es",
+        "SC-009-maintenance-hypothetical-en",
+        "SC-009-maintenance-reference-es",
+        "SC-009-maintenance-reference-en",
+        "SC-011-reservation-change-es",
+        "SC-011-reservation-cancel-es",
+        "SC-011-reservation-terminal-es",
+        "SC-011-reservation-change-en",
+        "SC-011-reservation-cancel-en",
+        "SC-011-reservation-terminal-en"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/conversations/*/V2_HOTEL_SCOPE/*"
+      ],
+      "id": "PR-002",
+      "name": "Clasificación de intención, idioma y selección",
+      "rule_ids": [
+        "BC-002",
+        "BC-003",
+        "BC-004",
+        "BC-005",
+        "BC-006",
+        "BC-007",
+        "BC-012",
+        "BC-013",
+        "BC-014"
+      ],
+      "sources": [
+        "app/agents/v2_scope_router.py"
+      ],
+      "unit_files": [
+        "tests/test_v2_scope_router.py",
+        "tests/test_catalog_selection.py",
+        "tests/test_multilingual_understanding.py",
+        "tests/test_pending_language_switch.py",
+        "tests/test_room_service_status.py",
+        "tests/test_maintenance_recurrence.py",
+        "tests/test_maintenance_new_request.py",
+        "tests/test_maintenance_reference_followup.py",
+        "tests/test_reservation_actions.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-002-partial-basket",
+        "SC-003-spa-split-time",
+        "SC-004-edit-location",
+        "SC-005-edit-items",
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-010-duplicate-event",
+        "SC-010-idempotency-conflict",
+        "SC-010-tool-failure",
+        "SC-015-ambiguous-tasks",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/conversations/*/V2_ORDER_UNDERSTANDING/*"
+      ],
+      "id": "PR-003",
+      "name": "Extracción y edición de pedidos",
+      "rule_ids": [
+        "BC-001",
+        "BC-002",
+        "BC-003",
+        "BC-006",
+        "BC-013"
+      ],
+      "sources": [
+        "app/services/input_understanding.py"
+      ],
+      "unit_files": [
+        "tests/test_multilingual_understanding.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-002-partial-basket",
+        "SC-003-spa-split-time",
+        "SC-004-edit-location",
+        "SC-005-edit-items",
+        "SC-006-interrupt-resume",
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-010-duplicate-event",
+        "SC-010-idempotency-conflict",
+        "SC-010-tool-failure",
+        "SC-011-spa-date",
+        "SC-011-spa-name",
+        "SC-011-spa-treatment-alternatives",
+        "SC-012-failed-edit",
+        "SC-012-outbox-retry",
+        "SC-015-ambiguous-tasks",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product",
+        "SC-006-partial-resume",
+        "SC-011-reservation-change-es",
+        "SC-011-reservation-cancel-es",
+        "SC-011-reservation-terminal-es",
+        "SC-011-reservation-change-en",
+        "SC-011-reservation-cancel-en",
+        "SC-011-reservation-terminal-en"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/conversations/*/V2_SPA_EXTRACTION/*"
+      ],
+      "id": "PR-004",
+      "name": "Extracción y aclaraciones de spa",
+      "rule_ids": [
+        "BC-001",
+        "BC-002",
+        "BC-003",
+        "BC-004",
+        "BC-006",
+        "BC-007",
+        "BC-013"
+      ],
+      "sources": [
+        "app/agents/spa_turns.py"
+      ],
+      "unit_files": [
+        "tests/test_spa_turns.py",
+        "tests/test_multilingual_understanding.py",
+        "tests/test_reservation_actions.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-003-spa-split-time",
+        "SC-004-edit-location",
+        "SC-006-interrupt-resume",
+        "SC-011-spa-date",
+        "SC-011-spa-name",
+        "SC-011-spa-treatment-alternatives",
+        "SC-012-failed-edit",
+        "SC-012-outbox-retry",
+        "SC-015-ambiguous-tasks",
+        "SC-018-configured-front-desk",
+        "SC-018-direct-front-desk",
+        "SC-019-ambiguous-selection",
+        "SC-019-button",
+        "SC-019-code",
+        "SC-019-generic-offering",
+        "SC-019-translation",
+        "SC-006-partial-resume"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/boundary/V2_SOCIAL_OPENING/*"
+      ],
+      "id": "PR-005",
+      "name": "Detección de saludo puro",
+      "rule_ids": [
+        "BC-004",
+        "BC-007",
+        "BC-012"
+      ],
+      "sources": [
+        "app/agents/social_opening.py"
+      ],
+      "unit_files": [
+        "tests/test_social_opening.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-010-duplicate-event",
+        "SC-010-idempotency-conflict",
+        "SC-010-tool-failure",
+        "SC-015-ambiguous-tasks",
+        "SC-016-forbidden-tool",
+        "SC-016-foreign-evidence",
+        "SC-016-missing-confirmation",
+        "SC-016-missing-input",
+        "SC-016-stale-version",
+        "SC-016-unknown-offering",
+        "SC-017-approved-faq",
+        "SC-017-unknown-faq",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/boundary/V2_FAQ_SEMANTIC_RETRIEVAL/*"
+      ],
+      "id": "PR-006",
+      "name": "Selección de conocimiento FAQ aprobado",
+      "rule_ids": [
+        "BC-008",
+        "BC-011",
+        "BC-013"
+      ],
+      "sources": [
+        "app/services/faq_grounding.py"
+      ],
+      "unit_files": [
+        "tests/test_multilingual_faq.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-010-duplicate-event",
+        "SC-010-idempotency-conflict",
+        "SC-010-tool-failure",
+        "SC-015-ambiguous-tasks",
+        "SC-016-forbidden-tool",
+        "SC-016-foreign-evidence",
+        "SC-016-missing-confirmation",
+        "SC-016-missing-input",
+        "SC-016-stale-version",
+        "SC-016-unknown-offering",
+        "SC-017-approved-faq",
+        "SC-017-unknown-faq",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/boundary/V2_FAQ_GROUNDING_CHECK/*"
+      ],
+      "id": "PR-007",
+      "name": "Verificación independiente de respuesta FAQ",
+      "rule_ids": [
+        "BC-008",
+        "BC-011",
+        "BC-013"
+      ],
+      "sources": [
+        "app/services/faq_grounding.py"
+      ],
+      "unit_files": [
+        "tests/test_multilingual_faq.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-003-spa-split-time",
+        "SC-007-language-partial",
+        "SC-007-language-switch",
+        "SC-008-language-evidence",
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-011-spa-date",
+        "SC-011-spa-name",
+        "SC-011-spa-treatment-alternatives",
+        "SC-012-failed-edit",
+        "SC-012-outbox-retry",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/boundary/V2_LOCALIZATION/*"
+      ],
+      "id": "PR-008",
+      "name": "Traducción de presentación y límites del canal",
+      "rule_ids": [
+        "BC-005",
+        "BC-007",
+        "BC-013"
+      ],
+      "sources": [
+        "app/services/localized_content.py"
+      ],
+      "unit_files": [
+        "tests/test_menu_localization.py",
+        "tests/test_notification_localization.py",
+        "tests/test_multilingual_foundation.py",
+        "tests/test_pending_language_switch.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-002-partial-basket",
+        "SC-003-spa-split-time",
+        "SC-004-edit-location",
+        "SC-005-edit-items",
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-010-duplicate-event",
+        "SC-010-idempotency-conflict",
+        "SC-010-tool-failure",
+        "SC-011-spa-date",
+        "SC-011-spa-name",
+        "SC-011-spa-treatment-alternatives",
+        "SC-012-failed-edit",
+        "SC-012-outbox-retry",
+        "SC-015-ambiguous-tasks",
+        "SC-016-forbidden-tool",
+        "SC-016-foreign-evidence",
+        "SC-016-missing-confirmation",
+        "SC-016-missing-input",
+        "SC-016-stale-version",
+        "SC-016-unknown-offering",
+        "SC-017-approved-faq",
+        "SC-017-unknown-faq",
+        "SC-018-configured-front-desk",
+        "SC-018-direct-front-desk",
+        "SC-019-ambiguous-selection",
+        "SC-019-button",
+        "SC-019-code",
+        "SC-019-generic-offering",
+        "SC-019-translation",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product",
+        "SC-021-queued-messages"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/builders/capabilities/*"
+      ],
+      "id": "PR-009",
+      "name": "Doce capacidades configurables",
+      "rule_ids": [
+        "BC-001",
+        "BC-002",
+        "BC-003",
+        "BC-006",
+        "BC-007",
+        "BC-008",
+        "BC-009",
+        "BC-011",
+        "BC-012",
+        "BC-013",
+        "BC-014"
+      ],
+      "sources": [
+        "app/prompts/capabilities.py",
+        "app/agents/capability_executor.py"
+      ],
+      "unit_files": [
+        "tests/test_capability_executor.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-002-partial-basket",
+        "SC-003-spa-split-time",
+        "SC-004-edit-location",
+        "SC-005-edit-items",
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-010-duplicate-event",
+        "SC-010-idempotency-conflict",
+        "SC-010-tool-failure",
+        "SC-011-spa-date",
+        "SC-011-spa-name",
+        "SC-011-spa-treatment-alternatives",
+        "SC-012-failed-edit",
+        "SC-012-outbox-retry",
+        "SC-015-ambiguous-tasks",
+        "SC-017-approved-faq",
+        "SC-017-unknown-faq",
+        "SC-018-configured-front-desk",
+        "SC-018-direct-front-desk",
+        "SC-019-ambiguous-selection",
+        "SC-019-button",
+        "SC-019-code",
+        "SC-019-generic-offering",
+        "SC-019-translation",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product",
+        "SC-021-queued-messages"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/builders/legacy/*"
+      ],
+      "id": "PR-010",
+      "name": "Constructores y consumidores del flujo anterior",
+      "rule_ids": [
+        "BC-001",
+        "BC-002",
+        "BC-003",
+        "BC-006",
+        "BC-007",
+        "BC-011",
+        "BC-012",
+        "BC-013",
+        "BC-014"
+      ],
+      "sources": [
+        "app/prompts/hotel.py",
+        "app/agents/hotel_graphs.py"
+      ],
+      "unit_files": [
+        "tests/test_hotel_graphs.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-003-spa-split-time",
+        "SC-007-language-partial",
+        "SC-007-language-switch",
+        "SC-008-language-evidence",
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-011-spa-date",
+        "SC-011-spa-name",
+        "SC-011-spa-treatment-alternatives",
+        "SC-012-failed-edit",
+        "SC-012-outbox-retry",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [],
+      "id": "PR-011",
+      "name": "Mensajes deterministas y versiones de traducción",
+      "rule_ids": [
+        "BC-005",
+        "BC-007",
+        "BC-013"
+      ],
+      "sources": [
+        "app/services/message_templates.json"
+      ],
+      "unit_files": [
+        "tests/test_menu_localization.py",
+        "tests/test_multilingual_understanding.py"
+      ]
+    },
+    {
+      "case_ids": [
+        "SC-001-split-quantity",
+        "SC-002-partial-basket",
+        "SC-003-spa-split-time",
+        "SC-004-edit-location",
+        "SC-005-edit-items",
+        "SC-009-double-space",
+        "SC-009-stale-confirmation",
+        "SC-015-ambiguous-tasks",
+        "SC-020-channel-limit",
+        "SC-020-preserve-product"
+      ],
+      "coverage_note": "Rendered synthetic paths and conservative source dependency snapshots; mapped cases do not imply that every level is implemented or passing.",
+      "effective_globs": [
+        "effective/builders/V2_AGENT_TURN/*",
+        "effective/conversations/*/V2_ORDER_UNDERSTANDING/*"
+      ],
+      "id": "PR-012",
+      "name": "Política compartida de cantidades",
+      "rule_ids": [
+        "BC-001",
+        "BC-002",
+        "BC-003",
+        "BC-013"
+      ],
+      "sources": [
+        "app/prompts/input_policy.py"
+      ],
+      "unit_files": [
+        "tests/test_multilingual_understanding.py"
+      ]
+    }
+  ],
+  "scope": "local-sandbox",
+  "version": 1
+}

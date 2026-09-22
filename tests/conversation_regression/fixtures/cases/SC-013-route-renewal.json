@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "id": "SC-013-route-renewal",
+  "scenario_id": "SC-013",
+  "title": "Misma identidad retoma spa",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "SPA",
+    "capturedFields": {
+      "serviceName": "Masaje herbal",
+      "reservationDate": "2026-10-03"
+    },
+    "spaDraft": {
+      "id": "80000000-0000-4000-8000-000000000001",
+      "capturedFields": {
+        "serviceName": "Masaje herbal",
+        "reservationDate": "2026-10-03"
+      },
+      "unresolvedFields": {},
+      "awaitingConfirmation": false
+    }
+  },
+  "locale": "en",
+  "required_levels": [
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "renew",
+      "event": {
+        "kind": "backend",
+        "action": "change_route_same_guest_and_stay",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/resumableDraftCount",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "time",
+      "event": {
+        "kind": "guest",
+        "text": "18 hrs"
+      },
+      "checks": [
+        {
+          "path": "/backend/resumableDrafts/SPA/fields/serviceName",
+          "op": "equals",
+          "value": "Masaje herbal"
+        },
+        {
+          "path": "/backend/resumableDrafts/SPA/fields/reservationDate",
+          "op": "equals",
+          "value": "2026-10-03"
+        },
+        {
+          "path": "/state/spaDraft/capturedFields/reservationTime",
+          "op": "equals",
+          "value": "18:00"
+        }
+      ],
+      "review": [
+        "Recuperar 18:00 o confirmar reanudación explícitamente, sin perder borrador."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "18 hrs",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_SPA_EXTRACTION",
+          "payload": {
+            "serviceName": {
+              "status": "UNCHANGED",
+              "value": null,
+              "evidence": null,
+              "confidence": 1
+            },
+            "reservationDate": {
+              "status": "UNCHANGED",
+              "value": null,
+              "evidence": null,
+              "confidence": 1
+            },
+            "reservationTime": {
+              "status": "RESOLVED",
+              "value": "18:00",
+              "evidence": "18 hrs",
+              "confidence": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

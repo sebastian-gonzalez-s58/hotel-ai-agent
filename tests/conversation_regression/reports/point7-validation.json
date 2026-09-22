@@ -1,0 +1,68 @@
+{
+  "scope": "local-sandbox",
+  "status": "PASS",
+  "started_at": "2026-09-21T06:16:13.679153+00:00",
+  "finished_at": "2026-09-21T06:21:18.775911+00:00",
+  "sources": {
+    "agent": {
+      "git_head": "24f6d0be5cae9f07d79a6ce69c590cbb007569a0",
+      "inputs_sha256": "218a14e248b6ad7376c17a198df2b3d5c2d7c79f059e5ff7794e1ecdf40e6c2f"
+    },
+    "backend": {
+      "git_head": "9e239235e634bc451b386c977760643d42c289e8",
+      "inputs_sha256": "ba135604446c3bcc7c92b182c48a1ffaebd8c9cefe83a6666f5f88328e733756"
+    }
+  },
+  "gate_report": "../../../target/ci/point7-first/summary.json",
+  "gate_summary": "../../../target/ci/point7-first/summary.md",
+  "agent_unit": {
+    "passed": 414,
+    "skipped": [
+      "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_initial_english_menu_from_spanish_offerings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_scope_distinguishes_openings_from_specific_requests_and_social_closings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_translation_respects_small_limits_for_custom_labels",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_typo_after_previous_welcome_still_returns_menu",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_explicit_separate_order_is_still_allowed",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_kitchen_replacement_completes_existing_task",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_maintenance_negation_does_not_confirm_resolution",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_polite_order_edit_and_confirmation",
+      "tests.test_v2_scope_live.LiveHotelScopeTest.test_scope_and_existing_workflows"
+    ]
+  },
+  "backend_unit": {
+    "passed": 566,
+    "skipped": [
+      "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
+    ]
+  },
+  "offline": {
+    "OFFLINE_PARTIAL_PASS": 28,
+    "NOT_RUN": 15
+  },
+  "integration": {
+    "NOT_RUN": 21,
+    "INTEGRATION_PARTIAL_PASS": 22
+  },
+  "negative_gate_tests_passed": 17,
+  "negative_prompt_probe": {
+    "probe": "protected instruction removed in memory",
+    "anchor": "PA-001",
+    "document": "effective/builders/V2_AGENT_TURN/en-US.prompt.txt",
+    "expected_exit": 1,
+    "actual_exit": 1,
+    "production_files_modified": false
+  },
+  "local_python": "3.12.14",
+  "workflow_validation": "YAML and embedded Python parsed; mandatory triggers and non-skipped final guard checked locally. Hosted GitHub execution not run.",
+  "new_api_calls": 0,
+  "new_api_tokens": 0,
+  "remote_enforcement_active": false,
+  "deployment_authorized": false,
+  "limitations": [
+    "Explicit NOT_RUN scenarios and partial checks remain visible in gate report.",
+    "No live model, WhatsApp or remote BPM exercised.",
+    "GitHub branch rules, paired SHA variables/token and Render activation remain unapplied.",
+    "A CI PASS validates only its recorded source pair; coordinated deployment remains an operational step."
+  ]
+}
