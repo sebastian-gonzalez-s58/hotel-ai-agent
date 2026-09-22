@@ -125,7 +125,7 @@ class CatalogOptionOffersTest(unittest.TestCase):
         self.assertIsNotNone(normalize_order(off, rows, semantic=False)[1])
 
     def test_large_group_pages_keep_skip_reachable_without_losing_selection(self):
-        extra = extras(); extra['options'] = [{'id': str(n), 'name': 'Extra ' + str(n), 'priceAdjustment': n, 'available': True} for n in range(18)]
+        extra = extras(maximum=1); extra['options'] = [{'id': str(n), 'name': 'Extra ' + str(n), 'priceAdjustment': n, 'available': True} for n in range(18)]
         off = offering([item(groups=[extra])]); request = request_for('extras')
         rows, pending = normalize_order(off, [row()], semantic=False)
         for page in [1, 2]:
@@ -135,6 +135,38 @@ class CatalogOptionOffersTest(unittest.TestCase):
             self.assertEqual(page, pending['page'])
             self.assertLessEqual(len(clarification(request, off, 'items', pending)['interaction']['options']), 10)
         self.assertIn('Sin extras', clarification(request, off, 'items', pending)['text'])
+
+    def test_multiple_options_are_text_only_and_one_named_option_finishes_the_group(self):
+        off = offering([item(groups=[extras()])])
+        for locale in ['es', 'en']:
+            request = request_for('Huevo'); request.guest.preferredLanguage = locale
+            rows, pending = normalize_order(off, [row()], semantic=False)
+            output = clarification(request, off, 'items', pending)
+            self.assertIsNone(output['interaction'])
+            self.assertIn('35.00', output['text'])
+            choice = pending_choice(pending, request.conversation.recentMessages[-1])
+            self.assertEqual({'action': 'SELECT_SET', 'ids': ['egg']}, choice)
+            rows[0] = apply_choice(rows[0], pending, choice)
+            rows, pending = normalize_order(off, rows, semantic=False)
+            self.assertIsNone(pending)
+            self.assertEqual(['Huevo'], rows[0]['catalogSelection']['optionNames'])
+
+    def test_single_protein_rejects_combination_and_required_multiple_has_no_buttons(self):
+        single = offering([item(groups=[extras(maximum=1)])])
+        _, pending = normalize_order(single, [row()], semantic=False)
+        request = request_for('pollo y huevo')
+        self.assertIsNone(pending_choice(pending, request.conversation.recentMessages[-1]))
+        self.assertIsNotNone(clarification(request, single, 'items', pending)['interaction'])
+        self.assertIsNotNone(normalize_order(single, [row(notes=['con pollo y huevo'])], semantic=False)[1])
+        required = extras(); required.update(required=True, minimumSelections=2)
+        off = offering([item(groups=[required])])
+        rows, pending = normalize_order(off, [row()], semantic=False)
+        self.assertIsNone(clarification(request, off, 'items', pending)['interaction'])
+        request.conversation.recentMessages[-1].text = 'Huevo'
+        self.assertIsNone(pending_choice(pending, request.conversation.recentMessages[-1]))
+        request.conversation.recentMessages[-1].text = 'pollo y huevo'
+        rows[0] = apply_choice(rows[0], pending, pending_choice(pending, request.conversation.recentMessages[-1]))
+        self.assertIsNone(normalize_order(off, rows, semantic=False)[1])
 
     def test_decline_belongs_to_item_and_never_skips_another_item(self):
         off = offering([item(groups=[extras()]), item('other', 'Otro', groups=[extras()])])
@@ -148,6 +180,44 @@ class CatalogOfferConversationTest(unittest.TestCase):
     setUp = base.CatalogConversationTest.setUp
     capture = base.CatalogConversationTest.capture
 
+    def test_natural_multiple_reply_keeps_english_summary_and_does_not_repeat_offer(self):
+        off = offering([item(groups=[extras()])]); request, response = self.capture(off)
+        self.assertIsNone(response.messages[0].interaction)
+        request = follow_up(request, response, 'pollo y huevo')
+        request.guest.preferredLanguage = 'en'
+        with patch('app.agents.v2_turn_planner.classify_hotel_scope', side_effect=AssertionError('Catalog selections inherit English')):
+            response = planner.plan_v2_turn(request)
+        self.assertFalse(response.toolCalls)
+        self.assertEqual('en', response.messages[0].language)
+        self.assertIn('Order confirmation', response.messages[0].text)
+        self.assertIn('470.00', response.messages[0].text)
+        self.assertTrue(json.loads(response.updatedConversationSummary)['awaitingExplicitConfirmation'])
+
+    def test_catalog_name_does_not_switch_english_confirmation_to_spanish(self):
+        from app.services.conversation_language import resolve_language
+        from tests.test_v2_scope_router import decision
+        from tests.test_multilingual_foundation import multilingual_request
+        off = offering([item(name='Chilaquiles Clásicos', groups=[extras(maximum=1)])])
+        for text in ['Chilaquiles Clásicos', '2 Chilaquiles Clásicos', 'Huevo']:
+            request = multilingual_request(text); request.availableOfferings = [off]
+            request.guest.preferredLanguage = 'en'
+            route = decision('SERVICE_REQUEST', text, offering='ROOM_SERVICE')
+            route.detectedLanguage, route.languageConfidence = 'es', .99
+            localized, change = resolve_language(request, request.conversation.recentMessages[0], route)
+            self.assertIsNone(change)
+            self.assertEqual('en', localized.guest.preferredLanguage)
+            rows, pending = normalize_order(off, [dict(row(), name='Chilaquiles Clásicos')], semantic=False)
+            rows = choose(rows, pending, 'egg')
+            rows, pending = normalize_order(off, rows, semantic=False)
+            message = planner._room_service_confirmation_message(localized, off, {'items': rows})
+            self.assertTrue(message['text'].startswith('Order confirmation'))
+            self.assertEqual('en', message['language'])
+            self.assertEqual('Order confirmation', message['interaction']['title'])
+            self.assertEqual(message['text'], message['interaction']['body'])
+            self.assertEqual(['Confirm', 'Change', 'Cancel'], [o['label'] for o in message['interaction']['options']])
+            route.requestedLanguage = 'es'
+            self.assertEqual('es', resolve_language(request, request.conversation.recentMessages[0], route)[0].guest.preferredLanguage)
+
     def test_no_thanks_is_bound_to_extras_without_global_scope_or_order_cancellation(self):
         off = offering([item(groups=[extras()])]); request, response = self.capture(off)
         request = follow_up(request, response, 'no thanks')
@@ -159,7 +229,7 @@ class CatalogOfferConversationTest(unittest.TestCase):
         self.assertTrue(state['awaitingExplicitConfirmation'])
     def test_offer_skip_stale_button_and_confirm_create_only_current_order(self):
         from tests.conversation_regression.room_confirmation_support import current_room_button
-        off = offering([item(groups=[extras()])]); request, response = self.capture(off)
+        off = offering([item(groups=[extras(maximum=1)])]); request, response = self.capture(off)
         skip = next(o.id for o in response.messages[0].interaction.options if o.id.endswith(':__skip__'))
         request = follow_up(request, response, 'Sin extras', skip)
         response = planner.plan_v2_turn(request)

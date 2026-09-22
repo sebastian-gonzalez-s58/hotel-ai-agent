@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "331e591394bf3e2f3d3a5ed48097b9b77d2732dfa39e16a67d84c2609b9a344d",
-  "reason": "Offer optional complements with scoped skip/done decisions; preserve all previous prompt guarantees and require new regressions.",
+  "baseline_index_sha256": "c04cded695c47e9c83fd82b38abaf5fa90bf87afd420f3df65e6e8fe976b6efa",
+  "reason": "Use text-only multiple-option capture and preserve session language for catalog value replies; retain prior behavioral rules and mandatory coverage.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/catalog-option-offers-review.md"
+  "evidence": "docs/catalog-cardinality-review.md"
 }
