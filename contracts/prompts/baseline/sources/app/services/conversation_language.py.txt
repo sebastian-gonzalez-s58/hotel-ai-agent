@@ -46,6 +46,8 @@ def resolve_language(request: AgentTurnRequest, message, scope=None):
         confidence = getattr(scope, "languageConfidence", 0) if scope else 1.0
         locked = request.trigger.eventPayload.get("languageContext", {}).get("explicit", False)
         candidate = explicit or (detected if not locked else None)
+        from app.services.catalog_orders import is_catalog_value_reply
+        catalog_value = is_catalog_value_reply(request, message.text)
         # Capture data and task decisions inherit the session locale. Clear standalone
         # intents can establish a language regardless of word length or writing system.
         meaningful = explicit or greeting_language(message.text) or (
@@ -57,7 +59,7 @@ def resolve_language(request: AgentTurnRequest, message, scope=None):
             and re.search(r"[^\W\d_]", message.text)
             and message.text.casefold().strip("!?. ,") not in {"ok", "okay"}
         )
-        if candidate and meaningful and confidence >= 0.85:
+        if candidate and meaningful and confidence >= 0.85 and (explicit or not catalog_value):
             if not explicit and candidate == effective.split("-")[0]:
                 candidate = effective
             decision = LanguageDecision(locale=candidate, source="EXPLICIT" if explicit else "DETECTED",

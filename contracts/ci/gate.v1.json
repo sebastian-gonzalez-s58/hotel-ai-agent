@@ -1,7 +1,18 @@
 {
   "version": 1,
-  "meaning": "Minimum required deterministic coverage; pending entries are explicit gaps, never a full conversation certification.",
   "agent_unit": {
+    "allowed_skips": [
+      "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_initial_english_menu_from_spanish_offerings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_scope_distinguishes_openings_from_specific_requests_and_social_closings",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_translation_respects_small_limits_for_custom_labels",
+      "tests.test_menu_localization.LiveMenuLocalizationTest.test_typo_after_previous_welcome_still_returns_menu",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_explicit_separate_order_is_still_allowed",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_kitchen_replacement_completes_existing_task",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_maintenance_negation_does_not_confirm_resolution",
+      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_polite_order_edit_and_confirmation",
+      "tests.test_v2_scope_live.LiveHotelScopeTest.test_scope_and_existing_workflows"
+    ],
     "required_ids": [
       "tests.test_capability_executor.CapabilityExecutorTest.test_builds_active_offering_menu_with_authorized_action_ids",
       "tests.test_capability_executor.CapabilityExecutorTest.test_discards_catalog_ids_not_returned_by_authorized_search",
@@ -498,22 +509,53 @@
       "tests.test_room_service_capture_continuity.RoomServiceCaptureContinuityTest.test_uncertain_message_preserves_captured_data",
       "tests.test_room_service_capture_continuity.RoomServiceCaptureContinuityTest.test_successful_room_service_start_clears_draft",
       "tests.test_room_service_capture_continuity.RoomServiceCaptureContinuityTest.test_unrelated_topic_does_not_consume_order_fields",
-      "tests.test_room_service_capture_continuity.RoomServiceCaptureContinuityTest.test_hotel_question_still_uses_faq_instead_of_order_capture"
-    ],
-    "allowed_skips": [
-      "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
-      "tests.test_menu_localization.LiveMenuLocalizationTest.test_initial_english_menu_from_spanish_offerings",
-      "tests.test_menu_localization.LiveMenuLocalizationTest.test_scope_distinguishes_openings_from_specific_requests_and_social_closings",
-      "tests.test_menu_localization.LiveMenuLocalizationTest.test_translation_respects_small_limits_for_custom_labels",
-      "tests.test_menu_localization.LiveMenuLocalizationTest.test_typo_after_previous_welcome_still_returns_menu",
-      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_explicit_separate_order_is_still_allowed",
-      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_kitchen_replacement_completes_existing_task",
-      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_maintenance_negation_does_not_confirm_resolution",
-      "tests.test_multilingual_understanding_live.LiveEnglishUnderstandingTest.test_polite_order_edit_and_confirmation",
-      "tests.test_v2_scope_live.LiveHotelScopeTest.test_scope_and_existing_workflows"
+      "tests.test_room_service_capture_continuity.RoomServiceCaptureContinuityTest.test_hotel_question_still_uses_faq_instead_of_order_capture",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_normalizes_accents_case_and_prices_without_losing_restrictions",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_no_catalog_policy_retains_legacy_contract",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_unknown_or_empty_catalog_never_confirms_and_keeps_other_rows",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_duplicate_name_requires_category_choice",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_required_variant_selection_is_explicit_and_priced",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_negative_modifier_does_not_select_extra",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_only_required_variant_is_included",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_removed_identity_not_substituted_by_same_name",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_unavailable_selected_option_blocks_confirmation",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_stale_catalog_button_cannot_select_new_draft",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_price_change_rebuilds_summary_and_requires_confirmation",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_canonical_summary_preserves_qty_options_notes_location",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_semantic_translation_uses_only_offered_identity_with_evidence",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_spa_variant_round_trip_and_unavailable_treatment",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_spa_catalog_correction_keeps_date_time_and_asks_only_variant",
+      "tests.test_catalog_orders.CatalogOrdersTest.test_spa_price_change_blocks_old_confirm",
+      "tests.test_catalog_orders.CatalogConversationTest.test_whole_order_variant_choice_then_versioned_confirmation",
+      "tests.test_catalog_orders.CatalogConversationTest.test_whole_order_unavailable_after_summary_does_not_start",
+      "tests.test_catalog_orders.CatalogConversationTest.test_kitchen_replacement_uses_catalog_choice_and_explicit_summary",
+      "tests.test_catalog_orders.CatalogExtraTest.test_unknown_extra_cannot_be_smuggled_in_as_free_text",
+      "tests.test_catalog_orders.CatalogExtraTest.test_multiselect_required_group_collects_each_explicit_choice",
+      "tests.test_catalog_orders.CatalogVariantCorrectionTest.test_explicit_variant_choice_removes_contradictory_standalone_notes_only",
+      "tests.test_catalog_orders.CatalogMalformedInputTest.test_malformed_model_arguments_fail_closed_without_an_unhandled_exception",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_required_variant_precedes_optional_offer_and_decline_survives_salsa_edit",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_multiple_extras_toggle_then_done_produces_exact_total",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_disabled_or_empty_offers_do_not_block_and_single_optional_choice_is_not_automatic",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_skip_and_done_have_english_text_and_draft_scoped_buttons",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_direct_named_extras_are_not_reasked_and_allergy_never_selects_an_extra",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_free_text_selects_multiple_available_options_without_inventing_ids",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_partial_match_does_not_discard_unknown_extras_or_preparation_notes",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_declining_after_multiple_selection_does_not_leave_paid_notes_in_summary",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_removed_selection_blocks_and_price_change_recomputes_without_reoffering",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_large_group_pages_keep_skip_reachable_without_losing_selection",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_decline_belongs_to_item_and_never_skips_another_item",
+      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_no_thanks_is_bound_to_extras_without_global_scope_or_order_cancellation",
+      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_offer_skip_stale_button_and_confirm_create_only_current_order",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_multiple_options_are_text_only_and_one_named_option_finishes_the_group",
+      "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_single_protein_rejects_combination_and_required_multiple_has_no_buttons",
+      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_natural_multiple_reply_keeps_english_summary_and_does_not_repeat_offer",
+      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_catalog_name_does_not_switch_english_confirmation_to_spanish"
     ]
   },
   "backend_unit": {
+    "allowed_skips": [
+      "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
+    ],
     "required_ids": [
       "com.chatbotinn.ChatbotInnApplicationTests.contextLoads",
       "com.chatbotinn.agent.v2.service.AgentDomainToolTransactionBoundaryTest.mutatingDomainToolsUseIndependentTransactions",
@@ -1115,12 +1157,763 @@
       "com.chatbotinn.router.processing.ReservationButtonContextResolverTest.currentMenuRequiresMatchingGuestStayAndOffering",
       "com.chatbotinn.router.processing.ReservationButtonContextResolverTest.historicalTaskBindsItsOwnOperation",
       "com.chatbotinn.router.processing.ReservationButtonContextResolverTest.submittedDraftBindsCommittedStartAndUnknownDraftDoesNotGuess",
-      "com.chatbotinn.process.conversationtask.SpaReservationV2ProcessIntegrationTest.rejectingAnInitialReservationDoesNotClaimTheGuestCancelledIt"
-    ],
-    "allowed_skips": [
-      "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
+      "com.chatbotinn.process.conversationtask.SpaReservationV2ProcessIntegrationTest.rejectingAnInitialReservationDoesNotClaimTheGuestCancelledIt",
+      "com.chatbotinn.catalog.service.CatalogGuestSelectionPolicyTest.acceptsCanonicalSelectionAndPriceWithRestrictions",
+      "com.chatbotinn.catalog.service.CatalogGuestSelectionPolicyTest.rejectsUnavailableItemEvenWithPreviouslyValidSelection",
+      "com.chatbotinn.catalog.service.CatalogGuestSelectionPolicyTest.rejectsUnboundNamesAndForeignOptions",
+      "com.chatbotinn.catalog.service.CatalogGuestSelectionPolicyTest.rejectsMissingRequiredOption",
+      "com.chatbotinn.catalog.service.CatalogGuestSelectionPolicyTest.rejectsOldPriceOrForgedTotal",
+      "com.chatbotinn.catalog.service.CatalogGuestSelectionPolicyTest.rejectsInvalidQuantities",
+      "com.chatbotinn.catalog.service.CatalogGuestSelectionPolicyTest.validatesCanonicalReservationAndRequiredVariant",
+      "com.chatbotinn.catalog.service.CatalogGuestSelectionPolicyTest.taskUpdatesAndStaffAlternativesRecheckLiveCatalogButCancellationRemainsPossible",
+      "com.chatbotinn.catalog.repository.CatalogPersistenceTest.agentCatalogLoadsSelectionsInBatchesWithoutCachingAvailability",
+      "com.chatbotinn.catalog.repository.CatalogPersistenceTest.offeringCatalogCodesUseOneQueryWithoutLoadingCatalogContents",
+      "com.chatbotinn.process.conversationtask.SpaReservationV2ProcessIntegrationTest.compatibilityReleasesOperationLockBeforeContextReadFinishes",
+      "com.chatbotinn.agent.v2.service.AgentOfferingInputSchemaFactoryTest.strictItemCaptureAdvertisesCatalogPolicyPricesAndOptions",
+      "com.chatbotinn.orchestration.v2.service.ServiceLifecycleServicePersistenceTest.liveCatalogPriceAndAvailabilityAreCheckedBeforeCreatingEachOrder",
+      "com.chatbotinn.orchestration.v2.service.ServiceLifecycleServicePersistenceTest.catalogRejectionDoesNotStartProcessOrPersistOperation",
+      "com.chatbotinn.orchestration.v2.service.ConversationTaskServicePersistenceTest.catalogRejectionLeavesTaskPendingWithoutProcessCorrelation",
+      "com.chatbotinn.architecture.config.CatalogOptionOfferMigrationTest.enablesOnlyExistingOptionalFoodGroupsWithoutChangingSelectionRequirements",
+      "com.chatbotinn.catalog.service.CatalogItemServiceTest.offeringOptionalGroupDoesNotMakeSelectionRequiredAndPatchPreservesPolicy",
+      "com.chatbotinn.catalog.service.CatalogItemServiceTest.groupWithoutOfferPolicyRetainsLegacyDefaultAndInvalidLimitsAreRejected"
     ]
   },
+  "integration": {
+    "SC-001-split-quantity": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "product",
+        "quantity",
+        "confirm-order"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-002-partial-basket": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "order",
+        "quantity",
+        "location",
+        "confirm-order"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-003-spa-split-time": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "treatment-date",
+        "time",
+        "__complete"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-004-edit-location": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "present-confirmation",
+        "change",
+        "new-location",
+        "confirm-location"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-005-edit-items": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "quantity",
+        "remove",
+        "confirm-edited-order"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-006-interrupt-resume": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "faq",
+        "knowledge",
+        "faq-start",
+        "front-desk",
+        "desk-start",
+        "resume",
+        "confirm-order",
+        "order-start"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-006-partial-resume": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "faq",
+        "knowledge",
+        "faq-start",
+        "resume"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-007-language-partial": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "language",
+        "quantity",
+        "confirm",
+        "started"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-007-language-switch": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "language",
+        "confirm",
+        "started"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-008-language-evidence": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "order",
+        "__complete"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-double-space": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "present-confirmation",
+        "confirm"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-stale-confirmation": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "current-button",
+        "started",
+        "used-button"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-010-duplicate-event": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "confirm",
+        "started",
+        "duplicate"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-010-idempotency-conflict": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "confirm",
+        "started",
+        "conflict"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-010-retry-after-commit": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "arm-loss",
+        "confirm",
+        "retry",
+        "used-after-recovery"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-010-tool-failure": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "confirm",
+        "fail",
+        "do-not-restart"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-spa-date": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "ambiguous-date"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-spa-name": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "ambiguous"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-spa-treatment-alternatives": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "ambiguous"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-012-failed-edit": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "edit",
+        "confirm",
+        "retry",
+        "__complete"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-012-outbox-retry": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "desk",
+        "execute",
+        "retry"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-013-route-renewal": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "renew",
+        "time"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-014-contact-reassignment": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "transition",
+        "new-request"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-014-new-stay": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "transition",
+        "new-request"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-015-ambiguous-tasks": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "ambiguous",
+        "negative"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-016-forbidden-tool": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "invalid-plan"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-016-foreign-evidence": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "invalid-plan"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-016-missing-confirmation": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "invalid-plan"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-016-missing-input": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "invalid-plan"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-016-stale-version": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "invalid-plan"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-016-unknown-offering": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "invalid-plan"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-017-approved-faq": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "question",
+        "source",
+        "started"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-017-unknown-faq": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "question",
+        "no-source",
+        "started"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-018-configured-front-desk": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "configure",
+        "desk"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-018-direct-front-desk": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "desk"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-019-ambiguous-selection": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "location"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-019-button": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "location"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-019-code": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "location"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-019-generic-offering": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "configure",
+        "select",
+        "location"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-019-translation": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "location"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-020-channel-limit": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "translation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-020-preserve-product": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "language",
+        "summary"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-021-queued-messages": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "queue",
+        "first",
+        "second",
+        "fresh-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-delivered-buttons-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "used-cancel",
+        "unversioned-cancel",
+        "legacy-cancel",
+        "legacy-change",
+        "legacy-confirm"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-delivered-buttons-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "used-cancel",
+        "unversioned-cancel",
+        "legacy-cancel",
+        "legacy-change",
+        "legacy-confirm"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-room-lifecycle-buttons": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "current-button",
+        "started",
+        "state-kitchen_review",
+        "kitchen_review-change",
+        "state-awaiting_delivery",
+        "awaiting_delivery-change",
+        "state-delivered",
+        "delivered-change",
+        "delivered-cancel",
+        "delivered-confirm"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-room-state-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "review-change",
+        "review-cancel",
+        "accepted-change",
+        "accepted-cancel",
+        "delivered-change",
+        "delivered-cancel",
+        "cancelled-change",
+        "cancelled-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-room-state-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "review-change",
+        "review-cancel",
+        "accepted-change",
+        "accepted-cancel",
+        "delivered-change",
+        "delivered-cancel",
+        "cancelled-change",
+        "cancelled-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-cancelled-draft-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "cancel-current",
+        "cancelled-v1-confirm",
+        "cancelled-v1-change",
+        "cancelled-v1-cancel",
+        "cancelled-v2-confirm",
+        "cancelled-v2-change",
+        "cancelled-v2-cancel",
+        "cancelled-v3-confirm",
+        "cancelled-v3-change",
+        "cancelled-v3-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-cancelled-draft-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "cancel-current",
+        "cancelled-v1-confirm",
+        "cancelled-v1-change",
+        "cancelled-v1-cancel",
+        "cancelled-v2-confirm",
+        "cancelled-v2-change",
+        "cancelled-v2-cancel",
+        "cancelled-v3-confirm",
+        "cancelled-v3-change",
+        "cancelled-v3-cancel"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-replaced-draft-submitted": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "first-confirmation",
+        "edit",
+        "stale-button",
+        "current-button",
+        "started",
+        "previous-v1",
+        "previous-v2"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-recurrence-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "resolve",
+        "close",
+        "old-negative",
+        "decline",
+        "cancelled-confirmation",
+        "ask-again",
+        "confirm-recurrence",
+        "inspect",
+        "duplicate-old-button"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-recurrence-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "resolve",
+        "close",
+        "old-negative",
+        "decline",
+        "cancelled-confirmation",
+        "ask-again",
+        "confirm-recurrence",
+        "inspect",
+        "duplicate-old-button"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-timeout": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "close",
+        "old-negative",
+        "confirm-recurrence",
+        "inspect",
+        "duplicate-old-button"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-new-direct-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-new-direct-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-new-menu-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "select",
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-new-menu-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "select",
+        "describe"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-hypothetical-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "ask"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-hypothetical-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "ask"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-reference-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "report-persistence",
+        "wrong-reference",
+        "select-reference",
+        "confirm-recurrence",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-009-maintenance-reference-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "report-persistence",
+        "wrong-reference",
+        "select-reference",
+        "confirm-recurrence",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-cancel-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-cancel-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-change-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-change-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "request",
+        "decline",
+        "old-confirmation",
+        "request-again",
+        "confirm-current",
+        "inspect",
+        "repeat-confirmation"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-terminal-en": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "cancelled",
+        "served"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    },
+    "SC-011-reservation-terminal-es": {
+      "status": "INTEGRATION_PARTIAL_PASS",
+      "turn_ids": [
+        "cancelled",
+        "served"
+      ],
+      "not_run_steps": [],
+      "checks_pending": {}
+    }
+  },
+  "meaning": "Minimum required deterministic coverage; pending entries are explicit gaps, never a full conversation certification.",
   "offline": {
     "SC-001-split-quantity": {
       "status": "OFFLINE_PARTIAL_PASS",
@@ -3135,741 +3928,6 @@
     },
     "SC-011-reservation-terminal-es": {
       "status": "OFFLINE_PARTIAL_PASS",
-      "turn_ids": [
-        "cancelled",
-        "served"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    }
-  },
-  "integration": {
-    "SC-001-split-quantity": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "product",
-        "quantity",
-        "confirm-order"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-002-partial-basket": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "order",
-        "quantity",
-        "location",
-        "confirm-order"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-003-spa-split-time": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "treatment-date",
-        "time",
-        "__complete"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-004-edit-location": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "present-confirmation",
-        "change",
-        "new-location",
-        "confirm-location"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-005-edit-items": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "quantity",
-        "remove",
-        "confirm-edited-order"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-006-interrupt-resume": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "faq",
-        "knowledge",
-        "faq-start",
-        "front-desk",
-        "desk-start",
-        "resume",
-        "confirm-order",
-        "order-start"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-006-partial-resume": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "faq",
-        "knowledge",
-        "faq-start",
-        "resume"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-007-language-partial": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "language",
-        "quantity",
-        "confirm",
-        "started"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-007-language-switch": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "language",
-        "confirm",
-        "started"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-008-language-evidence": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "order",
-        "__complete"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-double-space": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "present-confirmation",
-        "confirm"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-stale-confirmation": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "first-confirmation",
-        "edit",
-        "stale-button",
-        "current-button",
-        "started",
-        "used-button"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-010-duplicate-event": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "first-confirmation",
-        "confirm",
-        "started",
-        "duplicate"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-010-idempotency-conflict": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "first-confirmation",
-        "confirm",
-        "started",
-        "conflict"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-010-retry-after-commit": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "first-confirmation",
-        "arm-loss",
-        "confirm",
-        "retry",
-        "used-after-recovery"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-010-tool-failure": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "first-confirmation",
-        "confirm",
-        "fail",
-        "do-not-restart"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-011-spa-date": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "ambiguous-date"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-011-spa-name": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "ambiguous"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-011-spa-treatment-alternatives": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "ambiguous"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-012-failed-edit": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "edit",
-        "confirm",
-        "retry",
-        "__complete"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-012-outbox-retry": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "desk",
-        "execute",
-        "retry"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-013-route-renewal": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "renew",
-        "time"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-014-contact-reassignment": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "transition",
-        "new-request"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-014-new-stay": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "transition",
-        "new-request"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-015-ambiguous-tasks": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "ambiguous",
-        "negative"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-016-forbidden-tool": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "invalid-plan"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-016-foreign-evidence": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "invalid-plan"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-016-missing-confirmation": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "invalid-plan"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-016-missing-input": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "invalid-plan"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-016-stale-version": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "invalid-plan"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-016-unknown-offering": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "invalid-plan"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-017-approved-faq": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "question",
-        "source",
-        "started"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-017-unknown-faq": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "question",
-        "no-source",
-        "started"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-018-configured-front-desk": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "configure",
-        "desk"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-018-direct-front-desk": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "desk"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-019-ambiguous-selection": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "location"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-019-button": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "location"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-019-code": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "location"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-019-generic-offering": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "configure",
-        "select",
-        "location"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-019-translation": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "location"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-020-channel-limit": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "translation"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-020-preserve-product": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "language",
-        "summary"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-021-queued-messages": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "queue",
-        "first",
-        "second",
-        "fresh-confirmation"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-delivered-buttons-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "used-cancel",
-        "unversioned-cancel",
-        "legacy-cancel",
-        "legacy-change",
-        "legacy-confirm"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-delivered-buttons-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "used-cancel",
-        "unversioned-cancel",
-        "legacy-cancel",
-        "legacy-change",
-        "legacy-confirm"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-room-lifecycle-buttons": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "first-confirmation",
-        "edit",
-        "stale-button",
-        "current-button",
-        "started",
-        "state-kitchen_review",
-        "kitchen_review-change",
-        "state-awaiting_delivery",
-        "awaiting_delivery-change",
-        "state-delivered",
-        "delivered-change",
-        "delivered-cancel",
-        "delivered-confirm"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-room-state-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "review-change",
-        "review-cancel",
-        "accepted-change",
-        "accepted-cancel",
-        "delivered-change",
-        "delivered-cancel",
-        "cancelled-change",
-        "cancelled-cancel"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-room-state-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "review-change",
-        "review-cancel",
-        "accepted-change",
-        "accepted-cancel",
-        "delivered-change",
-        "delivered-cancel",
-        "cancelled-change",
-        "cancelled-cancel"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-cancelled-draft-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "first-confirmation",
-        "edit",
-        "stale-button",
-        "cancel-current",
-        "cancelled-v1-confirm",
-        "cancelled-v1-change",
-        "cancelled-v1-cancel",
-        "cancelled-v2-confirm",
-        "cancelled-v2-change",
-        "cancelled-v2-cancel",
-        "cancelled-v3-confirm",
-        "cancelled-v3-change",
-        "cancelled-v3-cancel"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-cancelled-draft-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "first-confirmation",
-        "edit",
-        "stale-button",
-        "cancel-current",
-        "cancelled-v1-confirm",
-        "cancelled-v1-change",
-        "cancelled-v1-cancel",
-        "cancelled-v2-confirm",
-        "cancelled-v2-change",
-        "cancelled-v2-cancel",
-        "cancelled-v3-confirm",
-        "cancelled-v3-change",
-        "cancelled-v3-cancel"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-replaced-draft-submitted": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "first-confirmation",
-        "edit",
-        "stale-button",
-        "current-button",
-        "started",
-        "previous-v1",
-        "previous-v2"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-recurrence-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "resolve",
-        "close",
-        "old-negative",
-        "decline",
-        "cancelled-confirmation",
-        "ask-again",
-        "confirm-recurrence",
-        "inspect",
-        "duplicate-old-button"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-recurrence-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "resolve",
-        "close",
-        "old-negative",
-        "decline",
-        "cancelled-confirmation",
-        "ask-again",
-        "confirm-recurrence",
-        "inspect",
-        "duplicate-old-button"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-timeout": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "close",
-        "old-negative",
-        "confirm-recurrence",
-        "inspect",
-        "duplicate-old-button"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-new-direct-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "describe"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-new-direct-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "describe"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-new-menu-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "select",
-        "describe"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-new-menu-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "select",
-        "describe"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-hypothetical-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "ask"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-hypothetical-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "ask"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-reference-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "report-persistence",
-        "wrong-reference",
-        "select-reference",
-        "confirm-recurrence",
-        "inspect",
-        "repeat-confirmation"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-009-maintenance-reference-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "report-persistence",
-        "wrong-reference",
-        "select-reference",
-        "confirm-recurrence",
-        "inspect",
-        "repeat-confirmation"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-011-reservation-cancel-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "request",
-        "decline",
-        "old-confirmation",
-        "request-again",
-        "confirm-current",
-        "inspect",
-        "repeat-confirmation"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-011-reservation-cancel-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "request",
-        "decline",
-        "old-confirmation",
-        "request-again",
-        "confirm-current",
-        "inspect",
-        "repeat-confirmation"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-011-reservation-change-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "request",
-        "decline",
-        "old-confirmation",
-        "request-again",
-        "confirm-current",
-        "inspect",
-        "repeat-confirmation"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-011-reservation-change-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "request",
-        "decline",
-        "old-confirmation",
-        "request-again",
-        "confirm-current",
-        "inspect",
-        "repeat-confirmation"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-011-reservation-terminal-en": {
-      "status": "INTEGRATION_PARTIAL_PASS",
-      "turn_ids": [
-        "cancelled",
-        "served"
-      ],
-      "not_run_steps": [],
-      "checks_pending": {}
-    },
-    "SC-011-reservation-terminal-es": {
-      "status": "INTEGRATION_PARTIAL_PASS",
       "turn_ids": [
         "cancelled",
         "served"

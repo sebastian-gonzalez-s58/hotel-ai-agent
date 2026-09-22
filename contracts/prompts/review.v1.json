@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "b5997664f02fc784754d42000a2a76af1cae0a096785abb6e811949fb4b8da14",
-  "reason": "Promote sandbox behavior while preserving Telware continuity and contact protections; changed rendered context only rotates confirmation tokens; prior rules and mandatory coverage retained.",
+  "baseline_index_sha256": "141d6a79a6695871058228f99f97d8a3bbd8f50655aa3403885c58e159330746",
+  "reason": "Use text-only multiple-option capture and preserve session language for catalog value replies; retain prior behavioral rules and mandatory coverage.",
   "reviewer": "Codex local implementation review",
   "human_approval": false,
-  "evidence": "docs/telware-conversation-promotion.md"
+  "evidence": "docs/telware-catalog-promotion.md"
 }
