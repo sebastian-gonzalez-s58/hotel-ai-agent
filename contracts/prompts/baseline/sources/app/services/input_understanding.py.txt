@@ -50,6 +50,13 @@ def understanding_enabled():
     return state is not None and state.enabled
 
 
+def record_understanding_usage(usage):
+    state = _turn.get()
+    if state:
+        for name, value in usage.as_api_dict().items():
+            state.usage[name] = state.usage.get(name, 0) + value
+
+
 def record_scope_action(message, scope):
     state = _turn.get()
     if not state or not state.enabled:
