@@ -168,6 +168,27 @@ class CatalogOrdersTest(unittest.TestCase):
             self.mock_model.return_value = OpenAiJsonResult({**payload, **bad}, OpenAiTokenUsage(), 'test')
             self.assertIsNone(_semantic('classic burger', [item()])[0])
 
+    def test_persisted_translation_resolves_without_model_call(self):
+        translated = item('aromatic', 'Balance aromático')
+        translated['translations'] = {'en': 'Aromatic Balance'}
+        selected, pending = resolve_selection({'selectionPolicy': 'ACTIVE_ITEMS_ONLY', 'options': [translated]},
+                                              'Aromatic Balance', [], semantic=True)
+        self.assertIsNone(pending)
+        self.assertEqual('aromatic', selected['itemId'])
+
+    def test_semantic_matching_sends_only_relevant_candidates(self):
+        options = [item('burger', 'Hamburguesa Clásica'), item('soup', 'Sopa de pollo'),
+                   item('salad', 'Ensalada verde')]
+        options[1]['translations'] = {'en': 'Chicken Soup'}
+        payload = {'status': 'MATCH', 'candidateId': 'soup', 'candidateIds': ['soup'],
+                   'evidence': 'chicken soup', 'confidence': .99}
+        self.mock_model.side_effect = None
+        self.mock_model.return_value = OpenAiJsonResult(payload, OpenAiTokenUsage(), 'test')
+        selected, _ = _semantic('chicken soup', options)
+        self.assertEqual('soup', selected['id'])
+        candidates = json.loads(self.mock_model.call_args.args[0].split('Context:\n', 1)[1])['candidates']
+        self.assertEqual(['soup'], [candidate['id'] for candidate in candidates])
+
     def test_spa_variant_round_trip_and_unavailable_treatment(self):
         off = offering([item('massage', 'Masaje Relajante', groups=[group()])], spa=True)
         selected, pending = resolve_selection(catalog(off), 'Masaje Relajante (Grande)', [], semantic=False)
