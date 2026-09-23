@@ -1407,6 +1407,14 @@ def _room_service_draft_plan(
     if choice and catalog_for(offering, "items"):
         index = catalog_pending.get("itemIndex")
         if type(index) is int and 0 <= index < len(captured.get("items", [])):
+            if choice.get("id") == "__cancel__":
+                return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                        messages=[_room_service_cancellation_message(request)], updated_summary="{}")
+            if choice.get("id") == "__remove__":
+                captured = deepcopy(captured)
+                captured["items"].pop(index)
+                return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                        **_room_service_capture_output(request, offering, captured, unresolved_location))
             captured = deepcopy(captured)
             captured["items"][index] = apply_choice(captured["items"][index], catalog_pending, choice)
             return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",

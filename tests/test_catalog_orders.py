@@ -76,6 +76,14 @@ class CatalogOrdersTest(unittest.TestCase):
             self.assertEqual('UNAVAILABLE', pending['kind'])
             self.assertEqual(2, len(out))
 
+    def test_unavailable_first_item_does_not_hide_later_valid_item(self):
+        off = offering([item('burger', 'Hamburguesa Delux')])
+        out, pending = normalize_order(off, [row('pozole'), row('hamburguesa delux', 1)], semantic=False)
+        self.assertEqual('UNAVAILABLE', pending['kind'])
+        self.assertEqual(0, pending['itemIndex'])
+        self.assertEqual('Hamburguesa Delux', out[1]['name'])
+        self.assertEqual('burger', out[1]['catalogSelection']['itemId'])
+
     def test_duplicate_name_requires_category_choice(self):
         off = offering([item('frozen', 'Fresa', 'Frozen'), item('smoothie', 'Fresa', 'Smoothies')])
         out, pending = normalize_order(off, [row('fresa')])
