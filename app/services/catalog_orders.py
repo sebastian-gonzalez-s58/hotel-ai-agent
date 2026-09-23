@@ -237,6 +237,7 @@ def normalize_order(offering, items, *, semantic=True):
     if not isinstance(items, list):
         raise AgentModelError("Catalog items must be a list")
     result = deepcopy(items)
+    first_pending = None
     for index, row in enumerate(result):
         if (not isinstance(row, dict) or not isinstance(row.get("name"), str)
                 or not isinstance(row.get("modifications", []), list)
@@ -260,9 +261,12 @@ def normalize_order(offering, items, *, semantic=True):
             # Keep the old identity so a later retry cannot substitute another item with the same name.
             if not previous: row.pop("catalogSelection", None)
         if pending:
-            pending["itemIndex"] = index
-            return result, pending
-    return result, None
+            # Continue normalizing later lines so one unavailable item does not
+            # hide valid items captured in the same guest message.
+            pending.setdefault("itemIndex", index)
+            if first_pending is None:
+                first_pending = pending
+    return result, first_pending
 
 
 def display_service(selection):
@@ -371,6 +375,9 @@ def clarification(request, offering, field, pending):
     else:
         text = (f'«{name}» no está disponible con esa selección en el catálogo actual. Elige otra opción; conservaré los demás datos.' if es else
                 f'“{name}” is not available with that selection in the current catalog. Choose another option; I will keep the other details.')
+        if pending['kind'] == 'UNAVAILABLE':
+            text += (f' Puedes quitar «{name}» para continuar con el resto del pedido o cancelar todo.' if es else
+                     f' You can remove “{name}” to continue with the rest of the order, or cancel the entire order.')
     page_size = 8 if pending['kind'] == 'OPTION' else 10
     page = min(max(pending.get('page', 0), 0), max(0, (len(pending['choices']) - 1) // page_size))
     visible = pending['choices'][page * page_size:(page + 1) * page_size]
@@ -384,6 +391,11 @@ def clarification(request, offering, field, pending):
                 (' (sin cargo)' if es else ' (no charge)') if 'priceAdjustment' in c else '')
     options = [{"id": "catalog-choice:" + pending["token"] + ":" + c["id"], "label": label(c)[:20]}
                for c in visible]
+    if pending['kind'] == 'UNAVAILABLE':
+        options = [
+            {"id": "catalog-choice:" + pending["token"] + ":__remove__", "label": "Quitar artículo" if es else "Remove item"},
+            {"id": "catalog-choice:" + pending["token"] + ":__cancel__", "label": "Cancelar pedido" if es else "Cancel order"},
+        ]
     for show, suffix, caption in [(page > 0, '__previous__', 'Anterior' if es else 'Previous'),
                                  ((page + 1) * page_size < len(pending['choices']), '__next__', 'Más opciones' if es else 'More options')]:
         if show: options.append({'id': 'catalog-choice:' + pending['token'] + ':' + suffix, 'label': caption})
