@@ -43,13 +43,45 @@ def choice_label(item):
     return item["label"] + (" — " + item["categoryLabel"] if item.get("categoryLabel") else "")
 
 
+def _item_names(item):
+    """Return all persisted names without translating the catalog at request time."""
+    values = [item.get("label"), item.get("code"), item.get("categoryLabel"), *item.get("aliases", [])]
+    for key in ("translations", "localizedNames", "nameTranslations"):
+        localized = item.get(key, {})
+        if isinstance(localized, dict):
+            values.extend(localized.values())
+        elif isinstance(localized, list):
+            values.extend(localized)
+    return [str(value) for value in values if isinstance(value, str) and value.strip()]
+
+
+def _catalog_candidates(name, options):
+    """Narrow the semantic prompt using local multilingual names first."""
+    requested = set(folded(name).split())
+    if not requested:
+        return options
+    scored = []
+    for option in options:
+        names = " ".join(_item_names(option))
+        tokens = set(folded(names).split())
+        overlap = len(requested & tokens)
+        phrase = any(folded(name) in folded(candidate) or folded(candidate) in folded(name)
+                     for candidate in _item_names(option))
+        if overlap or phrase:
+            scored.append((overlap + (len(requested) if phrase else 0), option))
+    if not scored:
+        return options
+    best = max(score for score, _ in scored)
+    return [option for score, option in scored if score == best][:8]
+
+
 def is_catalog_value_reply(request, text):
     """Menu names are business data, not evidence of a new conversation language."""
     value = re.sub(r'^\d+\s+(?:x\s+)?', '', folded(text))
     for offering in request.availableOfferings:
         for field in offering.inputSchema.get('properties', {}):
             for item in _choices(catalog_for(offering, field) or {}):
-                names = [item['label'], choice_label(item), item['code'], *item.get('aliases', [])]
+                names = _item_names(item) + [choice_label(item)]
                 names.extend(o['name'] for g in item.get('optionGroups', []) for o in g.get('options', []))
                 if value and value in {folded(name) for name in names}:
                     return True
@@ -57,6 +89,7 @@ def is_catalog_value_reply(request, text):
 
 
 def _semantic(name, options):
+    options = _catalog_candidates(name, options)
     context = {"requestedName": name, "candidates": [{"id": o["id"], "name": o["label"],
                "category": o.get("categoryLabel", ""), "description": o.get("description", "")[:500]}
               for o in options]}
@@ -98,8 +131,7 @@ def match_item(catalog, name, previous=None, *, semantic=True):
         item = next((o for o in options if o["id"] == previous.get("itemId")), None)
         return item, []  # A removed selection is never silently replaced by a namesake.
     value = folded(name)
-    exact = [o for o in options if value in {folded(o["label"]), folded(choice_label(o)), folded(o["code"]),
-                                            *[folded(a) for a in o.get("aliases", [])]}]
+    exact = [o for o in options if value in {folded(name) for name in (_item_names(o) + [choice_label(o)])}]
     if len(exact) == 1: return exact[0], []
     if exact: return None, exact
     if semantic and options: return _semantic(name, options)
