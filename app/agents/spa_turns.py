@@ -472,7 +472,7 @@ def validate_spa_call(request, call, tasks_by_id):
     if complete and values.get("decision") == "ACCEPT":
         service_name = _proposed_fields(task).get("serviceName")
     if catalog and service_name:
-        selected, pending = resolve_selection(catalog, service_name, [], semantic=False)
+        selected, pending = resolve_selection(catalog, service_name, [], semantic=True)
         if pending or display_service(selected) != service_name:
             raise AgentModelError("SPA service is not a current canonical catalog selection")
     message = next((m for m in request.conversation.recentMessages if m.messageId == request.trigger.messageId), None)
@@ -658,7 +658,7 @@ def _plan_task(request, state, task, message, button, offering):
     valid_proposal = len(proposed) == 3 and not _schedule_issue(request, proposed)
     catalog = catalog_for(offering, "serviceName")
     if valid_proposal and catalog:
-        selected, pending = resolve_selection(catalog, proposed["serviceName"], [], semantic=False)
+        selected, pending = resolve_selection(catalog, proposed["serviceName"], [], semantic=True)
         valid_proposal = not pending and display_service(selected) == proposed["serviceName"]
     action = button[2] if button else _action(message) if message else None
     if button and button[3]:
