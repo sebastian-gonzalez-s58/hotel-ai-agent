@@ -315,6 +315,8 @@ def pending_choice(pending, message):
             page = pending.get('page', 0) + (1 if reply.endswith('__next__') else -1)
             if 0 <= page < (len(pending['choices']) + 7) // 8:
                 return {'action': 'PAGE', 'page': page}
+        if pending['kind'] == 'UNAVAILABLE' and reply in {prefix + '__remove__', prefix + '__cancel__'}:
+            return {'id': reply.removeprefix(prefix)}
         return next((c for c in pending["choices"] if reply == prefix + c["id"]), None)
     value = folded(message.text)
     if pending.get('optionalOffer'):
