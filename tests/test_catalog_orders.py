@@ -92,6 +92,11 @@ class CatalogOrdersTest(unittest.TestCase):
         self.assertEqual('CLARIFICATION', parsed.messages[0].purpose)
         self.assertEqual('Cancel order', parsed.messages[0].interaction.options[-1].label)
 
+        request.conversation.recentMessages[-1].interactionReplyId = (
+            'catalog-choice:' + pending['token'] + ':__remove__'
+        )
+        self.assertEqual('__remove__', pending_choice(pending, request.conversation.recentMessages[-1])['id'])
+
     def test_unavailable_first_item_does_not_hide_later_valid_item(self):
         off = offering([item('burger', 'Hamburguesa Delux')])
         out, pending = normalize_order(off, [row('pozole'), row('hamburguesa delux', 1)], semantic=False)
