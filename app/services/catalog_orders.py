@@ -437,6 +437,6 @@ def clarification(request, offering, field, pending):
         options = []
     url = (catalog_for(offering, field) or {}).get("externalUrl")
     if url: text += "\n" + url
-    return {"purpose": "CLARIFICATION", "text": text, "language": request.guest.preferredLanguage,
+    return {"messageDraftId": str(uuid4()), "purpose": "CLARIFICATION", "text": text, "language": request.guest.preferredLanguage,
             "operationIds": [], "conversationTaskIds": [], "interaction": ({"type": "BUTTONS" if len(options) <= 3 else "LIST",
                 "body": text[:1024], "buttonText": "Opciones" if es else "Options", "options": options} if options else None)}

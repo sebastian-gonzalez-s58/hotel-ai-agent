@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from app.agents import v2_turn_planner as planner, spa_turns
 from app.services.catalog_orders import (normalize_order, resolve_selection, apply_choice, pending_choice,
-                                         display_service, _semantic)
+                                         display_service, clarification, _semantic)
 from app.services.openai_client import OpenAiJsonResult
 from app.services.telemetry_client import OpenAiTokenUsage
 from app.schemas.v2_turns import OfferingCapability, AgentTurnResponse
@@ -75,6 +75,22 @@ class CatalogOrdersTest(unittest.TestCase):
             out, pending = normalize_order(off, [row('langosta'), row()], semantic=False)
             self.assertEqual('UNAVAILABLE', pending['kind'])
             self.assertEqual(2, len(out))
+
+    def test_unavailable_clarification_satisfies_agent_message_contract(self):
+        request = request_for('pozole')
+        off = offering([item('burger', 'Hamburguesa Delux')])
+        _, pending = normalize_order(off, [row('pozole')], semantic=False)
+
+        message = clarification(request, off, 'items', pending)
+        parsed = AgentTurnResponse.model_validate({
+            'messages': [message],
+            'operationIds': [],
+            'conversationTaskIds': [],
+        })
+
+        self.assertIsNotNone(parsed.messages[0].messageDraftId)
+        self.assertEqual('CLARIFICATION', parsed.messages[0].purpose)
+        self.assertEqual('Cancel order', parsed.messages[0].interaction.options[-1].label)
 
     def test_unavailable_first_item_does_not_hide_later_valid_item(self):
         off = offering([item('burger', 'Hamburguesa Delux')])
