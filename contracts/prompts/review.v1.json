@@ -1,8 +1,8 @@
 {
-  "version": 1,
-  "baseline_index_sha256": "c04cded695c47e9c83fd82b38abaf5fa90bf87afd420f3df65e6e8fe976b6efa",
-  "reason": "Use text-only multiple-option capture and preserve session language for catalog value replies; retain prior behavioral rules and mandatory coverage.",
-  "reviewer": "Codex local implementation review",
+  "baseline_index_sha256": "8857325c7b6365e0750549bd1c1dde51fec9a6129aa2fa069f4773f7a8c819ad",
+  "evidence": "docs/chat-latency-prompt-review.md",
   "human_approval": false,
-  "evidence": "docs/catalog-cardinality-review.md"
+  "reason": "Opt-in latency instrumentation; effective prompts and options identical with diagnostics on/off. Review deployed catalog source drift and repair its pre-existing single-message fixture.",
+  "reviewer": "Codex local implementation review",
+  "version": 1
 }

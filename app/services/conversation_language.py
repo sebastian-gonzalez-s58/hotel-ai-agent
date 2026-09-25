@@ -1,4 +1,5 @@
 """Session language policy. Message text and business identifiers remain untouched."""
+from app.core.latency import timed
 import re
 
 from app.schemas.v2_turns import AgentTurnRequest, LanguageDecision
@@ -36,6 +37,7 @@ def greeting_language(text: str) -> str | None:
     return GREETINGS.get(" ".join(text.casefold().split()).strip("¡!¿?., "))
 
 
+@timed("agent.resolve_language")
 def resolve_language(request: AgentTurnRequest, message, scope=None):
     effective = normalize_locale(request.guest.preferredLanguage) or normalize_locale(request.hotel.defaultLanguage) or "en"
     decision = None

@@ -11,7 +11,7 @@ from app.services.catalog_orders import (normalize_order, resolve_selection, app
                                          display_service, clarification, _semantic)
 from app.services.openai_client import OpenAiJsonResult
 from app.services.telemetry_client import OpenAiTokenUsage
-from app.schemas.v2_turns import OfferingCapability, AgentTurnResponse
+from app.schemas.v2_turns import OfferingCapability, AgentTurnResponse, AgentMessage
 from app.core.errors import AgentModelError
 from tests.test_spa_turns import request_for, follow_up, extraction, spa_operation
 from tests.test_v2_turn_planner import guided_room_service_offering, guided_spa_offering
@@ -78,19 +78,16 @@ class CatalogOrdersTest(unittest.TestCase):
 
     def test_unavailable_clarification_satisfies_agent_message_contract(self):
         request = request_for('pozole')
+        request.guest.preferredLanguage = 'en'
         off = offering([item('burger', 'Hamburguesa Delux')])
         _, pending = normalize_order(off, [row('pozole')], semantic=False)
 
         message = clarification(request, off, 'items', pending)
-        parsed = AgentTurnResponse.model_validate({
-            'messages': [message],
-            'operationIds': [],
-            'conversationTaskIds': [],
-        })
+        parsed = AgentMessage.model_validate(message)
 
-        self.assertIsNotNone(parsed.messages[0].messageDraftId)
-        self.assertEqual('CLARIFICATION', parsed.messages[0].purpose)
-        self.assertEqual('Cancel order', parsed.messages[0].interaction.options[-1].label)
+        self.assertIsNotNone(parsed.messageDraftId)
+        self.assertEqual('CLARIFICATION', parsed.purpose)
+        self.assertEqual('Cancel order', parsed.interaction.options[-1].label)
 
         request.conversation.recentMessages[-1].interactionReplyId = (
             'catalog-choice:' + pending['token'] + ':__remove__'

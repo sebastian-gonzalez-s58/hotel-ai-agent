@@ -1,4 +1,5 @@
 import asyncio
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -8,6 +9,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.core.concurrency import agent_request_semaphore
 from app.core.config import settings
+from app.core.latency import span, waited
 from app.core.errors import AgentTimeoutError, register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import request_context_middleware
@@ -172,14 +174,26 @@ def validate_conversation_payload(
 
 
 async def run_agent_step(call: Callable[[], Any]) -> Any:
-    async with agent_request_semaphore:
+    with span("agent.semaphore_wait"):
+        await agent_request_semaphore.acquire()
+    try:
+        submitted_at = time.perf_counter_ns()
+
+        def measured_call():
+            waited("agent.threadpool_wait", submitted_at)
+            with span("agent.execution"):
+                return call()
+
         try:
-            return await asyncio.wait_for(
-                run_in_threadpool(call),
-                timeout=settings.request_timeout_seconds,
-            )
+            with span("agent.execution_budget"):
+                return await asyncio.wait_for(
+                    run_in_threadpool(measured_call),
+                    timeout=settings.request_timeout_seconds,
+                )
         except asyncio.TimeoutError as exc:
             raise AgentTimeoutError("Agent request timed out") from exc
+    finally:
+        agent_request_semaphore.release()
 
 
 @app.get("/health")

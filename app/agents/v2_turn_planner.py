@@ -1,3 +1,4 @@
+from app.core.latency import timed
 import json
 import hashlib
 from copy import deepcopy
@@ -41,6 +42,7 @@ AGENT_TURN_RESPONSE_SCHEMA["properties"].pop("roomServiceDraftEvent", None)
 MAX_PLAN_ATTEMPTS = 3
 
 
+@timed("agent.plan_turn")
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     with understanding_turn(request) as understanding:
         response = _plan_v2_turn(request)
@@ -480,6 +482,7 @@ def _resume_room_service_draft(request, scope, started_at):
         **_room_service_capture_output(resumed, offering, captured, draft.get("phase") == "NEEDS_LOCATION_CLARIFICATION"))
 
 
+@timed("agent.plan_with_model")
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
                      scope: ScopeDecision | None = None) -> AgentTurnResponse:
     maintenance_resolution = _maintenance_resolution_task_plan(request, started_at, scope)

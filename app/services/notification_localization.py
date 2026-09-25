@@ -1,4 +1,5 @@
 """Render already-approved notifications. No planning, tools or process mutations."""
+from app.core.latency import timed
 import json
 import re
 from pathlib import Path
@@ -37,6 +38,7 @@ def reviewed_notification(text, locale):
     return _known_text(text, locale, {})
 
 
+@timed("agent.localize_notification")
 def localize_notification(request: LocalizationRequest) -> LocalizationResponse:
     texts = [reviewed_notification(item.text, request.locale) for item in request.texts]
     pending = [index for index, text in enumerate(texts)

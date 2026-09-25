@@ -1,3 +1,4 @@
+from app.core.latency import timed
 from typing import Any
 
 from app.schemas.tasks import AgentTaskRequest, AgentToolName
@@ -8,6 +9,7 @@ from app.services.chatbotinn_client import (
 )
 
 
+@timed("agent.resolve_tools")
 def resolve_authorized_resources(request: AgentTaskRequest) -> dict[str, Any]:
     allowed_tools = set(request.toolPolicy.allowedTools)
     offering = request.offering or {}
