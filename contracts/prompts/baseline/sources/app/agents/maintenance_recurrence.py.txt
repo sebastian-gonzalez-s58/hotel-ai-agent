@@ -1,4 +1,5 @@
 """Resolve historical maintenance replies before they can become new issue descriptions."""
+from app.core.latency import timed
 from copy import deepcopy
 import json
 import re
@@ -20,6 +21,7 @@ UNKNOWN_REFERENCE = (
 )
 
 
+@timed("agent.maintenance_recurrence")
 def plan_maintenance_recurrence(request, state, latest, scope=None):
     if request.trigger.type != 'INBOUND_MESSAGE' or request.previousToolResults or latest is None:
         return None

@@ -1,4 +1,5 @@
 """Fresh confirmations for advertised reservation actions; old menus only select a source."""
+from app.core.latency import timed
 import re
 from uuid import uuid4
 from app.agents.spa_turns import summary_state, _reply, _fields_text
@@ -8,6 +9,7 @@ INTENT = re.compile(r'^reservation:([a-fA-F0-9-]{36}):(CHANGE|CANCEL)$')
 CONFIRM = re.compile(r'^reservation-confirm:([a-fA-F0-9-]{36}):(\d+):([a-f0-9]{32}):(CHANGE|CANCEL|DECLINE)$')
 
 
+@timed("agent.reservation_action")
 def plan_reservation_action(request, latest, scope=None):
     state = summary_state(request.conversation.summary)
     for result in request.previousToolResults:

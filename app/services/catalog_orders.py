@@ -1,4 +1,5 @@
 """Bound guest wording to live catalog identities; keep the wording as evidence."""
+from app.core.latency import timed
 from copy import deepcopy
 from decimal import Decimal, InvalidOperation
 import json
@@ -125,6 +126,7 @@ Context:\n""" + json.dumps(context, ensure_ascii=False)
         return None, []
 
 
+@timed("catalog.match_item")
 def match_item(catalog, name, previous=None, *, semantic=True):
     options = _choices(catalog)
     if previous and previous.get("requestedName") == name:
@@ -174,6 +176,7 @@ def _only_option_request(text, options):
     return not remainder.strip()
 
 
+@timed("catalog.resolve_options")
 def resolve_selection(catalog, name, modifiers, previous=None, *, semantic=True):
     if previous is None and name.endswith(")"):
         candidates = [o for o in _choices(catalog) if name.startswith(o["label"] + " (")]
@@ -263,6 +266,7 @@ def resolve_selection(catalog, name, modifiers, previous=None, *, semantic=True)
             "sourceModifications": list(modifiers), 'groupDecisions': decisions, 'groupPages': pages}, None
 
 
+@timed("catalog.normalize_order")
 def normalize_order(offering, items, *, semantic=True):
     catalog = catalog_for(offering, "items")
     if catalog is None: return items, None

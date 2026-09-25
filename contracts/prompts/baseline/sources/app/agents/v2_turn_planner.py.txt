@@ -1,3 +1,4 @@
+from app.core.latency import timed
 import json
 import hashlib
 from copy import deepcopy
@@ -41,6 +42,7 @@ AGENT_TURN_RESPONSE_SCHEMA["properties"].pop("roomServiceDraftEvent", None)
 MAX_PLAN_ATTEMPTS = 3
 
 
+@timed("agent.plan_turn")
 def plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     with understanding_turn(request) as understanding:
         response = _plan_v2_turn(request)
@@ -480,6 +482,7 @@ def _resume_room_service_draft(request, scope, started_at):
         **_room_service_capture_output(resumed, offering, captured, draft.get("phase") == "NEEDS_LOCATION_CLARIFICATION"))
 
 
+@timed("agent.plan_with_model")
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
                      scope: ScopeDecision | None = None) -> AgentTurnResponse:
     maintenance_resolution = _maintenance_resolution_task_plan(request, started_at, scope)
@@ -1407,6 +1410,14 @@ def _room_service_draft_plan(
     if choice and catalog_for(offering, "items"):
         index = catalog_pending.get("itemIndex")
         if type(index) is int and 0 <= index < len(captured.get("items", [])):
+            if choice.get("id") == "__cancel__":
+                return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                        messages=[_room_service_cancellation_message(request)], updated_summary="{}")
+            if choice.get("id") == "__remove__":
+                captured = deepcopy(captured)
+                captured["items"].pop(index)
+                return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",
+                        **_room_service_capture_output(request, offering, captured, unresolved_location))
             captured = deepcopy(captured)
             captured["items"][index] = apply_choice(captured["items"][index], catalog_pending, choice)
             return _deterministic_turn_response(request, started_at, disposition="RESPONSE_READY",

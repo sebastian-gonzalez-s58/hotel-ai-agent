@@ -1,4 +1,5 @@
 """Presentation-only localization with bounded, versioned translation caching."""
+from app.core.latency import timed
 import hashlib
 import json
 import logging
@@ -57,6 +58,7 @@ def _restore(text, tokens):
     return re.sub(r"\[\[P\d+\]\]", lambda match: tokens[match.group()], text)
 
 
+@timed("agent.translate")
 def translate_batch(texts, locale, protected_values=(), *, namespace="templates", timeout=MAX_TRANSLATION_SECONDS,
                     max_lengths=None, allow_partial=False):
     locale = normalize_locale(locale)
@@ -194,6 +196,7 @@ def _known_text(text, locale, approved):
     return None
 
 
+@timed("agent.localize_response")
 def localize_response(request, response, started_at):
     if not response.messages:
         return response

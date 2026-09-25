@@ -1,4 +1,5 @@
 """Bounded semantic FAQ retrieval and independent grounding before starting a process."""
+from app.core.latency import timed
 import hashlib
 import json
 import logging
@@ -85,6 +86,7 @@ def _literals(text):
     return set(re.findall(r"\d+(?:[.,:/-]\d+)*|https?://[^\s]+", normalized))
 
 
+@timed("agent.faq_grounding")
 def resolve_semantic_faq(request, search, started_at):
     usage = {}
     try:

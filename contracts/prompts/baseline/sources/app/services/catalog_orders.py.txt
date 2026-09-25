@@ -1,4 +1,5 @@
 """Bound guest wording to live catalog identities; keep the wording as evidence."""
+from app.core.latency import timed
 from copy import deepcopy
 from decimal import Decimal, InvalidOperation
 import json
@@ -43,13 +44,45 @@ def choice_label(item):
     return item["label"] + (" — " + item["categoryLabel"] if item.get("categoryLabel") else "")
 
 
+def _item_names(item):
+    """Return all persisted names without translating the catalog at request time."""
+    values = [item.get("label"), item.get("code"), item.get("categoryLabel"), *item.get("aliases", [])]
+    for key in ("translations", "localizedNames", "nameTranslations"):
+        localized = item.get(key, {})
+        if isinstance(localized, dict):
+            values.extend(localized.values())
+        elif isinstance(localized, list):
+            values.extend(localized)
+    return [str(value) for value in values if isinstance(value, str) and value.strip()]
+
+
+def _catalog_candidates(name, options):
+    """Narrow the semantic prompt using local multilingual names first."""
+    requested = set(folded(name).split())
+    if not requested:
+        return options
+    scored = []
+    for option in options:
+        names = " ".join(_item_names(option))
+        tokens = set(folded(names).split())
+        overlap = len(requested & tokens)
+        phrase = any(folded(name) in folded(candidate) or folded(candidate) in folded(name)
+                     for candidate in _item_names(option))
+        if overlap or phrase:
+            scored.append((overlap + (len(requested) if phrase else 0), option))
+    if not scored:
+        return options
+    best = max(score for score, _ in scored)
+    return [option for score, option in scored if score == best][:8]
+
+
 def is_catalog_value_reply(request, text):
     """Menu names are business data, not evidence of a new conversation language."""
     value = re.sub(r'^\d+\s+(?:x\s+)?', '', folded(text))
     for offering in request.availableOfferings:
         for field in offering.inputSchema.get('properties', {}):
             for item in _choices(catalog_for(offering, field) or {}):
-                names = [item['label'], choice_label(item), item['code'], *item.get('aliases', [])]
+                names = _item_names(item) + [choice_label(item)]
                 names.extend(o['name'] for g in item.get('optionGroups', []) for o in g.get('options', []))
                 if value and value in {folded(name) for name in names}:
                     return True
@@ -57,6 +90,7 @@ def is_catalog_value_reply(request, text):
 
 
 def _semantic(name, options):
+    options = _catalog_candidates(name, options)
     context = {"requestedName": name, "candidates": [{"id": o["id"], "name": o["label"],
                "category": o.get("categoryLabel", ""), "description": o.get("description", "")[:500]}
               for o in options]}
@@ -92,14 +126,14 @@ Context:\n""" + json.dumps(context, ensure_ascii=False)
         return None, []
 
 
+@timed("catalog.match_item")
 def match_item(catalog, name, previous=None, *, semantic=True):
     options = _choices(catalog)
     if previous and previous.get("requestedName") == name:
         item = next((o for o in options if o["id"] == previous.get("itemId")), None)
         return item, []  # A removed selection is never silently replaced by a namesake.
     value = folded(name)
-    exact = [o for o in options if value in {folded(o["label"]), folded(choice_label(o)), folded(o["code"]),
-                                            *[folded(a) for a in o.get("aliases", [])]}]
+    exact = [o for o in options if value in {folded(name) for name in (_item_names(o) + [choice_label(o)])}]
     if len(exact) == 1: return exact[0], []
     if exact: return None, exact
     if semantic and options: return _semantic(name, options)
@@ -142,6 +176,7 @@ def _only_option_request(text, options):
     return not remainder.strip()
 
 
+@timed("catalog.resolve_options")
 def resolve_selection(catalog, name, modifiers, previous=None, *, semantic=True):
     if previous is None and name.endswith(")"):
         candidates = [o for o in _choices(catalog) if name.startswith(o["label"] + " (")]
@@ -231,12 +266,14 @@ def resolve_selection(catalog, name, modifiers, previous=None, *, semantic=True)
             "sourceModifications": list(modifiers), 'groupDecisions': decisions, 'groupPages': pages}, None
 
 
+@timed("catalog.normalize_order")
 def normalize_order(offering, items, *, semantic=True):
     catalog = catalog_for(offering, "items")
     if catalog is None: return items, None
     if not isinstance(items, list):
         raise AgentModelError("Catalog items must be a list")
     result = deepcopy(items)
+    first_pending = None
     for index, row in enumerate(result):
         if (not isinstance(row, dict) or not isinstance(row.get("name"), str)
                 or not isinstance(row.get("modifications", []), list)
@@ -260,9 +297,12 @@ def normalize_order(offering, items, *, semantic=True):
             # Keep the old identity so a later retry cannot substitute another item with the same name.
             if not previous: row.pop("catalogSelection", None)
         if pending:
-            pending["itemIndex"] = index
-            return result, pending
-    return result, None
+            # Continue normalizing later lines so one unavailable item does not
+            # hide valid items captured in the same guest message.
+            pending.setdefault("itemIndex", index)
+            if first_pending is None:
+                first_pending = pending
+    return result, first_pending
 
 
 def display_service(selection):
@@ -279,6 +319,8 @@ def pending_choice(pending, message):
             page = pending.get('page', 0) + (1 if reply.endswith('__next__') else -1)
             if 0 <= page < (len(pending['choices']) + 7) // 8:
                 return {'action': 'PAGE', 'page': page}
+        if pending['kind'] == 'UNAVAILABLE' and reply in {prefix + '__remove__', prefix + '__cancel__'}:
+            return {'id': reply.removeprefix(prefix)}
         return next((c for c in pending["choices"] if reply == prefix + c["id"]), None)
     value = folded(message.text)
     if pending.get('optionalOffer'):
@@ -371,6 +413,9 @@ def clarification(request, offering, field, pending):
     else:
         text = (f'«{name}» no está disponible con esa selección en el catálogo actual. Elige otra opción; conservaré los demás datos.' if es else
                 f'“{name}” is not available with that selection in the current catalog. Choose another option; I will keep the other details.')
+        if pending['kind'] == 'UNAVAILABLE':
+            text += (f' Puedes quitar «{name}» para continuar con el resto del pedido o cancelar todo.' if es else
+                     f' You can remove “{name}” to continue with the rest of the order, or cancel the entire order.')
     page_size = 8 if pending['kind'] == 'OPTION' else 10
     page = min(max(pending.get('page', 0), 0), max(0, (len(pending['choices']) - 1) // page_size))
     visible = pending['choices'][page * page_size:(page + 1) * page_size]
@@ -384,6 +429,11 @@ def clarification(request, offering, field, pending):
                 (' (sin cargo)' if es else ' (no charge)') if 'priceAdjustment' in c else '')
     options = [{"id": "catalog-choice:" + pending["token"] + ":" + c["id"], "label": label(c)[:20]}
                for c in visible]
+    if pending['kind'] == 'UNAVAILABLE':
+        options = [
+            {"id": "catalog-choice:" + pending["token"] + ":__remove__", "label": "Quitar artículo" if es else "Remove item"},
+            {"id": "catalog-choice:" + pending["token"] + ":__cancel__", "label": "Cancelar pedido" if es else "Cancel order"},
+        ]
     for show, suffix, caption in [(page > 0, '__previous__', 'Anterior' if es else 'Previous'),
                                  ((page + 1) * page_size < len(pending['choices']), '__next__', 'Más opciones' if es else 'More options')]:
         if show: options.append({'id': 'catalog-choice:' + pending['token'] + ':' + suffix, 'label': caption})
@@ -393,6 +443,6 @@ def clarification(request, offering, field, pending):
         options = []
     url = (catalog_for(offering, field) or {}).get("externalUrl")
     if url: text += "\n" + url
-    return {"purpose": "CLARIFICATION", "text": text, "language": request.guest.preferredLanguage,
+    return {"messageDraftId": str(uuid4()), "purpose": "CLARIFICATION", "text": text, "language": request.guest.preferredLanguage,
             "operationIds": [], "conversationTaskIds": [], "interaction": ({"type": "BUTTONS" if len(options) <= 3 else "LIST",
                 "body": text[:1024], "buttonText": "Opciones" if es else "Options", "options": options} if options else None)}
