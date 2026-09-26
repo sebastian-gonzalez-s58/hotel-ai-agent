@@ -904,7 +904,7 @@ class V2TurnPlannerTest(unittest.TestCase):
         self.assertEqual([], normalized["toolCalls"])
         message = normalized["messages"][0]
         self.assertIn("- 2 x chilaquiles rellenos", message["text"])
-        self.assertIn("Lugar de entrega: Habitacion", message["text"])
+        self.assertIn("Lugar de entrega: Habitación", message["text"])
         self.assertNotIn("indícame los alimentos", message["text"])
         self.assertEqual("BUTTONS", message["interaction"]["type"])
         self.assertEqual(

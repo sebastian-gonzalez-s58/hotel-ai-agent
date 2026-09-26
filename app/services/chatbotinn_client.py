@@ -6,6 +6,7 @@ from urllib.parse import quote
 import httpx
 
 from app.core.config import settings
+from app.core.latency import headers as latency_headers, span, timed
 
 
 logger = logging.getLogger("chatbotinn-agent.backend")
@@ -56,6 +57,7 @@ def post_ai_model_call(payload: dict[str, Any]) -> None:
         logger.warning("Could not record AI model call error=%s", exc)
 
 
+@timed("backend.cached_resource")
 def _cached_get(cache_key: str, path: str) -> Any:
     if not settings.is_chatbotinn_api_configured:
         logger.info("ChatbotInn API client is not configured")
@@ -63,6 +65,8 @@ def _cached_get(cache_key: str, path: str) -> Any:
 
     now = time.monotonic()
     cached = _cache.get(cache_key)
+    with span("backend.cache_lookup", cache_hit=bool(cached and now - cached[0] < settings.knowledge_cache_ttl_seconds)):
+        pass
     if cached and now - cached[0] < settings.knowledge_cache_ttl_seconds:
         return cached[1]
 
@@ -75,6 +79,7 @@ def _cached_get(cache_key: str, path: str) -> Any:
         return {}
 
 
+@timed("http.backend")
 def _request(
     method: str,
     path: str,
@@ -88,6 +93,7 @@ def _request(
     }
     if payload is not None:
         headers["Content-Type"] = "application/json"
+    headers.update(latency_headers())
 
     with httpx.Client(timeout=timeout or settings.chatbotinn_api_timeout_seconds) as client:
         response = client.request(

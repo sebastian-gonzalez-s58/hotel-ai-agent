@@ -214,7 +214,8 @@
         "tests/test_maintenance_recurrence.py",
         "tests/test_maintenance_new_request.py",
         "tests/test_maintenance_reference_followup.py",
-        "tests/test_reservation_actions.py"
+        "tests/test_reservation_actions.py",
+        "tests/test_room_confirmation_localization.py"
       ]
     },
     {
@@ -302,7 +303,8 @@
         "tests/test_maintenance_recurrence.py",
         "tests/test_maintenance_new_request.py",
         "tests/test_maintenance_reference_followup.py",
-        "tests/test_reservation_actions.py"
+        "tests/test_reservation_actions.py",
+        "tests/test_room_confirmation_localization.py"
       ]
     },
     {
@@ -430,7 +432,8 @@
         "app/agents/social_opening.py"
       ],
       "unit_files": [
-        "tests/test_social_opening.py"
+        "tests/test_social_opening.py",
+        "tests/test_room_confirmation_localization.py"
       ]
     },
     {
@@ -542,7 +545,8 @@
         "tests/test_menu_localization.py",
         "tests/test_notification_localization.py",
         "tests/test_multilingual_foundation.py",
-        "tests/test_pending_language_switch.py"
+        "tests/test_pending_language_switch.py",
+        "tests/test_room_confirmation_localization.py"
       ]
     },
     {
@@ -696,7 +700,8 @@
       ],
       "unit_files": [
         "tests/test_menu_localization.py",
-        "tests/test_multilingual_understanding.py"
+        "tests/test_multilingual_understanding.py",
+        "tests/test_room_confirmation_localization.py"
       ]
     },
     {

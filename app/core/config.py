@@ -76,6 +76,8 @@ class Settings:
     v2_idempotency_max_entries: int
 
     def __init__(self) -> None:
+        self.chat_latency_enabled = _get_bool("CHAT_LATENCY_ENABLED", False)
+        self.chat_latency_slow_ms = max(0, _get_int("CHAT_LATENCY_SLOW_MS", 1000))
         self.app_name = os.getenv("APP_NAME", "chatbotinn-agent")
         self.app_version = os.getenv("APP_VERSION", "0.1.0")
         self.environment = os.getenv("APP_ENV", "local")

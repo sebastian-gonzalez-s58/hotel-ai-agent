@@ -1,4 +1,5 @@
 """Per-turn, evidence-preserving understanding. No translated text becomes guest evidence."""
+from app.core.latency import timed
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass, field
@@ -236,6 +237,7 @@ def apply_order_extraction(extraction, text, existing, require_full=False, *, al
     return result
 
 
+@timed("agent.understand_order")
 def understand_order(request, message, existing, *, require_full=False, allow_partial=False):
     state = _turn.get()
     key = json.dumps([str(message.messageId), message.text, existing, require_full, allow_partial], sort_keys=True, ensure_ascii=False)

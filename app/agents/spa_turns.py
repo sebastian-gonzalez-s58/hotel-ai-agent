@@ -1,4 +1,5 @@
 """SPA drafts and BPMN conversation tasks. Only extraction is model-driven."""
+from app.core.latency import timed
 import json
 import re
 import unicodedata
@@ -168,6 +169,7 @@ def _schedule_issue(request, fields):
     return None
 
 
+@timed("agent.spa_extract")
 def _extract(request, message, captured, ambiguities):
     clock = _clock(request)
     # BC-002/003: a standalone explicit clock time cannot edit the treatment/date.
@@ -529,6 +531,7 @@ def validate_spa_call(request, call, tasks_by_id):
         raise AgentModelError("SPA requires explicit guest confirmation")
 
 
+@timed("agent.spa")
 def plan_spa_turn(request: AgentTurnRequest, scope=None):
     state = summary_state(request.conversation.summary)
     completed = _completion_result(request, state)
