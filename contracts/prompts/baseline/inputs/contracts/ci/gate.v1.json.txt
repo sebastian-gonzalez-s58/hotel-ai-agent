@@ -521,7 +521,15 @@
       "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_multiple_options_are_text_only_and_one_named_option_finishes_the_group",
       "tests.test_catalog_option_offers.CatalogOptionOffersTest.test_single_protein_rejects_combination_and_required_multiple_has_no_buttons",
       "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_natural_multiple_reply_keeps_english_summary_and_does_not_repeat_offer",
-      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_catalog_name_does_not_switch_english_confirmation_to_spanish"
+      "tests.test_catalog_option_offers.CatalogOfferConversationTest.test_catalog_name_does_not_switch_english_confirmation_to_spanish",
+      "tests.test_room_confirmation_localization.GreetingTypoLocaleTest.test_hellow_establishes_english_without_interpretation",
+      "tests.test_room_confirmation_localization.GreetingTypoLocaleTest.test_hellow_opens_english_menu_and_preserves_pending_order",
+      "tests.test_room_confirmation_localization.GreetingTypoLocaleTest.test_typo_does_not_override_explicit_spanish_or_match_a_request",
+      "tests.test_room_confirmation_localization.RoomConfirmationLocalizationTest.test_custom_destination_uses_approved_label_and_preserves_source_value",
+      "tests.test_room_confirmation_localization.RoomConfirmationLocalizationTest.test_english_catalog_confirmation_cannot_be_rewritten_in_spanish",
+      "tests.test_room_confirmation_localization.RoomConfirmationLocalizationTest.test_language_flag_alone_cannot_bypass_localization",
+      "tests.test_room_confirmation_localization.RoomConfirmationLocalizationTest.test_other_locales_still_use_presentation_translation",
+      "tests.test_room_confirmation_localization.RoomConfirmationLocalizationTest.test_spanish_summary_preserves_catalog_and_explicit_confirmation"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",

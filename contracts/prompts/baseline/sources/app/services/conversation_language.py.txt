@@ -7,7 +7,7 @@ from app.schemas.v2_turns import AgentTurnRequest, LanguageDecision
 
 GREETINGS = {
     "hola": "es", "buenos días": "es", "buenos dias": "es", "buenas tardes": "es",
-    "buenas noches": "es", "hello": "en", "hi": "en", "good morning": "en",
+    "buenas noches": "es", "hello": "en", "hellow": "en", "hi": "en", "good morning": "en",
     "good afternoon": "en", "good evening": "en", "bonjour": "fr", "bonsoir": "fr",
     "guten tag": "de", "guten morgen": "de", "hallo": "de", "olá": "pt",
     "bom dia": "pt", "boa tarde": "pt", "buongiorno": "it", "buonasera": "it",

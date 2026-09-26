@@ -1,8 +1,8 @@
 {
-  "baseline_index_sha256": "8857325c7b6365e0750549bd1c1dde51fec9a6129aa2fa069f4773f7a8c819ad",
-  "evidence": "docs/chat-latency-prompt-review.md",
+  "version": 1,
+  "baseline_index_sha256": "cb6814f26bf342757c6d8845eb02311bb22270b080533f31c9bd83936e33c15e",
+  "evidence": "docs/english-confirmation-review.md",
   "human_approval": false,
-  "reason": "Opt-in latency instrumentation; effective prompts and options identical with diagnostics on/off. Review deployed catalog source drift and repair its pre-existing single-message fixture.",
   "reviewer": "Codex local implementation review",
-  "version": 1
+  "reason": "Preserve exact runtime-rendered en/es room-service confirmation and its canonical data; support standalone Hellow; final-localization regression tests mandatory. No model instructions or critical anchors removed."
 }
