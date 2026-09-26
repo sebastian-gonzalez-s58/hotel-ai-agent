@@ -1,4 +1,5 @@
 """Resolve a pending catalog choice without changing the guest's original evidence."""
+from app.core.latency import timed
 from dataclasses import dataclass
 import re
 import unicodedata
@@ -80,6 +81,7 @@ class PendingCatalogSelection:
         return option["code"]
 
 
+@timed("catalog.pending_selection")
 def pending_catalog_selection(request, state):
     if (request.trigger.type != "INBOUND_MESSAGE" or request.previousToolResults
             or state.get("readyToStart")

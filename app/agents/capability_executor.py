@@ -1,3 +1,4 @@
+from app.core.latency import timed
 import logging
 from typing import Any
 
@@ -14,6 +15,7 @@ logger = logging.getLogger("chatbotinn-agent.capabilities")
 _VALID_STATUSES = {"COMPLETED", "NEEDS_CLARIFICATION", "NEEDS_HUMAN", "UNRESOLVED"}
 
 
+@timed("agent.capability")
 def execute_agent_task(request: AgentTaskRequest) -> AgentTaskResponse:
     resources = resolve_authorized_resources(request)
     result = call_openai_json_result(

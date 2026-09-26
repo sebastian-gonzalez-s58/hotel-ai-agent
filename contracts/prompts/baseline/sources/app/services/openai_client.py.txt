@@ -9,6 +9,7 @@ from openai import APIConnectionError, APIStatusError, APITimeoutError
 from app.core.config import settings
 from app.core.errors import AgentDependencyError, AgentModelError, AgentTimeoutError
 from app.core.agent_tracking import get_agent_tracking_context
+from app.core.latency import span, timed
 from app.services.telemetry_client import (
     OpenAiTokenUsage,
     extract_openai_usage,
@@ -41,6 +42,7 @@ def get_openai_client() -> OpenAI:
     return client
 
 
+@timed("model.total")
 def call_openai_json_result(
     prompt: str,
     *,
@@ -56,12 +58,20 @@ def call_openai_json_result(
         api_client = get_openai_client()
         if timeout_seconds is not None:
             api_client = api_client.with_options(timeout=timeout_seconds, max_retries=0)
-        response = api_client.responses.create(
-            model=settings.openai_model,
-            input=prompt,
-            text={"format": _response_format(response_schema, response_schema_name, strict_schema)},
-            **_generation_parameters(),
-        )
+        with span("model.sdk_request", purpose=purpose or "unspecified", model=settings.openai_model,
+                  prompt_chars=len(prompt), timeout_seconds=timeout_seconds or settings.openai_timeout_seconds,
+                  configured_max_retries=0 if timeout_seconds is not None else 1) as measurement:
+            response = api_client.responses.create(
+                model=settings.openai_model,
+                input=prompt,
+                text={"format": _response_format(response_schema, response_schema_name, strict_schema)},
+                **_generation_parameters(),
+            )
+            measured_usage = extract_openai_usage(response)
+            measurement.attributes.update(input_tokens=measured_usage.input_tokens,
+                                          output_tokens=measured_usage.output_tokens,
+                                          cached_input_tokens=measured_usage.cached_input_tokens,
+                                          reasoning_tokens=measured_usage.reasoning_tokens)
     except APITimeoutError as exc:
         _record_failure(started_at, tracking_context, purpose, "OpenAI request timed out")
         raise AgentTimeoutError("OpenAI request timed out") from exc
@@ -80,7 +90,8 @@ def call_openai_json_result(
     usage = extract_openai_usage(response)
     response_id = getattr(response, "id", None)
     try:
-        payload = json.loads(response.output_text)
+        with span("model.parse_json"):
+            payload = json.loads(response.output_text)
     except json.JSONDecodeError as exc:
         record_model_call(
             context=tracking_context,

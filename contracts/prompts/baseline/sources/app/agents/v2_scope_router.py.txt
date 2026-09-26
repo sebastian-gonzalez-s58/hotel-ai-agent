@@ -1,3 +1,4 @@
+from app.core.latency import timed
 import json
 import logging
 from typing import Literal
@@ -45,6 +46,7 @@ class ScopeDecision(BaseModel):
     maintenanceFollowUpConfidence: float = Field(default=0, ge=0, le=1)
 
 
+@timed("agent.classify_scope")
 def classify_hotel_scope(
     request: AgentTurnRequest,
     message: ConversationMessage,

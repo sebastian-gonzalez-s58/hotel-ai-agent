@@ -7,6 +7,7 @@ from typing import Any
 
 from app.core.agent_tracking import AgentTrackingContext
 from app.core.config import settings
+from app.core.latency import timed
 from app.services.chatbotinn_client import post_ai_model_call
 
 
@@ -47,6 +48,7 @@ def extract_openai_usage(response: Any) -> OpenAiTokenUsage:
     )
 
 
+@timed("model.record_usage")
 def record_model_call(
     *,
     context: AgentTrackingContext | None,

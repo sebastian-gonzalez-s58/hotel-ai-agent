@@ -1,9 +1,11 @@
 """Presentation-only localization with bounded, versioned translation caching."""
+from app.core.latency import timed
 import hashlib
 import json
 import logging
 import re
 import time
+import unicodedata
 from collections import OrderedDict
 from pathlib import Path
 from string import Formatter
@@ -57,6 +59,7 @@ def _restore(text, tokens):
     return re.sub(r"\[\[P\d+\]\]", lambda match: tokens[match.group()], text)
 
 
+@timed("agent.translate")
 def translate_batch(texts, locale, protected_values=(), *, namespace="templates", timeout=MAX_TRANSLATION_SECONDS,
                     max_lengths=None, allow_partial=False):
     locale = normalize_locale(locale)
@@ -194,6 +197,25 @@ def _known_text(text, locale, approved):
     return None
 
 
+def catalog_display_label(request, label):
+    """Use approved display copy; otherwise retain the hotel's canonical place name."""
+    if not label:
+        return label
+    locale = request.guest.preferredLanguage
+    known = _known_text(label, locale, _approved_display_variants(request, locale))
+    if known:
+        return known
+    # Older capture schemas omit accents or store the enum (ROOM / POOL) as the label.
+    def folded(text):
+        return ''.join(c for c in unicodedata.normalize('NFD', text.casefold())
+                       if not unicodedata.combining(c)).strip()
+    for key in ('order.location.room', 'order.location.pool', 'order.location.swimming_pool'):
+        if any(folded(label) == folded(value) for value in REGISTRY['templates'][key].values()):
+            return template(key, locale)
+    return label
+
+
+@timed("agent.localize_response")
 def localize_response(request, response, started_at):
     if not response.messages:
         return response
