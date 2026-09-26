@@ -20,11 +20,11 @@ from app.agents.social_opening import classify_social_opening
 from app.agents.schema_validation import satisfies_schema
 from app.agents.spa_turns import plan_spa_turn, preserve_spa_state, started_spa_summary, validate_spa_call
 from app.prompts.v2_turn import build_v2_turn_prompt
-from app.schemas.v2_turns import AgentTurnRequest, AgentTurnResponse
+from app.schemas.v2_turns import AgentMessage, AgentTurnRequest, AgentTurnResponse
 from app.schemas.v2_turns import DomainToolName
 from app.services.openai_client import call_openai_json_result
 from app.services.conversation_language import language_enabled, greeting_language, resolve_language
-from app.services.localized_content import localize_response, template
+from app.services.localized_content import localize_response, template, catalog_display_label
 from app.services.catalog_selection import pending_catalog_selection, ordered_capture_fields as _ordered_guest_capture_fields
 from app.services.catalog_orders import (catalog_for, normalize_order, pending_choice, apply_choice,
                                          clarification as catalog_clarification)
@@ -188,7 +188,8 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     response.languageDecision = language_decision
     if language_enabled(request):
         response.detectedLanguage = language_decision.locale if language_decision else None
-        if not _is_verified_faq_response(request, response):
+        if not (_is_verified_faq_response(request, response)
+                or _is_verified_room_confirmation(request, response)):
             response = localize_response(request, response, started_at)
     return _bind_room_confirmation(request, response, new_draft=bool(
         scope and scope.separateRequest and scope.offeringCode == 'ROOM_SERVICE'))
@@ -2672,6 +2673,51 @@ def _extract_quantities(value: str) -> list[int]:
     ]
 
 
+def _is_verified_room_confirmation(request, response):
+    """Only exact runtime-rendered en/es summaries may bypass model translation.
+
+    A declared message.language is insufficient: check the complete presentation,
+    current captured data and decision IDs before confirmation capabilities are bound.
+    """
+    if (request.guest.preferredLanguage.split('-')[0] not in {'en', 'es'}
+            or len(response.messages) != 1 or response.toolCalls or response.warnings):
+        return False
+    probe = request.model_copy(deep=True)
+    probe.conversation.summary = response.updatedConversationSummary or ''
+    state = _latest_capture_state(probe)
+    if (state.get('pendingOffering') != 'ROOM_SERVICE'
+            or state.get('phase') != 'AWAITING_CONFIRMATION'
+            or state.get('awaitingExplicitConfirmation') is not True):
+        return False
+    offering = next((o for o in request.availableOfferings if o.offeringCode == 'ROOM_SERVICE'), None)
+    captured = state.get('capturedFields')
+    if offering is None or not isinstance(captured, dict):
+        return False
+    try:
+        return _matches_room_confirmation_message(request, response.messages[0], offering, captured)
+    except (ValueError, TypeError, KeyError):
+        # Untrusted planner output cannot gain trusted presentation or break localization.
+        return False
+
+
+def _matches_room_confirmation_message(request, message, offering, captured):
+    expected = _room_service_confirmation_message(request, offering, captured)
+    actual = message.model_dump(exclude={'messageDraftId'})
+    if actual == AgentMessage.model_validate(expected).model_dump(exclude={'messageDraftId'}):
+        return True
+    # Legacy configured capture can append the offering's catalog URL.
+    catalog = offering.inputSchema.get('properties', {}).get('items', {}).get('x-chatbotinn-capture', {}).get('catalog', {})
+    url = catalog.get('externalUrl')
+    if not isinstance(url, str) or not url:
+        return False
+    expected['text'] += '\n' + url
+    if len(expected['text']) > 1024:
+        expected['interaction'] = None
+    elif expected['interaction']:
+        expected['interaction']['body'] = expected['text']
+    return actual == AgentMessage.model_validate(expected).model_dump(exclude={'messageDraftId'})
+
+
 def _room_service_confirmation_message(request: AgentTurnRequest, offering, captured: dict) -> dict:
     spanish = request.guest.preferredLanguage.lower().startswith("es")
     items = _coerce_order_items(captured.get("items"))
@@ -2693,6 +2739,7 @@ def _room_service_confirmation_message(request: AgentTurnRequest, offering, capt
         "deliveryLocation",
         captured.get("deliveryLocation"),
     )
+    destination = catalog_display_label(request, destination)
     if spanish:
         lines = ["Confirmación de pedido", "", "Artículos:"]
         lines.extend(item_lines)

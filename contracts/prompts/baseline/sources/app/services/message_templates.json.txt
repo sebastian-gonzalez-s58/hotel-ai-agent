@@ -31,6 +31,9 @@
     "faq.handoff": {"en": "I'm sorry, I don't have enough information to answer your question. I have shared it with our staff so they can help you shortly.", "es": "Lo siento, no tengo información suficiente para responder tu pregunta. La he compartido con nuestro equipo para que pueda ayudarte en breve."},
     "request.error": {"en": "I'm sorry, we couldn't process your message. Please try again in a few minutes.", "es": "Lo siento, no pudimos procesar tu mensaje. Por favor, intenta de nuevo en unos minutos."},
     "request.reminder": {"en": "A response is pending for request {reference}. Please let us know how you wish to continue.", "es": "Hay una respuesta pendiente para la solicitud con folio {reference}. Por favor, indícanos cómo deseas continuar."},
-    "request.update": {"en": "Update on request {reference}: {message}", "es": "Actualización de la solicitud con folio {reference}: {message}"}
+    "request.update": {"en": "Update on request {reference}: {message}", "es": "Actualización de la solicitud con folio {reference}: {message}"},
+    "order.location.room": {"en": "Room", "es": "Habitación"},
+    "order.location.pool": {"en": "Pool", "es": "Alberca"},
+    "order.location.swimming_pool": {"en": "Swimming pool", "es": "Piscina"}
   }
 }
