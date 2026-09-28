@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "id": "SC-008-language-evidence",
+  "scenario_id": "SC-008",
+  "title": "Los datos no piden idioma",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_ITEMS",
+    "capturedFields": {
+      "deliveryLocation": "ROOM"
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "order",
+      "event": {
+        "kind": "guest",
+        "text": "1 tacos de pescado"
+      },
+      "checks": [
+        {
+          "path": "/response/languageDecision",
+          "op": "exists"
+        },
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [
+        "languageDecision puede ser null o DETECTED con evidencia válida; jamás EXPLICIT sin petición del huésped. Esta comprobación semántica queda pendiente del evaluador."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "1 tacos de pescado",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "REPLACE",
+            "confidence": 1,
+            "edits": [
+              {
+                "action": "ADD",
+                "existingItemIndex": null,
+                "name": "tacos de pescado",
+                "nameEvidence": "tacos de pescado",
+                "quantity": 1,
+                "quantityEvidence": "1",
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "1 tacos de pescado"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

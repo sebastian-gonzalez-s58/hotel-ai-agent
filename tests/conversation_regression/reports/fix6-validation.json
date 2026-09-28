@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-09-21T04:38:01.477584+00:00",
+  "status": "SC006_CHECKED_PATHS_PASS",
+  "environment": "local-sandbox",
+  "source_fingerprint": {
+    "git_head": "24f6d0be5cae9f07d79a6ce69c590cbb007569a0",
+    "agent_source_sha256": "dc19ca901ab6e1baf3c980ab20758e3dd81c6325e604210c6e51ee137e1add6c",
+    "library_sha256": "466d848d6a92330ccc1d40df1df7c15eb482ad613e62cf734932e14933f5f4fa",
+    "contract_sha256": "ebebd569f7028d93576633959028558703045cce2cf4ccdfe292380abcfb1862",
+    "prompt_contract_sha256": "fafb18deafee29c46fda374834fd002c803156f06d32ffa802bb3048c950ff48"
+  },
+  "model": "gpt-4.1-mini",
+  "model_reports": [
+    "fix6-live.json",
+    "fix6-live-partial.json"
+  ],
+  "model_calls": 9,
+  "tokens": 11165,
+  "authorized_max_calls": 10,
+  "remaining_calls_for_this_authorization": 1,
+  "unit_report": "fix6-unit.log",
+  "offline_report": "fix6-offline.json",
+  "integration_report": "fix6-integration.json",
+  "prompt_guard_report": "fix6-guard.json",
+  "prior_permission_block_resolved": "User explicitly authorized the concrete evaluation; original blocked attempt made zero API calls.",
+  "limitations": [
+    "One live run per variant, not a statistical reliability guarantee.",
+    "Live model and localization are real; domain tool results are synthetic.",
+    "Spring/H2 persistence was checked separately with scripted model responses.",
+    "Approved-answer FAQ and other interruption combinations remain unverified."
+  ],
+  "deployed": false
+}

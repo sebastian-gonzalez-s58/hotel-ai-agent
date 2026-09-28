@@ -10,6 +10,7 @@ from app.services.telemetry_client import OpenAiTokenUsage
 from tests.test_v2_scope_router import decision, maintenance_offering, request_for
 from tests.test_v2_service_start_acknowledgements import request_for as result_request, start_result
 from tests.test_v2_turn_planner import operation
+from tests.conversation_regression.room_confirmation_support import use_presented_room_button
 
 
 def draft(items=None):
@@ -36,6 +37,8 @@ class RoomServiceCaptureContinuityTest(unittest.TestCase):
         request = request_for(text)
         request.conversation.summary = json.dumps(state if state is not None else draft())
         request.conversation.recentMessages[0].interactionReplyId = reply_id
+        if reply_id == "current-cancel":
+            use_presented_room_button(request, "CANCEL")
         self.classifier.return_value = (decision(kind, text, "ROOM_SERVICE", details=details),
                                         OpenAiTokenUsage())
         return plan_v2_turn(request)
@@ -118,13 +121,19 @@ class RoomServiceCaptureContinuityTest(unittest.TestCase):
         self.assertEqual("LIST", response.messages[0].interaction.type)
 
     def test_cancellation_does_not_restore_cancelled_draft(self):
-        for reply_id in (None, "confirmation:ROOM_SERVICE:CANCEL"):
+        for reply_id in (None, "current-cancel"):
             with self.subTest(reply_id=reply_id):
-                response = self.turn("Cancelar", reply_id=reply_id)
+                response = self.turn("Cancelar", draft([{"name": "tacos", "quantity": 2}]), reply_id=reply_id)
                 state = summary_state(response.updatedConversationSummary)
                 self.assertNotIn("pendingOffering", state)
                 self.assertNotIn("roomServiceDraft", state)
                 self.assertEqual([], response.toolCalls)
+
+    def test_legacy_cancel_button_does_not_cancel_current_draft(self):
+        state = draft([{"name": "tacos", "quantity": 2}])
+        response = self.turn("Cancelar", state, reply_id="confirmation:ROOM_SERVICE:CANCEL")
+        self.assertEqual(state["capturedFields"], summary_state(response.updatedConversationSummary)["capturedFields"])
+        self.assertEqual([], response.toolCalls)
 
     def test_another_service_preserves_draft_through_start_and_resume(self):
         request = request_for("Tambien hay una fuga en el lavabo")

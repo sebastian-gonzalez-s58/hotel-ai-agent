@@ -1,0 +1,56 @@
+{
+  "affected_prompts": [],
+  "authorized_max_calls": 12,
+  "changes": [],
+  "deployment_authorized": false,
+  "errors": [],
+  "existing_effective_prompt_changes": false,
+  "generated_at": "2026-09-21T04:50:32.092912+00:00",
+  "integration": {
+    "INTEGRATION_PARTIAL_PASS": 2
+  },
+  "integration_source_comparison": "Agent, library and behavior contract match. Prompt-protection reference was updated after integration; it contains only test/fixture additions and newly captured paths.",
+  "limitations": [
+    "One real-model run per variant; not a statistical reliability guarantee.",
+    "Live model tests use simulated domain results; Spring/H2 persistence is tested separately.",
+    "Other pending service tasks are covered by unit tests, not this integration fixture."
+  ],
+  "meaning": "PASS means unchanged registered prompts/dependencies and surviving textual anchors; it does not certify model behavior or authorize deployment.",
+  "model": "gpt-4.1-mini",
+  "model_call_count": 6,
+  "model_calls": 0,
+  "model_evaluation": {
+    "LIVE_PARTIAL_PASS": 2
+  },
+  "network": "blocked",
+  "offline": {
+    "NOT_RUN": 19,
+    "OFFLINE_PARTIAL_PASS": 23
+  },
+  "remaining_calls": 6,
+  "reports": [
+    "sc007-unit.log",
+    "sc007-offline.json",
+    "sc007-focused-integration.json",
+    "sc007-live.json"
+  ],
+  "review": "sc007-prompt-review/acceptance.json",
+  "runtime_changes": false,
+  "scope": "SC-007 local sandbox",
+  "source_fingerprint": {
+    "agent_source_sha256": "dc19ca901ab6e1baf3c980ab20758e3dd81c6325e604210c6e51ee137e1add6c",
+    "contract_sha256": "ebebd569f7028d93576633959028558703045cce2cf4ccdfe292380abcfb1862",
+    "git_head": "24f6d0be5cae9f07d79a6ce69c590cbb007569a0",
+    "library_sha256": "fc12f1c82fdf4744ecd1fc9cedcd61db6dbd658ee8dc8fb39612e1f06d7236f8",
+    "prompt_contract_sha256": "44bbd3d3f060c3db4d84e6193d6babc2e768a8e3c30ce72b88a335f421270af8"
+  },
+  "status": "PASS",
+  "total_tokens": 9142,
+  "unit_tests": {
+    "failed": 0,
+    "new_tests": 3,
+    "passed": 377,
+    "skipped": 10,
+    "total": 387
+  }
+}

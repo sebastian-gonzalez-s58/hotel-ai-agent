@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "id": "SC-009-stale-confirmation",
+  "scenario_id": "SC-009",
+  "title": "BotÃ³n de confirmaciÃ³n antiguo despuÃ©s de ediciÃ³n",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_LOCATION",
+    "capturedFields": {
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "first-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Habitación",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:ROOM"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "edit",
+      "event": {
+        "kind": "guest",
+        "text": "Que sean dos sopas"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Que sean dos sopas",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "PATCH",
+            "edits": [
+              {
+                "action": "UPDATE",
+                "existingItemIndex": 0,
+                "name": null,
+                "nameEvidence": null,
+                "quantity": 2,
+                "quantityEvidence": "dos",
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "dos sopas"
+              }
+            ],
+            "confidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "stale-button",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": 1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "current-button",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        },
+        {
+          "path": "/tools/0/arguments/input/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "started",
+      "event": {
+        "kind": "tool_result",
+        "action": "complete_service_start",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/environment/operationInputs/ROOM_SERVICE/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "used-button",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": 3
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

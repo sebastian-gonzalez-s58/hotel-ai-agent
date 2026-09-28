@@ -1,4 +1,5 @@
 import asyncio
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -8,6 +9,7 @@ from starlette.concurrency import run_in_threadpool
 
 from app.core.concurrency import agent_request_semaphore
 from app.core.config import settings
+from app.core.latency import span, waited
 from app.core.errors import AgentTimeoutError, register_exception_handlers
 from app.core.logging import configure_logging
 from app.core.middleware import request_context_middleware
@@ -87,6 +89,8 @@ from app.services.request_limits import (
 from app.agents.v2_turn_planner import plan_v2_turn
 from app.schemas.v2_turns import AgentTurnRequest, AgentTurnResponse
 from app.services.idempotency_cache import v2_turn_idempotency_cache
+from app.schemas.localization import LocalizationRequest, LocalizationResponse
+from app.services.notification_localization import localize_notification
 
 
 configure_logging()
@@ -110,6 +114,24 @@ v2_router = APIRouter(
     prefix="/internal/v2",
     dependencies=[Depends(verify_internal_token), Depends(bind_agent_tracking_context)],
 )
+
+
+@v2_router.post("/localizations", response_model=LocalizationResponse)
+async def localize_outbound_notification(
+    request: LocalizationRequest,
+    timestamp: str | None = Header(default=None, alias="X-ChatbotInn-Timestamp"),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    request_id: str | None = Header(default=None, alias="X-Request-Id"),
+):
+    if not settings.is_v2_runtime_enabled:
+        raise HTTPException(status_code=404, detail="V2 agent runtime is not enabled")
+    verify_v2_request_headers(timestamp=timestamp, idempotency_key=idempotency_key,
+                             request_id=request_id, agent_turn_id=str(request.messageId))
+    try:
+        # Include queue time in the budget. This endpoint cannot run conversation tools.
+        return await asyncio.wait_for(run_agent_step(lambda: localize_notification(request)), timeout=5)
+    except asyncio.TimeoutError as exc:
+        raise AgentTimeoutError("Notification localization timed out") from exc
 
 
 @v2_router.post("/turns", response_model=AgentTurnResponse)
@@ -152,14 +174,26 @@ def validate_conversation_payload(
 
 
 async def run_agent_step(call: Callable[[], Any]) -> Any:
-    async with agent_request_semaphore:
+    with span("agent.semaphore_wait"):
+        await agent_request_semaphore.acquire()
+    try:
+        submitted_at = time.perf_counter_ns()
+
+        def measured_call():
+            waited("agent.threadpool_wait", submitted_at)
+            with span("agent.execution"):
+                return call()
+
         try:
-            return await asyncio.wait_for(
-                run_in_threadpool(call),
-                timeout=settings.request_timeout_seconds,
-            )
+            with span("agent.execution_budget"):
+                return await asyncio.wait_for(
+                    run_in_threadpool(measured_call),
+                    timeout=settings.request_timeout_seconds,
+                )
         except asyncio.TimeoutError as exc:
             raise AgentTimeoutError("Agent request timed out") from exc
+    finally:
+        agent_request_semaphore.release()
 
 
 @app.get("/health")

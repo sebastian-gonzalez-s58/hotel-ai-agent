@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "id": "SC-010-tool-failure",
+  "scenario_id": "SC-010",
+  "title": "Fallo de inicio conserva el pedido y no anuncia éxito",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_LOCATION",
+    "capturedFields": {
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "first-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Habitación",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:ROOM"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "confirm",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "fail",
+      "event": {
+        "kind": "tool_result",
+        "action": "fail_service_start",
+        "data": {}
+      },
+      "model_replies": [],
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/message_purposes",
+          "op": "equals",
+          "value": [
+            "CLARIFICATION"
+          ]
+        },
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/state/phase",
+          "op": "equals",
+          "value": "START_UNCERTAIN"
+        },
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "absent"
+        }
+      ]
+    },
+    {
+      "id": "do-not-restart",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": 1
+      },
+      "model_replies": [],
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/phase",
+          "op": "equals",
+          "value": "START_UNCERTAIN"
+        },
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "absent"
+        }
+      ]
+    }
+  ]
+}

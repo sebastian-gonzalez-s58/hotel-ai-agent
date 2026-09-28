@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "id": "SC-010-retry-after-commit",
+  "scenario_id": "SC-010",
+  "title": "Reintento tras perder el resultado de un servicio ya creado",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_LOCATION",
+    "capturedFields": {
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "first-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Habitación",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:ROOM"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "arm-loss",
+      "event": {
+        "kind": "backend",
+        "action": "lose_result_after_service_commit",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/faultArmed",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "confirm",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "retry",
+      "event": {
+        "kind": "backend",
+        "action": "retry_interrupted_turn",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/backend/interrupted",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/state/pendingOffering",
+          "op": "absent"
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "ha sido iniciada"
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "used-after-recovery",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": 1
+      },
+      "model_replies": [],
+      "review": [],
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/state/pendingOffering",
+          "op": "absent"
+        }
+      ]
+    }
+  ]
+}

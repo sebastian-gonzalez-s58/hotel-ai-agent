@@ -10,3 +10,8 @@ the incremental migration.
 
 The domain tool definitions are owned by the Spring repository in
 `contracts/v2/domain-tool-catalog.json`.
+
+The separate [conversation behavior contract](../../docs/conversation-behavior-contract.md)
+defines observable guarantees across turns. Its
+[scenario catalog](../behavior/conversation-behavior.v1.json) complements this API
+schema; schema-valid responses alone do not establish conversational correctness.

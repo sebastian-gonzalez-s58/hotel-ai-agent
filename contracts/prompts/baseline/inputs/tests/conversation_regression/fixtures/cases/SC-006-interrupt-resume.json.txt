@@ -1,0 +1,326 @@
+{
+  "contract_version": "1.0.0",
+  "id": "SC-006-interrupt-resume",
+  "initial_summary": {
+    "awaitingExplicitConfirmation": false,
+    "capturedFields": {
+      "deliveryLocation": "ROOM",
+      "items": [
+        {
+          "modifications": [],
+          "name": "tacos",
+          "quantity": 2
+        }
+      ]
+    },
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_ITEMS"
+  },
+  "locale": "es-MX",
+  "origin": "successful_path",
+  "profile": "hotel",
+  "required_levels": [
+    "offline",
+    "live_model",
+    "integration"
+  ],
+  "scenario_id": "SC-006",
+  "schema_version": 1,
+  "steps": [
+    {
+      "checks": [
+        {
+          "op": "contains",
+          "path": "/tool_names",
+          "value": "SEARCH_KNOWLEDGE"
+        },
+        {
+          "op": "equals",
+          "path": "/state/roomServiceDraft/capturedFields",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "modifications": [],
+                "name": "tacos",
+                "quantity": 2
+              }
+            ]
+          }
+        }
+      ],
+      "event": {
+        "kind": "guest",
+        "text": "¿A qué hora cierra la alberca?"
+      },
+      "id": "faq",
+      "model_replies": [
+        {
+          "payload": {
+            "confidence": 1,
+            "containsUnrelatedTopic": false,
+            "hasRequestDetails": true,
+            "kind": "HOTEL_QUESTION",
+            "offeringCode": "FAQ",
+            "relevantText": "¿A qué hora cierra la alberca?"
+          },
+          "purpose": "V2_HOTEL_SCOPE"
+        }
+      ],
+      "review": []
+    },
+    {
+      "checks": [
+        {
+          "op": "equals",
+          "path": "/state/roomServiceDraft/capturedFields/items",
+          "value": [
+            {
+              "modifications": [],
+              "name": "tacos",
+              "quantity": 2
+            }
+          ]
+        }
+      ],
+      "event": {
+        "action": "reply_to_last_tool",
+        "data": {
+          "result": {
+            "matches": [],
+            "status": "NO_MATCH"
+          },
+          "status": "SUCCEEDED"
+        },
+        "kind": "tool_result"
+      },
+      "id": "knowledge",
+      "model_replies": [],
+      "review": [
+        "Permitir estado equivalente fuera de roomServiceDraft al adaptar un nuevo esquema."
+      ]
+    },
+    {
+      "checks": [
+        {
+          "op": "equals",
+          "path": "/environment/createdOperations/FAQ",
+          "value": 1
+        },
+        {
+          "op": "equals",
+          "path": "/state/roomServiceDraft/capturedFields",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "modifications": [],
+                "name": "tacos",
+                "quantity": 2
+              }
+            ]
+          }
+        }
+      ],
+      "event": {
+        "action": "complete_faq_handoff",
+        "data": {},
+        "kind": "tool_result"
+      },
+      "id": "faq-start",
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "checks": [
+        {
+          "op": "contains",
+          "path": "/tool_names",
+          "value": "START_SERVICE"
+        },
+        {
+          "op": "equals",
+          "path": "/tools/0/arguments/offeringCode",
+          "value": "FRONT_DESK"
+        }
+      ],
+      "event": {
+        "kind": "guest",
+        "reply_id": "offering:FRONT_DESK",
+        "text": "Recepción"
+      },
+      "id": "front-desk",
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "checks": [
+        {
+          "op": "equals",
+          "path": "/environment/createdOperations/FRONT_DESK",
+          "value": 1
+        },
+        {
+          "op": "equals",
+          "path": "/state/roomServiceDraft/capturedFields",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "modifications": [],
+                "name": "tacos",
+                "quantity": 2
+              }
+            ]
+          }
+        }
+      ],
+      "event": {
+        "action": "complete_service_start",
+        "data": {},
+        "kind": "tool_result"
+      },
+      "id": "desk-start",
+      "model_replies": [],
+      "review": []
+    },
+    {
+      "checks": [
+        {
+          "op": "equals",
+          "path": "/state/capturedFields/items",
+          "value": [
+            {
+              "modifications": [],
+              "name": "tacos",
+              "quantity": 2
+            }
+          ]
+        },
+        {
+          "op": "equals",
+          "path": "/state/capturedFields/deliveryLocation",
+          "value": "ROOM"
+        },
+        {
+          "op": "equals",
+          "path": "/tool_names",
+          "value": []
+        },
+        {
+          "op": "equals",
+          "path": "/state/awaitingExplicitConfirmation",
+          "value": true
+        },
+        {
+          "op": "contains",
+          "path": "/message_purposes",
+          "value": "CONFIRMATION"
+        },
+        {
+          "op": "absent",
+          "path": "/state/roomServiceDraft"
+        }
+      ],
+      "event": {
+        "kind": "guest",
+        "text": "Sigamos con mi pedido"
+      },
+      "id": "resume",
+      "model_replies": [
+        {
+          "payload": {
+            "confidence": 1,
+            "containsUnrelatedTopic": false,
+            "hasRequestDetails": false,
+            "kind": "SERVICE_REQUEST",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Sigamos con mi pedido"
+          },
+          "purpose": "V2_HOTEL_SCOPE"
+        }
+      ],
+      "review": []
+    },
+    {
+      "checks": [
+        {
+          "op": "equals",
+          "path": "/tools/0/arguments/input",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "modifications": [],
+                "name": "tacos",
+                "quantity": 2
+              }
+            ]
+          }
+        },
+        {
+          "op": "equals",
+          "path": "/tools/0/arguments/offeringCode",
+          "value": "ROOM_SERVICE"
+        }
+      ],
+      "event": {
+        "kind": "guest",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "text": "Confirmar",
+        "reply_from_turn": -1
+      },
+      "id": "confirm-order",
+      "model_replies": []
+    },
+    {
+      "checks": [
+        {
+          "op": "equals",
+          "path": "/environment/createdOperations/FAQ",
+          "value": 1
+        },
+        {
+          "op": "equals",
+          "path": "/environment/createdOperations/FRONT_DESK",
+          "value": 1
+        },
+        {
+          "op": "equals",
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "value": 1
+        },
+        {
+          "op": "equals",
+          "path": "/environment/operationInputs/ROOM_SERVICE",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "modifications": [],
+                "name": "tacos",
+                "quantity": 2
+              }
+            ]
+          }
+        },
+        {
+          "op": "absent",
+          "path": "/state/roomServiceDraft"
+        },
+        {
+          "op": "absent",
+          "path": "/state/pendingOffering"
+        }
+      ],
+      "event": {
+        "action": "complete_service_start",
+        "data": {},
+        "kind": "tool_result"
+      },
+      "id": "order-start",
+      "model_replies": []
+    }
+  ],
+  "title": "Interrupciones conservan pedido"
+}

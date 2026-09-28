@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "id": "SC-009-maintenance-timeout",
+  "scenario_id": "SC-009",
+  "title": "Historical maintenance resolution asks before opening a linked recurrence",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "initial_operations": [
+    {
+      "operationId": "90000000-0000-4000-8000-000000000001",
+      "referenceCode": "TEST-OP-1",
+      "offeringCode": "MAINTENANCE",
+      "lifecycle": "WAITING_FOR_GUEST",
+      "detailedStatus": "WAITING_FOR_GUEST",
+      "summary": "Air conditioner fault",
+      "input": {
+        "issue": "The air conditioner is not cooling"
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [
+        {
+          "conversationTaskId": "91000000-0000-4000-8000-000000000001",
+          "operationId": "90000000-0000-4000-8000-000000000001",
+          "taskType": "MAINTENANCE_RESOLUTION_CONFIRMATION",
+          "status": "OPEN",
+          "requiredOutputSchema": {
+            "type": "object",
+            "required": [
+              "resolved"
+            ],
+            "properties": {
+              "resolved": {
+                "type": "boolean"
+              }
+            }
+          },
+          "partialResult": {},
+          "context": {},
+          "priority": "NORMAL",
+          "version": 1,
+          "createdAt": "2026-10-01T16:00:00Z"
+        }
+      ],
+      "version": 1
+    }
+  ],
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "close",
+      "event": {
+        "kind": "backend",
+        "action": "close_maintenance",
+        "data": {
+          "operationId": "90000000-0000-4000-8000-000000000001",
+          "timeout": true
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/sourceClosed",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "old-negative",
+      "event": {
+        "kind": "guest",
+        "text": "Not resolved",
+        "reply_id": "maintenance-resolution:91000000-0000-4000-8000-000000000001:NOT_RESOLVED"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 0
+        },
+        {
+          "path": "/state/maintenanceRecurrence/source/input/issue",
+          "op": "equals",
+          "value": "The air conditioner is not cooling"
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "confirm-recurrence",
+      "event": {
+        "kind": "guest",
+        "text": "Open new request",
+        "reply_id": "maintenance-recurrence:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tools/0/arguments/input/issue",
+          "op": "equals",
+          "value": "The air conditioner is not cooling"
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "inspect",
+      "event": {
+        "kind": "backend",
+        "action": "inspect_maintenance_recurrence",
+        "data": {
+          "operationId": "90000000-0000-4000-8000-000000000001"
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/recurrenceInput/issue",
+          "op": "equals",
+          "value": "The air conditioner is not cooling"
+        },
+        {
+          "path": "/backend/sourceStillCompleted",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/replayDidNotDuplicate",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "duplicate-old-button",
+      "event": {
+        "kind": "guest",
+        "text": "Not resolved",
+        "reply_id": "maintenance-resolution:91000000-0000-4000-8000-000000000001:NOT_RESOLVED"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

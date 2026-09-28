@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "id": "SC-019-button",
+  "scenario_id": "SC-019",
+  "title": "Selección de ubicación por button",
+  "origin": "successful_path",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_ITEMS",
+    "capturedFields": {},
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "location",
+      "event": {
+        "kind": "guest",
+        "text": "Pool 1",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:POOL_1"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/deliveryLocation",
+          "op": "equals",
+          "value": "POOL_1"
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "https://hotel.example/menu"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

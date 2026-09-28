@@ -40,5 +40,27 @@ class SettingsTest(unittest.TestCase):
                 Settings()
 
 
+    def test_reasoning_defaults_to_none_instead_of_provider_default(self):
+        for value in (None, "", "  "):
+            env = {} if value is None else {"OPENAI_REASONING_EFFORT": value}
+            with self.subTest(value=value), patch.dict(os.environ, env, clear=True):
+                self.assertEqual("none", Settings().openai_reasoning_effort)
+
+    def test_accepts_and_normalizes_gpt56_reasoning_levels(self):
+        for level in ("none", "low", "medium", "high", "xhigh", "max"):
+            with self.subTest(level=level), patch.dict(
+                os.environ, {"OPENAI_REASONING_EFFORT": f" {level.upper()} "}, clear=True,
+            ):
+                self.assertEqual(level, Settings().openai_reasoning_effort)
+
+    def test_rejects_unknown_reasoning_level_at_startup(self):
+        for level in ("minimal", "ultra", "false"):
+            with self.subTest(level=level), patch.dict(
+                os.environ, {"OPENAI_REASONING_EFFORT": level}, clear=True,
+            ):
+                with self.assertRaisesRegex(ValueError, "OPENAI_REASONING_EFFORT"):
+                    Settings()
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "id": "SC-020-channel-limit",
+  "scenario_id": "SC-020",
+  "title": "Presentación larga conserva datos",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "translation",
+      "event": {
+        "kind": "backend",
+        "action": "localize_overlong_button",
+        "data": {
+          "label": "Synthetic long translated label exceeding the channel limit",
+          "actionId": "confirmation:ROOM_SERVICE:CONFIRM"
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/actionIdPreserved",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/businessDataChanged",
+          "op": "equals",
+          "value": false
+        }
+      ],
+      "review": [
+        "Recuperar presentación sin truncar restricciones operativas."
+      ],
+      "model_replies": []
+    }
+  ]
+}

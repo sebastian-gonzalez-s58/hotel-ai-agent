@@ -1,0 +1,26 @@
+{
+  "purpose": "V2_SOCIAL_OPENING",
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "confidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+      },
+      "isGreeting": {
+        "title": "Isgreeting",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "isGreeting",
+      "confidence"
+    ],
+    "title": "SocialOpening",
+    "type": "object"
+  },
+  "response_schema_name": "social_opening_v1",
+  "strict_schema": true
+}

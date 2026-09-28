@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "id": "SC-011-reservation-terminal-es",
+  "scenario_id": "SC-011",
+  "title": "Old menus cannot reactivate cancelled or completed reservations (es)",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "initial_operations": [
+    {
+      "operationId": "90000000-0000-4000-8000-000000000001",
+      "referenceCode": "TEST-OP-1",
+      "offeringCode": "SPA",
+      "lifecycle": "CANCELLED",
+      "detailedStatus": "CANCELLED_BY_GUEST",
+      "summary": "Confirmed SPA booking",
+      "input": {
+        "serviceName": "Herbal massage",
+        "reservationDate": "2026-10-03",
+        "reservationTime": "17:00"
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 1
+    },
+    {
+      "operationId": "90000000-0000-4000-8000-000000000002",
+      "referenceCode": "TEST-OP-2",
+      "offeringCode": "SPA",
+      "lifecycle": "COMPLETED",
+      "detailedStatus": "SERVICE_COMPLETED",
+      "summary": "Confirmed SPA booking",
+      "input": {
+        "serviceName": "Herbal massage",
+        "reservationDate": "2026-10-03",
+        "reservationTime": "17:00"
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 1
+    }
+  ],
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "cancelled",
+      "event": {
+        "kind": "guest",
+        "text": "Cancel",
+        "reply_id": "reservation:90000000-0000-4000-8000-000000000001:CANCEL"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "ya está cancelada"
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "served",
+      "event": {
+        "kind": "guest",
+        "text": "Change",
+        "reply_id": "reservation:90000000-0000-4000-8000-000000000002:CHANGE"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "ya se realizó"
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

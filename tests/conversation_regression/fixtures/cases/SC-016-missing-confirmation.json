@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "id": "SC-016-missing-confirmation",
+  "scenario_id": "SC-016",
+  "title": "Rechazar missing-confirmation",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "invalid-plan",
+      "event": {
+        "kind": "proposed_plan",
+        "action": "submit_invalid_plan",
+        "data": {
+          "violation": "missing-confirmation",
+          "request_message": {
+            "messageId": "92000000-0000-4000-8000-000000000001",
+            "text": "Masaje herbal el 2026-10-03 a las 18:00"
+          },
+          "tool_call": {
+            "toolCallId": "93000000-0000-4000-8000-000000000001",
+            "toolName": "START_SERVICE",
+            "targetOperationId": null,
+            "targetConversationTaskId": null,
+            "arguments": {
+              "offeringCode": "SPA",
+              "input": {
+                "serviceName": "Masaje herbal",
+                "reservationDate": "2026-10-03",
+                "reservationTime": "18:00"
+              }
+            },
+            "confidence": 1,
+            "evidenceMessageIds": [
+              "92000000-0000-4000-8000-000000000001"
+            ]
+          }
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/planRejected",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/mutationCount",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

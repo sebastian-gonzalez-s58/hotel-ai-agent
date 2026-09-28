@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "id": "SC-021-queued-messages",
+  "scenario_id": "SC-021",
+  "title": "Mensaje futuro no confirma turno anterior",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_ITEMS",
+    "capturedFields": {
+      "deliveryLocation": "ROOM",
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "queue",
+      "event": {
+        "kind": "backend",
+        "action": "persist_two_inbounds_before_processing",
+        "data": {
+          "messages": [
+            "Que sean dos sopas",
+            "Confirmar"
+          ]
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/inboundCount",
+          "op": "equals",
+          "value": 2
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "first",
+      "event": {
+        "kind": "backend",
+        "action": "process_first_inbound",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/currentQuantity",
+          "op": "equals",
+          "value": 2
+        },
+        {
+          "path": "/backend/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [
+        "No usar Confirmar futuro como evidencia del primer turno."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Que sean dos sopas",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "PATCH",
+            "confidence": 1,
+            "edits": [
+              {
+                "action": "UPDATE",
+                "existingItemIndex": 0,
+                "name": null,
+                "nameEvidence": null,
+                "quantity": 2,
+                "quantityEvidence": "dos",
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "Que sean dos sopas"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "second",
+      "event": {
+        "kind": "backend",
+        "action": "process_second_inbound",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/processedInOrder",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 0
+        }
+      ],
+      "review": [
+        "Comprobar si existía confirmación vigente presentada al emitir la respuesta; no asumir autorización retroactiva."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Confirmar",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "CONFIRM",
+            "replyActionEvidence": "Confirmar",
+            "replyActionConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "fresh-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar"
+      },
+      "checks": [
+        {
+          "path": "/backend/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [
+        "A new confirmation after the presented summary may start exactly one order."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Confirmar",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "CONFIRM",
+            "replyActionEvidence": "Confirmar",
+            "replyActionConfidence": 1
+          }
+        }
+      ]
+    }
+  ]
+}

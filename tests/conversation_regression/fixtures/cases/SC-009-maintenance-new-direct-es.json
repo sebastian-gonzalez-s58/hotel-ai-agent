@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "id": "SC-009-maintenance-new-direct-es",
+  "scenario_id": "SC-009",
+  "title": "New maintenance complaint with matching closed history (direct, es-MX)",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "initial_operations": [
+    {
+      "operationId": "90000000-0000-4000-8000-000000000001",
+      "referenceCode": "TEST-OP-1",
+      "offeringCode": "MAINTENANCE",
+      "lifecycle": "COMPLETED",
+      "detailedStatus": "RESOLUTION_CONFIRMED",
+      "summary": "Air conditioner fault",
+      "input": {
+        "issue": "El ac no funciona"
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 1
+    },
+    {
+      "operationId": "90000000-0000-4000-8000-000000000002",
+      "referenceCode": "TEST-OP-2",
+      "offeringCode": "MAINTENANCE",
+      "lifecycle": "COMPLETED",
+      "detailedStatus": "RESOLUTION_CONFIRMED",
+      "summary": "Air conditioner fault",
+      "input": {
+        "issue": "El ac no funciona"
+      },
+      "availableActions": [],
+      "pendingConversationTasks": [],
+      "version": 1
+    }
+  ],
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "describe",
+      "event": {
+        "kind": "guest",
+        "text": "El ac no funciona"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        },
+        {
+          "path": "/response/toolCalls/0/arguments/input",
+          "op": "equals",
+          "value": {
+            "issue": "El ac no funciona"
+          }
+        },
+        {
+          "path": "/response/toolCalls/0/targetOperationId",
+          "op": "equals",
+          "value": null
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/backend/createdOperations/MAINTENANCE",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/backend/initialOperations/0/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/initialOperations/0/version",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/backend/initialOperations/1/lifecycle",
+          "op": "equals",
+          "value": "COMPLETED"
+        },
+        {
+          "path": "/backend/initialOperations/1/version",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [
+        "A plain fault description starts a new independent request, even with identical closed maintenance history."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "SERVICE_REQUEST",
+            "offeringCode": "MAINTENANCE",
+            "relevantText": "El ac no funciona",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "maintenanceFollowUp": "NONE",
+            "maintenanceFollowUpEvidence": null,
+            "maintenanceFollowUpConfidence": 0
+          }
+        }
+      ]
+    }
+  ]
+}

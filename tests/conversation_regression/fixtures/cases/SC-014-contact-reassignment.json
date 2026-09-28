@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "id": "SC-014-contact-reassignment",
+  "scenario_id": "SC-014",
+  "title": "Identidad o estancia nueva no hereda datos",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_ITEMS",
+    "capturedFields": {
+      "deliveryLocation": "ROOM",
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "transition",
+      "event": {
+        "kind": "backend",
+        "action": "reassign_contact_to_new_guest",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/inheritedPrivateDraftCount",
+          "op": "equals",
+          "value": 0
+        },
+        {
+          "path": "/backend/contactReassignmentRejected",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "new-request",
+      "event": {
+        "kind": "backend",
+        "action": "reject_reassigned_inbound",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/previousGuestDataExposed",
+          "op": "equals",
+          "value": false
+        },
+        {
+          "path": "/backend/oldOperationExecuted",
+          "op": "equals",
+          "value": false
+        }
+      ],
+      "review": [
+        "The current API rejects contact reassignment; verify the rejected boundary returns no new guest context and performs no domain mutation. It does not implement an administrative reassignment flow."
+      ],
+      "model_replies": []
+    }
+  ]
+}

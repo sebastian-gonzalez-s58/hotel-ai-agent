@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "id": "SC-018-configured-front-desk",
+  "scenario_id": "SC-018",
+  "title": "Recepción respeta nuevos requisitos",
+  "origin": "successful_path",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "configure",
+      "event": {
+        "kind": "backend",
+        "action": "set_offering_requirements",
+        "data": {
+          "offeringCode": "FRONT_DESK",
+          "required": [
+            "handoffReason"
+          ],
+          "confirmation": true
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/offeringConfirmationRequired",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "desk",
+      "event": {
+        "kind": "guest",
+        "text": "Recepción",
+        "reply_id": "offering:FRONT_DESK"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [
+        "Solicitar motivo configurado y después confirmación; no aplicar atajo anterior."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_AGENT_TURN",
+          "payload": {
+            "schemaVersion": "2.0",
+            "agentTurnId": "$AGENT_TURN_ID",
+            "disposition": "RESPONSE_READY",
+            "messages": [
+              {
+                "messageDraftId": "95000000-0000-4000-8000-000000000001",
+                "purpose": "CLARIFICATION",
+                "text": "¿Cuál es el motivo para contactar a recepción?",
+                "language": "es-MX",
+                "operationIds": [],
+                "conversationTaskIds": []
+              }
+            ],
+            "toolCalls": [],
+            "updatedConversationSummary": "{\"pendingOffering\": \"FRONT_DESK\", \"capturedFields\": {}, \"awaitingExplicitConfirmation\": false}",
+            "warnings": [],
+            "usage": {
+              "model": "synthetic",
+              "inputTokens": 0,
+              "cachedInputTokens": 0,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
