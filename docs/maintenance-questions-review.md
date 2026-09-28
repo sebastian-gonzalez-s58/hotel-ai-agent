@@ -27,6 +27,6 @@ in maintenance-questions-live-evidence.json. No real guest messages or hotel
 operations were executed. This validates the new scope decision and deterministic
 capture; it does not certify all possible guest wording or WhatsApp delivery.
 
-Full regression gate evidence: target/ci/maintenance-questions-20260928/summary.json
+Full regression gate evidence: target/ci/maintenance-questions-final-20260928/summary.json
 (run after accepting the reviewed reference). This record is implementation review,
 not independent human approval.
