@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.errors import AgentModelError
 from app.agents.v2_scope_router import ScopeDecision, classify_hotel_scope
 from app.agents.maintenance_recurrence import plan_maintenance_recurrence
+from app.agents.maintenance_questions import plan_question, validate_question_call
 from app.agents.reservation_actions import plan_reservation_action
 from app.agents.room_service_status import existing_order_message, resolve_order, status_message
 from app.agents.kitchen_changes import kitchen_context, initial_pending, advance_options, validate_scope as validate_kitchen_scope
@@ -116,7 +117,10 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         maintenance = plan_maintenance_recurrence(request, _latest_capture_state(request), latest, scope)
         reservation = plan_reservation_action(request, latest, scope)
         existing_message = existing_order_message(request, latest, scope, _latest_capture_state(request))
-        if reservation is not None:
+        question = plan_question(request, latest, scope)
+        if question is not None:
+            response = _deterministic_turn_response(request, started_at, **question)
+        elif reservation is not None:
             response = _deterministic_turn_response(request, started_at, **reservation)
         elif maintenance is not None:
             response = _deterministic_turn_response(request, started_at, **maintenance)
@@ -489,6 +493,9 @@ def _resume_room_service_draft(request, scope, started_at):
 @timed("agent.plan_with_model")
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
                      scope: ScopeDecision | None = None) -> AgentTurnResponse:
+    question = plan_question(request, _latest_inbound_message(request), scope)
+    if question is not None:
+        return _deterministic_turn_response(request, started_at, **question)
     maintenance_resolution = _maintenance_resolution_task_plan(request, started_at, scope)
     if maintenance_resolution is not None:
         return maintenance_resolution
@@ -2010,6 +2017,7 @@ def _validate_plan(
                         or call.arguments.get("input") != _latest_capture_state(request).get("capturedFields"))):
                 raise AgentModelError("Room-service button does not authorize the current captured order")
         target_task = tasks_by_id.get(call.targetConversationTaskId)
+        validate_question_call(request, call, target_task, _latest_inbound_message(request))
         strict_replacement = (target_task and target_task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS"
                               and catalog_for(offerings.get("ROOM_SERVICE"), "items"))
         if understanding_enabled() or strict_replacement:

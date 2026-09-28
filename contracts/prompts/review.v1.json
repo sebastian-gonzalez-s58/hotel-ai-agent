@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "e3620a3ab41fea16a6ae991042249fc49e9d3ca238a05fbe09c513e84b89542a",
-  "evidence": "docs/kitchen-guided-changes-review.md",
+  "baseline_index_sha256": "47fb40bac5f23647ae99dbdfe680bf700ccac43eaef411c4230782783cd9384f",
+  "evidence": "docs/maintenance-questions-review.md",
   "human_approval": false,
-  "reviewer": "Codex local implementation review",
-  "reason": "Reviewed deterministic kitchen option changes and required regression coverage; effective model prompts and critical anchors unchanged. User authorized updating this reviewed reference and deploying to sandbox after the explicit approval request."
+  "reviewer": "Codex implementation review",
+  "reason": "Reviewed additive staff-question routing, 8 authorized real-model synthetic cases and mandatory regression coverage. Existing prompt instructions, anchors and gate requirements retained."
 }
