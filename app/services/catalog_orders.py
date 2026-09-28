@@ -172,6 +172,10 @@ def _only_option_request(text, options):
     labels += [folded(o['name']).split()[-1] for o in options if folded(o['name']).split()]
     for label in sorted(labels, key=len, reverse=True):
         remainder = re.sub(r'(?<!\w)' + re.escape(folded(label)) + r'(?!\w)', ' ', remainder)
+    # A category noun is meaningful only next to a matched option: "salsa roja"
+    # is the selected Roja sauce, while "salsa de langosta" still fails closed.
+    if _matched_options([text], options):
+        remainder = re.sub(r'\b(salsa|sauce|topping|toppings|complemento|complementos)\b', ' ', remainder)
     remainder = re.sub(r'\b(con|with|y|and|extra|extras|agrega|agregar|add|quiero|please|por|favor)\b', ' ', remainder)
     return not remainder.strip()
 
