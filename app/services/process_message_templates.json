@@ -1,0 +1,91 @@
+{
+  "version": "1",
+  "templates": {
+    "maintenance.followup": {
+      "es": "Actualización de la solicitud con folio {reference}: El equipo de mantenimiento dará seguimiento a tu solicitud.",
+      "en": "Update on request {reference}: The maintenance team will follow up on your request."
+    },
+    "maintenance.confirm": {
+      "es": "Actualización de la solicitud con folio {reference}: El equipo de mantenimiento marcó el problema como resuelto. Por favor, confirma si todo quedó solucionado.",
+      "en": "Update on request {reference}: The maintenance team marked the issue as resolved. Please confirm whether everything is working correctly."
+    },
+    "maintenance.title": {"es": "Confirmación de mantenimiento", "en": "Maintenance check"},
+    "maintenance.resolved": {"es": "Sí, quedó resuelto", "en": "Yes, resolved"},
+    "maintenance.unresolved": {"es": "No, sigue sin resolver", "en": "Not resolved"},
+    "order.accepted": {
+      "es": "Actualización de la solicitud con folio {reference}: El personal confirmó tu pedido de room service y comenzará a prepararlo.",
+      "en": "Update on request {reference}: Our team confirmed your room service order and will start preparing it."
+    },
+    "order.delivered": {
+      "es": "Actualización de la solicitud con folio {reference}: El personal confirmó la entrega de tu pedido de room service. Esperamos que lo disfrutes.",
+      "en": "Update on request {reference}: Our team confirmed delivery of your room service order. Enjoy your meal."
+    },
+    "order.change": {
+      "es": "Actualización de la solicitud con folio {reference}: Cocina solicitó un cambio en tu pedido. Consulta nuevamente el menú digital: {url}",
+      "en": "Update on request {reference}: The kitchen requested a change to your order. You can view the menu again here: {url}"
+    },
+    "order.recollect": {
+      "es": "Actualización de la solicitud con folio {reference}: Por favor indica nuevamente tu pedido completo con los cambios. Incluye todos los productos, cantidades y modificaciones.",
+      "en": "Update on request {reference}: Please send your complete updated order, including all items, quantities and modifications."
+    },
+    "order.updated": {
+      "es": "Actualización de la solicitud con folio {reference}: Registramos los cambios de tu pedido y cocina los revisará nuevamente.",
+      "en": "Update on request {reference}: We recorded your order changes. The kitchen will review them again."
+    },
+    "order.rejected": {
+      "es": "Actualización de la solicitud con folio {reference}: El pedido de room service fue cancelado porque cocina no puede atenderlo.",
+      "en": "Update on request {reference}: Your room service order was cancelled because the kitchen is unable to fulfil it."
+    },
+    "order.cancelled": {
+      "es": "Actualización de la solicitud con folio {reference}: Tu pedido de room service fue cancelado como solicitaste.",
+      "en": "Update on request {reference}: Your room service order was cancelled as requested."
+    },
+    "order.expired": {
+      "es": "Actualización de la solicitud con folio {reference}: El pedido de room service fue cancelado porque no recibimos los cambios solicitados dentro del tiempo de espera.",
+      "en": "Update on request {reference}: Your room service order was cancelled because we did not receive the requested changes before the response deadline."
+    },
+    "order.change.title": {"es": "Cambio solicitado", "en": "Change requested"},
+    "order.cancel": {"es": "Cancelar pedido", "en": "Cancel order"},
+    "choose": {"es": "Elegir opción", "en": "Choose an option"},
+    "spa.confirmed": {
+      "es": "Actualización de la solicitud con folio {reference}: El equipo de SPA confirmó tu reservación.\nServicio: {service}\nFecha: {date}\nHora: {time}\nTe esperamos.",
+      "en": "Update on request {reference}: The spa team confirmed your booking.\nService: {service}\nDate: {date}\nTime: {time}\nWe look forward to seeing you."
+    },
+    "spa.alternative": {
+      "es": "Actualización de la solicitud con folio {reference}: El equipo de SPA propone esta alternativa.\nServicio: {service}\nFecha: {date}\nHora: {time}\n¿Deseas aceptarla, cambiar tu solicitud o cancelarla?",
+      "en": "Update on request {reference}: The spa team proposes this alternative.\nService: {service}\nDate: {date}\nTime: {time}\nWould you like to accept it, change your request or cancel it?"
+    },
+    "spa.change": {
+      "es": "Actualización de la solicitud con folio {reference}: Indícanos qué servicio, fecha u hora deseas cambiar. Conservaremos los demás datos y te mostraremos el resumen para confirmar. También puedes cancelar la solicitud.",
+      "en": "Update on request {reference}: Tell us which service, date or time you would like to change. We will keep the other details and show you a summary to confirm. You can also cancel the request."
+    },
+    "spa.alternative.accepted": {
+      "es": "Actualización de la solicitud con folio {reference}: Confirmamos tu reservación con la alternativa aceptada.\nServicio: {service}\nFecha: {date}\nHora: {time}\nTe esperamos.",
+      "en": "Update on request {reference}: Your booking is confirmed with the alternative you accepted.\nService: {service}\nDate: {date}\nTime: {time}\nWe look forward to seeing you."
+    },
+    "spa.updated": {
+      "es": "Actualización de la solicitud con folio {reference}: Registramos los cambios de tu reservación. El equipo revisará la disponibilidad nuevamente.\nServicio: {service}\nFecha: {date}\nHora: {time}",
+      "en": "Update on request {reference}: We recorded your booking changes. The team will check availability again.\nService: {service}\nDate: {date}\nTime: {time}"
+    },
+    "spa.cancelled": {
+      "es": "Actualización de la solicitud con folio {reference}: La solicitud de SPA fue cancelada como indicaste.",
+      "en": "Update on request {reference}: Your spa request was cancelled as requested."
+    },
+    "spa.expired": {
+      "es": "Actualización de la solicitud con folio {reference}: Cerramos la solicitud de SPA porque no recibimos tu respuesta dentro del tiempo de espera. Puedes iniciar otra reservación cuando lo desees.",
+      "en": "Update on request {reference}: We closed your spa request because we did not receive your reply before the response deadline. You can start another booking whenever you like."
+    },
+    "spa.title": {"es": "Alternativa de SPA", "en": "Spa alternative"},
+    "spa.change.title": {"es": "Cambios de reservación", "en": "Booking changes"},
+    "spa.accept": {"es": "Aceptar alternativa", "en": "Accept alternative"},
+    "spa.edit": {"es": "Cambiar solicitud", "en": "Change request"},
+    "error.retry": {
+      "es": "Lo sentimos, no pudimos procesar tu mensaje en este momento. Por favor, intenta nuevamente en unos minutos.",
+      "en": "Sorry, we could not process your message right now. Please try again in a few minutes."
+    },
+    "error.uncertain": {
+      "es": "No pude completar la respuesta a tu mensaje. Consulta el estado de tus solicitudes antes de intentarlo nuevamente; las que ya quedaron registradas no necesitan repetirse.",
+      "en": "I could not complete the response to your message. Please check your requests before trying again; requests already recorded do not need to be submitted again."
+    }
+  }
+}

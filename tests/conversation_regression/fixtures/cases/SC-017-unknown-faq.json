@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "id": "SC-017-unknown-faq",
+  "scenario_id": "SC-017",
+  "title": "FAQ desconocida deriva sin inventar",
+  "origin": "successful_path",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "live_model",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "question",
+      "event": {
+        "kind": "guest",
+        "text": "Can I bring my pet?"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "contains",
+          "value": "SEARCH_KNOWLEDGE"
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "HOTEL_QUESTION",
+            "offeringCode": "FAQ",
+            "relevantText": "Can I bring my pet?",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "no-source",
+      "event": {
+        "kind": "tool_result",
+        "action": "reply_to_last_tool",
+        "data": {
+          "status": "SUCCEEDED",
+          "result": {
+            "status": "NO_MATCH",
+            "matches": []
+          }
+        }
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "contains",
+          "value": "START_SERVICE"
+        },
+        {
+          "path": "/tools/0/arguments/input/resolutionMode",
+          "op": "equals",
+          "value": "HUMAN_REQUIRED"
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "started",
+      "event": {
+        "kind": "tool_result",
+        "action": "complete_service_start",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/message_purposes",
+          "op": "contains",
+          "value": "HANDOFF"
+        }
+      ],
+      "review": [
+        "No inventar política sobre mascotas."
+      ],
+      "model_replies": []
+    }
+  ]
+}

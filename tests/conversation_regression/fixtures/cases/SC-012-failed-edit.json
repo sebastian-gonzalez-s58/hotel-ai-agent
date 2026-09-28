@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "id": "SC-012-failed-edit",
+  "scenario_id": "SC-012",
+  "title": "Fallo técnico conserva datos y bloquea confirmación",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "AWAITING_CONFIRMATION",
+    "capturedFields": {
+      "deliveryLocation": "ROOM",
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": true
+  },
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "edit",
+      "event": {
+        "kind": "guest",
+        "text": "Make it two soups"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items",
+          "op": "equals",
+          "value": [
+            {
+              "name": "sopa",
+              "quantity": 1,
+              "modifications": []
+            }
+          ]
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": false
+        },
+        {
+          "path": "/response/warnings",
+          "op": "contains",
+          "value": "ORDER_INPUT_TIMEOUT"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Make it two soups",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "error": "TIMEOUT"
+        }
+      ]
+    },
+    {
+      "id": "confirm",
+      "event": {
+        "kind": "guest",
+        "text": "Confirm",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/capturedFields/items",
+          "op": "equals",
+          "value": [
+            {
+              "name": "sopa",
+              "quantity": 1,
+              "modifications": []
+            }
+          ]
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "retry",
+      "event": {
+        "kind": "guest",
+        "text": "Make it two soups"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Make it two soups",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "PATCH",
+            "edits": [
+              {
+                "action": "UPDATE",
+                "existingItemIndex": 0,
+                "name": null,
+                "nameEvidence": null,
+                "quantity": 2,
+                "quantityEvidence": "two",
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "two soups"
+              }
+            ],
+            "confidence": 1
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,191 @@
+{
+  "purpose": "V2_ORDER_UNDERSTANDING",
+  "response_schema": {
+    "$defs": {
+      "OrderEdit": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              "ADD",
+              "UPDATE",
+              "REMOVE"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "evidence": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Evidence",
+            "type": "string"
+          },
+          "existingItemIndex": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Existingitemindex"
+          },
+          "modificationAction": {
+            "enum": [
+              "KEEP",
+              "APPEND",
+              "REPLACE"
+            ],
+            "title": "Modificationaction",
+            "type": "string"
+          },
+          "modifications": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/$defs/OrderModification"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modifications"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "nameEvidence": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Nameevidence"
+          },
+          "quantity": {
+            "anyOf": [
+              {
+                "maximum": 1000,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantity"
+          },
+          "quantityEvidence": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quantityevidence"
+          }
+        },
+        "required": [
+          "action",
+          "existingItemIndex",
+          "name",
+          "nameEvidence",
+          "quantity",
+          "quantityEvidence",
+          "modifications",
+          "modificationAction",
+          "evidence"
+        ],
+        "title": "OrderEdit",
+        "type": "object"
+      },
+      "OrderModification": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Evidence",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "evidence"
+        ],
+        "title": "OrderModification",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "confidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+      },
+      "edits": {
+        "items": {
+          "$ref": "#/$defs/OrderEdit"
+        },
+        "maxItems": 50,
+        "title": "Edits",
+        "type": "array"
+      },
+      "mode": {
+        "enum": [
+          "REPLACE",
+          "PATCH"
+        ],
+        "title": "Mode",
+        "type": "string"
+      },
+      "status": {
+        "enum": [
+          "RESOLVED",
+          "AMBIGUOUS",
+          "NOT_ORDER"
+        ],
+        "title": "Status",
+        "type": "string"
+      }
+    },
+    "required": [
+      "status",
+      "mode",
+      "edits",
+      "confidence"
+    ],
+    "title": "OrderExtraction",
+    "type": "object"
+  },
+  "response_schema_name": "order_understanding_v1",
+  "strict_schema": true
+}

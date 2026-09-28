@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "id": "SC-011-spa-date",
+  "scenario_id": "SC-011",
+  "title": "Fecha ambigua conserva otros campos",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "SPA",
+    "capturedFields": {
+      "serviceName": "Masaje herbal",
+      "reservationTime": "18:00"
+    },
+    "spaDraft": {
+      "id": "80000000-0000-4000-8000-000000000001",
+      "capturedFields": {
+        "serviceName": "Masaje herbal",
+        "reservationTime": "18:00"
+      },
+      "unresolvedFields": {},
+      "awaitingConfirmation": false
+    }
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "ambiguous-date",
+      "event": {
+        "kind": "guest",
+        "text": "03/04"
+      },
+      "checks": [
+        {
+          "path": "/state/spaDraft/capturedFields/serviceName",
+          "op": "equals",
+          "value": "Masaje herbal"
+        },
+        {
+          "path": "/state/spaDraft/capturedFields/reservationTime",
+          "op": "equals",
+          "value": "18:00"
+        },
+        {
+          "path": "/state/spaDraft/capturedFields/reservationDate",
+          "op": "absent"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [
+        "Aclarar día y mes; no inventar el orden por idioma."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "03/04",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_SPA_EXTRACTION",
+          "payload": {
+            "serviceName": {
+              "status": "UNCHANGED",
+              "value": null,
+              "evidence": null,
+              "confidence": 1
+            },
+            "reservationDate": {
+              "status": "AMBIGUOUS",
+              "value": null,
+              "evidence": "03/04",
+              "confidence": 1
+            },
+            "reservationTime": {
+              "status": "UNCHANGED",
+              "value": null,
+              "evidence": null,
+              "confidence": 1
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

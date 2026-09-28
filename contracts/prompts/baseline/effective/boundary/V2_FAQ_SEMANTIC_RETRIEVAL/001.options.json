@@ -1,0 +1,83 @@
+{
+  "purpose": "V2_FAQ_SEMANTIC_RETRIEVAL",
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "answer": {
+        "anyOf": [
+          {
+            "maxLength": 3500,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Answer"
+      },
+      "confidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+      },
+      "conflictingSources": {
+        "title": "Conflictingsources",
+        "type": "boolean"
+      },
+      "fullyAnswers": {
+        "title": "Fullyanswers",
+        "type": "boolean"
+      },
+      "sameSubject": {
+        "title": "Samesubject",
+        "type": "boolean"
+      },
+      "sourceId": {
+        "anyOf": [
+          {
+            "maxLength": 100,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Sourceid"
+      },
+      "status": {
+        "enum": [
+          "ANSWERABLE",
+          "NO_MATCH",
+          "AMBIGUOUS"
+        ],
+        "title": "Status",
+        "type": "string"
+      },
+      "supportingQuotes": {
+        "items": {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        "maxItems": 5,
+        "title": "Supportingquotes",
+        "type": "array"
+      }
+    },
+    "required": [
+      "status",
+      "sourceId",
+      "sameSubject",
+      "fullyAnswers",
+      "conflictingSources",
+      "confidence",
+      "supportingQuotes",
+      "answer"
+    ],
+    "title": "FaqSelection",
+    "type": "object"
+  },
+  "response_schema_name": "v2_faq_semantic_retrieval",
+  "strict_schema": true
+}

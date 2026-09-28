@@ -1,0 +1,52 @@
+{
+  "purpose": "V2_CATALOG_MATCH",
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "candidateId": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "title": "Candidateid"
+      },
+      "candidateIds": {
+        "items": {
+          "type": "string"
+        },
+        "title": "Candidateids",
+        "type": "array"
+      },
+      "confidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+      },
+      "evidence": {
+        "title": "Evidence",
+        "type": "string"
+      },
+      "status": {
+        "pattern": "^(MATCH|AMBIGUOUS|NOT_FOUND)$",
+        "title": "Status",
+        "type": "string"
+      }
+    },
+    "required": [
+      "status",
+      "candidateId",
+      "candidateIds",
+      "evidence",
+      "confidence"
+    ],
+    "title": "CatalogMatch",
+    "type": "object"
+  },
+  "response_schema_name": "catalog_match_v1",
+  "strict_schema": true
+}

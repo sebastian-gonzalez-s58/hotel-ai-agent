@@ -1,0 +1,61 @@
+{
+  "purpose": "V2_FAQ_GROUNDING_CHECK",
+  "response_schema": {
+    "additionalProperties": false,
+    "properties": {
+      "confidence": {
+        "maximum": 1,
+        "minimum": 0,
+        "title": "Confidence",
+        "type": "number"
+      },
+      "correctLanguage": {
+        "title": "Correctlanguage",
+        "type": "boolean"
+      },
+      "fullyAnswers": {
+        "title": "Fullyanswers",
+        "type": "boolean"
+      },
+      "hasBriefHelpOffer": {
+        "title": "Hasbriefhelpoffer",
+        "type": "boolean"
+      },
+      "naturalAndNonredundant": {
+        "title": "Naturalandnonredundant",
+        "type": "boolean"
+      },
+      "noConflictingSources": {
+        "title": "Noconflictingsources",
+        "type": "boolean"
+      },
+      "preservesNegations": {
+        "title": "Preservesnegations",
+        "type": "boolean"
+      },
+      "sameSubject": {
+        "title": "Samesubject",
+        "type": "boolean"
+      },
+      "supported": {
+        "title": "Supported",
+        "type": "boolean"
+      }
+    },
+    "required": [
+      "supported",
+      "sameSubject",
+      "fullyAnswers",
+      "noConflictingSources",
+      "preservesNegations",
+      "correctLanguage",
+      "naturalAndNonredundant",
+      "hasBriefHelpOffer",
+      "confidence"
+    ],
+    "title": "FaqVerification",
+    "type": "object"
+  },
+  "response_schema_name": "v2_faq_grounding_check",
+  "strict_schema": true
+}

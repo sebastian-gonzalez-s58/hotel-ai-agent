@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "id": "SC-010-idempotency-conflict",
+  "scenario_id": "SC-010",
+  "title": "Mismo ID con otros argumentos",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_LOCATION",
+    "capturedFields": {
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "first-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Habitación",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:ROOM"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "confirm",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "started",
+      "event": {
+        "kind": "tool_result",
+        "action": "complete_service_start",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/environment/operationInputs/ROOM_SERVICE/items/0/quantity",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "conflict",
+      "event": {
+        "kind": "backend",
+        "action": "replay_tool_with_changed_arguments",
+        "data": {
+          "items": [
+            {
+              "name": "sopa",
+              "quantity": 2,
+              "modifications": []
+            }
+          ]
+        }
+      },
+      "checks": [
+        {
+          "path": "/backend/conflictRejected",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/environment/operationInputs/ROOM_SERVICE/items/0/quantity",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "id": "SC-005-edit-items",
+  "scenario_id": "SC-005",
+  "title": "Editar cantidad y quitar otro artículo",
+  "origin": "successful_path",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "AWAITING_CONFIRMATION",
+    "capturedFields": {
+      "deliveryLocation": "ROOM",
+      "items": [
+        {
+          "name": "hamburguesa",
+          "quantity": 1,
+          "modifications": [
+            "sin queso"
+          ]
+        },
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": true
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "quantity",
+      "event": {
+        "kind": "guest",
+        "text": "Que sean dos hamburguesas"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        },
+        {
+          "path": "/state/capturedFields/items/0/modifications",
+          "op": "equals",
+          "value": [
+            "sin queso"
+          ]
+        },
+        {
+          "path": "/state/capturedFields/items/1/name",
+          "op": "equals",
+          "value": "sopa"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Que sean dos hamburguesas",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "PATCH",
+            "edits": [
+              {
+                "action": "UPDATE",
+                "existingItemIndex": 0,
+                "name": null,
+                "nameEvidence": null,
+                "quantity": 2,
+                "quantityEvidence": "dos",
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "dos hamburguesas"
+              }
+            ],
+            "confidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "remove",
+      "event": {
+        "kind": "guest",
+        "text": "Quita la sopa"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items",
+          "op": "equals",
+          "value": [
+            {
+              "name": "hamburguesa",
+              "quantity": 2,
+              "modifications": [
+                "sin queso"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/state/capturedFields/deliveryLocation",
+          "op": "equals",
+          "value": "ROOM"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/message_purposes",
+          "op": "contains",
+          "value": "CONFIRMATION"
+        }
+      ],
+      "review": [
+        "El guion reproduce CHANGE con detalles concretos; debe llegar a extracción y quitar solo la sopa."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Quita la sopa",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "CHANGE",
+            "replyActionEvidence": "Quita la sopa",
+            "replyActionConfidence": 1
+          }
+        },
+        {
+          "purpose": "V2_ORDER_UNDERSTANDING",
+          "payload": {
+            "status": "RESOLVED",
+            "mode": "PATCH",
+            "edits": [
+              {
+                "action": "REMOVE",
+                "existingItemIndex": 1,
+                "name": null,
+                "nameEvidence": null,
+                "quantity": null,
+                "quantityEvidence": null,
+                "modifications": null,
+                "modificationAction": "KEEP",
+                "evidence": "Quita la sopa"
+              }
+            ],
+            "confidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "confirm-edited-order",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        },
+        {
+          "path": "/tools/0/arguments/input",
+          "op": "equals",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "name": "hamburguesa",
+                "quantity": 2,
+                "modifications": [
+                  "sin queso"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "model_replies": []
+    }
+  ]
+}

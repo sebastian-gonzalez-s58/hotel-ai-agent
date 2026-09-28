@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "id": "SC-010-duplicate-event",
+  "scenario_id": "SC-010",
+  "title": "Evento y herramienta repetidos crean una operación",
+  "origin": "boundary",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_LOCATION",
+    "capturedFields": {
+      "items": [
+        {
+          "name": "sopa",
+          "quantity": 1,
+          "modifications": []
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "first-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "Habitación",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:ROOM"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/awaitingExplicitConfirmation",
+          "op": "equals",
+          "value": true
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "confirm",
+      "event": {
+        "kind": "guest",
+        "text": "Confirmar",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "started",
+      "event": {
+        "kind": "tool_result",
+        "action": "complete_service_start",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/environment/operationInputs/ROOM_SERVICE/items/0/quantity",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "duplicate",
+      "event": {
+        "kind": "backend",
+        "action": "redeliver_same_event_and_tool_ids",
+        "data": {}
+      },
+      "checks": [
+        {
+          "path": "/backend/sameResponse",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/sameToolResults",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/backend/processStarts",
+          "op": "equals",
+          "value": 1
+        },
+        {
+          "path": "/environment/createdOperations/ROOM_SERVICE",
+          "op": "equals",
+          "value": 1
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

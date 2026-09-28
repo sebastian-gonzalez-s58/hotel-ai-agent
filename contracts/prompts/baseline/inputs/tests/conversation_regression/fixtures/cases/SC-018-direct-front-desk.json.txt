@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "id": "SC-018-direct-front-desk",
+  "scenario_id": "SC-018",
+  "title": "Recepción sin requisitos inicia directamente",
+  "origin": "successful_path",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {},
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "integration"
+  ],
+  "steps": [
+    {
+      "id": "desk",
+      "event": {
+        "kind": "guest",
+        "text": "Recepción",
+        "reply_id": "offering:FRONT_DESK"
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        },
+        {
+          "path": "/tools/0/arguments/offeringCode",
+          "op": "equals",
+          "value": "FRONT_DESK"
+        },
+        {
+          "path": "/tools/0/arguments/input",
+          "op": "equals",
+          "value": {}
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

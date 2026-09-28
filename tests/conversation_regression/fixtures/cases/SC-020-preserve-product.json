@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "id": "SC-020-preserve-product",
+  "scenario_id": "SC-020",
+  "title": "Traducción conserva producto y restricciones",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "CAPTURING_ITEMS",
+    "capturedFields": {
+      "deliveryLocation": "ROOM",
+      "items": [
+        {
+          "name": "Pechuga Herbal",
+          "quantity": 2,
+          "modifications": [
+            "sin nueces"
+          ]
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": false
+  },
+  "locale": "es-MX",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "language",
+      "event": {
+        "kind": "guest",
+        "text": "Please speak English"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items",
+          "op": "equals",
+          "value": [
+            {
+              "name": "Pechuga Herbal",
+              "quantity": 2,
+              "modifications": [
+                "sin nueces"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/guest/preferredLanguage",
+          "op": "equals",
+          "value": "en"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "SOCIAL",
+            "offeringCode": null,
+            "relevantText": "Please speak English",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0,
+            "requestedLanguage": "en",
+            "languageConfidence": 1,
+            "languageChangeOnly": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "event": {
+        "kind": "guest",
+        "text": "Show my order"
+      },
+      "checks": [
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "Pechuga Herbal"
+        },
+        {
+          "path": "/state/capturedFields/items/0/quantity",
+          "op": "equals",
+          "value": 2
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "contains",
+          "value": "without nuts"
+        }
+      ],
+      "review": [
+        "Mantener significado sin nueces y cualquier URL/folio; no renombrar producto en inglés."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "STATUS_REQUEST",
+            "offeringCode": "ROOM_SERVICE",
+            "relevantText": "Show my order",
+            "hasRequestDetails": false,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_AGENT_TURN",
+          "payload": {
+            "schemaVersion": "2.0",
+            "agentTurnId": "$AGENT_TURN_ID",
+            "disposition": "RESPONSE_READY",
+            "messages": [
+              {
+                "messageDraftId": "96000000-0000-4000-8000-000000000001",
+                "purpose": "ANSWER",
+                "text": "Your order: 2 x Pechuga Herbal, without nuts.",
+                "language": "en",
+                "operationIds": [],
+                "conversationTaskIds": []
+              }
+            ],
+            "toolCalls": [],
+            "updatedConversationSummary": "{\"pendingOffering\": \"ROOM_SERVICE\", \"phase\": \"CAPTURING_ITEMS\", \"capturedFields\": {\"deliveryLocation\": \"ROOM\", \"items\": [{\"name\": \"Pechuga Herbal\", \"quantity\": 2, \"modifications\": [\"sin nueces\"]}]}, \"awaitingExplicitConfirmation\": false}",
+            "warnings": [],
+            "usage": {
+              "model": "synthetic",
+              "inputTokens": 0,
+              "cachedInputTokens": 0,
+              "outputTokens": 0,
+              "reasoningTokens": 0,
+              "totalTokens": 0
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

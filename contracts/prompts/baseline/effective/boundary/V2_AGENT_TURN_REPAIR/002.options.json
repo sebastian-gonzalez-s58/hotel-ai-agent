@@ -1,0 +1,433 @@
+{
+  "purpose": "V2_AGENT_TURN",
+  "response_schema": {
+    "$defs": {
+      "AgentInteraction": {
+        "additionalProperties": false,
+        "properties": {
+          "body": {
+            "maxLength": 1024,
+            "minLength": 1,
+            "title": "Body",
+            "type": "string"
+          },
+          "buttonText": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Buttontext"
+          },
+          "options": {
+            "items": {
+              "$ref": "#/$defs/InteractionOption"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "title": "Options",
+            "type": "array"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Title"
+          },
+          "type": {
+            "enum": [
+              "BUTTONS",
+              "LIST"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "body",
+          "options"
+        ],
+        "title": "AgentInteraction",
+        "type": "object"
+      },
+      "AgentMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "conversationTaskIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Conversationtaskids",
+            "type": "array"
+          },
+          "interaction": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/AgentInteraction"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "language": {
+            "maxLength": 35,
+            "minLength": 2,
+            "title": "Language",
+            "type": "string"
+          },
+          "messageDraftId": {
+            "format": "uuid",
+            "title": "Messagedraftid",
+            "type": "string"
+          },
+          "operationIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Operationids",
+            "type": "array"
+          },
+          "purpose": {
+            "enum": [
+              "ANSWER",
+              "CLARIFICATION",
+              "CONFIRMATION",
+              "STATUS_UPDATE",
+              "HANDOFF",
+              "REMINDER",
+              "CLOSURE"
+            ],
+            "title": "Purpose",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 20000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "messageDraftId",
+          "purpose",
+          "text",
+          "language",
+          "operationIds",
+          "conversationTaskIds"
+        ],
+        "title": "AgentMessage",
+        "type": "object"
+      },
+      "AgentUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "cachedInputTokens": {
+            "minimum": 0,
+            "title": "Cachedinputtokens",
+            "type": "integer"
+          },
+          "inputTokens": {
+            "minimum": 0,
+            "title": "Inputtokens",
+            "type": "integer"
+          },
+          "latencyMs": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Latencyms"
+          },
+          "model": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Model",
+            "type": "string"
+          },
+          "outputTokens": {
+            "minimum": 0,
+            "title": "Outputtokens",
+            "type": "integer"
+          },
+          "reasoningTokens": {
+            "minimum": 0,
+            "title": "Reasoningtokens",
+            "type": "integer"
+          },
+          "totalTokens": {
+            "minimum": 0,
+            "title": "Totaltokens",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "model",
+          "inputTokens",
+          "cachedInputTokens",
+          "outputTokens",
+          "reasoningTokens",
+          "totalTokens"
+        ],
+        "title": "AgentUsage",
+        "type": "object"
+      },
+      "DomainToolCall": {
+        "additionalProperties": false,
+        "properties": {
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "confidence": {
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "evidenceMessageIds": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Evidencemessageids",
+            "type": "array"
+          },
+          "targetConversationTaskId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Targetconversationtaskid"
+          },
+          "targetOperationId": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Targetoperationid"
+          },
+          "toolCallId": {
+            "format": "uuid",
+            "title": "Toolcallid",
+            "type": "string"
+          },
+          "toolName": {
+            "$ref": "#/$defs/DomainToolName"
+          }
+        },
+        "required": [
+          "toolCallId",
+          "toolName",
+          "arguments",
+          "confidence",
+          "evidenceMessageIds"
+        ],
+        "title": "DomainToolCall",
+        "type": "object"
+      },
+      "DomainToolName": {
+        "enum": [
+          "LIST_AVAILABLE_OFFERINGS",
+          "GET_OFFERING_DEFINITION",
+          "SEARCH_CATALOG",
+          "SEARCH_KNOWLEDGE",
+          "LIST_ACTIVE_OPERATIONS",
+          "GET_OPERATION",
+          "GET_OPERATION_STATUS",
+          "START_SERVICE",
+          "SAVE_CONVERSATION_TASK_PROGRESS",
+          "COMPLETE_CONVERSATION_TASK",
+          "EXECUTE_SERVICE_ACTION"
+        ],
+        "title": "DomainToolName",
+        "type": "string"
+      },
+      "InteractionOption": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 24,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label"
+        ],
+        "title": "InteractionOption",
+        "type": "object"
+      },
+      "LanguageDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "confidence": {
+            "maximum": 1,
+            "minimum": 0.85,
+            "title": "Confidence",
+            "type": "number"
+          },
+          "locale": {
+            "maxLength": 35,
+            "minLength": 2,
+            "pattern": "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,8})*$",
+            "title": "Locale",
+            "type": "string"
+          },
+          "messageId": {
+            "format": "uuid",
+            "title": "Messageid",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "DETECTED",
+              "EXPLICIT"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "locale",
+          "source",
+          "confidence",
+          "messageId"
+        ],
+        "title": "LanguageDecision",
+        "type": "object"
+      }
+    },
+    "additionalProperties": false,
+    "properties": {
+      "agentTurnId": {
+        "format": "uuid",
+        "title": "Agentturnid",
+        "type": "string"
+      },
+      "detectedLanguage": {
+        "anyOf": [
+          {
+            "maxLength": 35,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Detectedlanguage"
+      },
+      "disposition": {
+        "enum": [
+          "RESPONSE_READY",
+          "TOOL_CALLS_REQUIRED",
+          "NO_ACTION",
+          "HANDOFF_REQUIRED"
+        ],
+        "title": "Disposition",
+        "type": "string"
+      },
+      "messages": {
+        "items": {
+          "$ref": "#/$defs/AgentMessage"
+        },
+        "maxItems": 10,
+        "title": "Messages",
+        "type": "array"
+      },
+      "schemaVersion": {
+        "const": "2.0",
+        "title": "Schemaversion",
+        "type": "string"
+      },
+      "toolCalls": {
+        "items": {
+          "$ref": "#/$defs/DomainToolCall"
+        },
+        "maxItems": 20,
+        "title": "Toolcalls",
+        "type": "array"
+      },
+      "updatedConversationSummary": {
+        "anyOf": [
+          {
+            "maxLength": 20000,
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "default": null,
+        "title": "Updatedconversationsummary"
+      },
+      "usage": {
+        "$ref": "#/$defs/AgentUsage"
+      },
+      "warnings": {
+        "items": {
+          "type": "string"
+        },
+        "maxItems": 20,
+        "title": "Warnings",
+        "type": "array"
+      }
+    },
+    "required": [
+      "schemaVersion",
+      "agentTurnId",
+      "disposition",
+      "messages",
+      "toolCalls",
+      "usage",
+      "warnings"
+    ],
+    "title": "AgentTurnResponse",
+    "type": "object"
+  },
+  "response_schema_name": "agent_turn_response_v2"
+}

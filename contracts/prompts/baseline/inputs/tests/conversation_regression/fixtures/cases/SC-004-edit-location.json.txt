@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "id": "SC-004-edit-location",
+  "scenario_id": "SC-004",
+  "title": "Cambiar lugar ya capturado",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "ROOM_SERVICE",
+    "phase": "AWAITING_CONFIRMATION",
+    "capturedFields": {
+      "deliveryLocation": "POOL_1",
+      "items": [
+        {
+          "name": "tacos",
+          "quantity": 1,
+          "modifications": [
+            "sin cebolla"
+          ]
+        }
+      ]
+    },
+    "awaitingExplicitConfirmation": true
+  },
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "present-confirmation",
+      "event": {
+        "kind": "guest",
+        "text": "POOL_1",
+        "reply_id": "field:ROOM_SERVICE:deliveryLocation:POOL_1"
+      },
+      "model_replies": [],
+      "review": [],
+      "checks": [
+        {
+          "path": "/state/capturedFields",
+          "op": "equals",
+          "value": {
+            "deliveryLocation": "POOL_1",
+            "items": [
+              {
+                "name": "tacos",
+                "quantity": 1,
+                "modifications": [
+                  "sin cebolla"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ]
+    },
+    {
+      "id": "change",
+      "event": {
+        "kind": "guest",
+        "text": "Change",
+        "reply_id": "confirmation:ROOM_SERVICE:CHANGE",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/deliveryLocation",
+          "op": "equals",
+          "value": "POOL_1"
+        },
+        {
+          "path": "/state/capturedFields/items/0/modifications",
+          "op": "equals",
+          "value": [
+            "sin cebolla"
+          ]
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    },
+    {
+      "id": "new-location",
+      "event": {
+        "kind": "guest",
+        "text": "I want to receive in my room"
+      },
+      "checks": [
+        {
+          "path": "/state/capturedFields/items",
+          "op": "equals",
+          "value": [
+            {
+              "name": "tacos",
+              "quantity": 1,
+              "modifications": [
+                "sin cebolla"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "/state/capturedFields/deliveryLocation",
+          "op": "equals",
+          "value": "ROOM"
+        },
+        {
+          "path": "/state/capturedFields/items/0/modifications",
+          "op": "equals",
+          "value": [
+            "sin cebolla"
+          ]
+        },
+        {
+          "path": "/message_purposes",
+          "op": "contains",
+          "value": "CONFIRMATION"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        }
+      ],
+      "review": [
+        "El guion controla la selección de ubicación; la comprensión del texto se evalúa además con el modelo real."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "I want to receive in my room",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0,
+            "selectionAttempted": true,
+            "selectionCode": "ROOM",
+            "selectionEvidence": "I want to receive in my room",
+            "selectionConfidence": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "confirm-location",
+      "event": {
+        "kind": "guest",
+        "text": "Confirm",
+        "reply_id": "confirmation:ROOM_SERVICE:CONFIRM",
+        "reply_from_turn": -1
+      },
+      "checks": [
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": [
+            "START_SERVICE"
+          ]
+        },
+        {
+          "path": "/tools/0/arguments/input",
+          "op": "equals",
+          "value": {
+            "deliveryLocation": "ROOM",
+            "items": [
+              {
+                "name": "tacos",
+                "quantity": 1,
+                "modifications": [
+                  "sin cebolla"
+                ]
+              }
+            ]
+          }
+        }
+      ],
+      "review": [],
+      "model_replies": []
+    }
+  ]
+}

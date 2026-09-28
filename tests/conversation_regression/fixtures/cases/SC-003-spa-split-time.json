@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "id": "SC-003-spa-split-time",
+  "scenario_id": "SC-003",
+  "title": "Spa con hora en mensaje separado",
+  "origin": "anonymized_incident",
+  "contract_version": "1.0.0",
+  "profile": "hotel",
+  "initial_summary": {
+    "pendingOffering": "SPA",
+    "capturedFields": {},
+    "spaDraft": {
+      "id": "80000000-0000-4000-8000-000000000001",
+      "capturedFields": {},
+      "unresolvedFields": {},
+      "awaitingConfirmation": false
+    }
+  },
+  "locale": "en",
+  "required_levels": [
+    "offline",
+    "live_model"
+  ],
+  "steps": [
+    {
+      "id": "treatment-date",
+      "event": {
+        "kind": "guest",
+        "text": "Masaje herbal el 2026-10-03"
+      },
+      "checks": [
+        {
+          "path": "/state/spaDraft/capturedFields/serviceName",
+          "op": "equals",
+          "value": "Masaje herbal"
+        },
+        {
+          "path": "/state/spaDraft/capturedFields/reservationDate",
+          "op": "equals",
+          "value": "2026-10-03"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "serviceName"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reservationDate"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reservationTime"
+        }
+      ],
+      "review": [],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "Masaje herbal el 2026-10-03",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        },
+        {
+          "purpose": "V2_SPA_EXTRACTION",
+          "payload": {
+            "serviceName": {
+              "status": "RESOLVED",
+              "value": "Masaje herbal",
+              "evidence": "Masaje herbal",
+              "confidence": 1
+            },
+            "reservationDate": {
+              "status": "RESOLVED",
+              "value": "2026-10-03",
+              "evidence": "2026-10-03",
+              "confidence": 1
+            },
+            "reservationTime": {
+              "status": "UNCHANGED",
+              "value": null,
+              "evidence": null,
+              "confidence": 1
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "time",
+      "event": {
+        "kind": "guest",
+        "text": "6pm"
+      },
+      "checks": [
+        {
+          "path": "/state/spaDraft/capturedFields/reservationTime",
+          "op": "equals",
+          "value": "18:00"
+        },
+        {
+          "path": "/state/spaDraft/capturedFields/reservationDate",
+          "op": "equals",
+          "value": "2026-10-03"
+        },
+        {
+          "path": "/tool_names",
+          "op": "equals",
+          "value": []
+        },
+        {
+          "path": "/state/spaDraft/awaitingConfirmation",
+          "op": "equals",
+          "value": true
+        },
+        {
+          "path": "/response/messages/0/interaction",
+          "op": "exists"
+        },
+        {
+          "path": "/state/spaDraft/capturedFields/serviceName",
+          "op": "equals",
+          "value": "Masaje herbal"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "serviceName"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reservationDate"
+        },
+        {
+          "path": "/text",
+          "op": "not_contains",
+          "value": "reservationTime"
+        }
+      ],
+      "review": [
+        "Preguntar solo hora después del primer turno; no repetir fecha ni tratamiento.",
+        "Mostrar al huésped tratamiento, fecha y hora capturados y pedir confirmación; no depende del enum purpose."
+      ],
+      "model_replies": [
+        {
+          "purpose": "V2_HOTEL_SCOPE",
+          "payload": {
+            "kind": "CONTEXT_REPLY",
+            "offeringCode": null,
+            "relevantText": "6pm",
+            "hasRequestDetails": true,
+            "containsUnrelatedTopic": false,
+            "confidence": 1,
+            "replyAction": "NONE",
+            "replyActionEvidence": null,
+            "replyActionConfidence": 0
+          }
+        }
+      ]
+    }
+  ]
+}

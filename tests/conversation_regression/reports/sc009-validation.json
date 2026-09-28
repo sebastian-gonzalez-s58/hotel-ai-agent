@@ -1,0 +1,42 @@
+{
+  "scope": "local-sandbox",
+  "completed_at": "2026-09-21T05:23:47.881420+00:00",
+  "source_fingerprint": {
+    "git_head": "24f6d0be5cae9f07d79a6ce69c590cbb007569a0",
+    "agent_source_sha256": "8de4e60e427c98bc56833cb2b7c5b7fb01941fed5bcf7cdf4e5704eae970d657",
+    "library_sha256": "f82e3bb44a4356f8bb1a762872e0e779a93211b31c53d27cec843d55eb7a7120",
+    "contract_sha256": "ebebd569f7028d93576633959028558703045cce2cf4ccdfe292380abcfb1862",
+    "prompt_contract_sha256": "4cd0eb4c896d10df382f32f3858bc31e73f05618d95cd6c12afc38703046dd44"
+  },
+  "case": "SC-009-stale-confirmation",
+  "before": "sc009-before.json",
+  "before_failure": "Old one-soup button proposed START_SERVICE for the edited two-soup order",
+  "unit": {
+    "passed": 388,
+    "skipped": 10,
+    "failed": 0,
+    "report": "sc009-unit.log"
+  },
+  "offline": {
+    "OFFLINE_PARTIAL_PASS": 24,
+    "NOT_RUN": 18
+  },
+  "integration": {
+    "NOT_RUN": 24,
+    "INTEGRATION_PARTIAL_PASS": 18
+  },
+  "prompt_review": "sc009-final-prompt-review/acceptance.json",
+  "critical_anchors_preserved": 14,
+  "new_api_calls": 0,
+  "new_api_tokens": 0,
+  "cumulative_api_calls": 75,
+  "cumulative_api_tokens": 103891,
+  "deployment_authorized": false,
+  "limitations": [
+    "Model outputs and localization are controlled in these tests; no new live-model evaluation.",
+    "Spring/H2 persist real state; BPM and delivery are simulated, no WhatsApp session.",
+    "Sequential ROOM_SERVICE confirmation protection; concurrency and other offering menus are not certified.",
+    "No official documented option to visually disable sent WhatsApp buttons was found; no channel UI change.",
+    "Legacy unversioned buttons require a fresh confirmation."
+  ]
+}

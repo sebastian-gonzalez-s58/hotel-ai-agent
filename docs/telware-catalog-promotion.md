@@ -1,0 +1,7 @@
+# Telware catalog promotion
+
+Merge sandbox catalog enforcement, canonical summaries, optional-complement policies, text-only multiple selection, preserved language for catalog replies, catalog batching and SPA transaction-lock improvements into Telware. Preserve Telware-specific contact protections, capture continuity and existing environment/schema configuration. Frontend includes catalog option editor while retaining contact conflict UI.
+
+The required gate combines existing Telware and sandbox tests. No existing behavioral anchors or rules removed. Telware catalogs retain their own identifiers and content. After V23, set the three previously verified protein groups (two chilaquiles and tropical salad) to maximum 1, matching the user's sandbox policy. Enable CHATBOTINN_CATALOG_ENFORCE_GUEST_SELECTIONS for Telware. No new live model calls.
+
+Validation PASS on integrated source: 536 agent tests, 633 backend tests, 68 required Spring/H2 conversation cases, 60 frontend unit tests and 4 Chromium browser cases. Build, typecheck and lint passed. The SPA process integration test uses a dedicated H2 database to prevent cached contexts from acquiring its manually drained jobs; all 13 cases pass with original assertions. Deployment: agent first for backward compatibility, backend with migration, then frontend; temporarily pause automatic deploy and restore original settings after verification. Scope: Telware services only. Existing shared engine configuration is retained.
