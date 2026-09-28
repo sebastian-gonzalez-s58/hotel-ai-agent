@@ -535,7 +535,16 @@
       "tests.test_kitchen_changes.KitchenChangeTest.test_real_incident_changes_only_chorizo_and_requires_updated_confirmation",
       "tests.test_kitchen_changes.KitchenChangeTest.test_sauce_category_words_are_accepted_but_unknown_additions_are_not",
       "tests.test_kitchen_changes.KitchenChangeTest.test_scope_validation_rejects_unrelated_changes_and_retaining_blocked_option",
-      "tests.test_kitchen_changes.KitchenChangeTest.test_unavailable_choice_and_old_buttons_never_change_or_complete_order"
+      "tests.test_kitchen_changes.KitchenChangeTest.test_unavailable_choice_and_old_buttons_never_change_or_complete_order",
+      "tests.test_maintenance_questions.MaintenanceQuestionsTest.test_verbatim_schedule_reply_completes_only_the_question",
+      "tests.test_maintenance_questions.MaintenanceQuestionsTest.test_fault_details_and_fixed_statement_are_not_new_folios_or_resolution",
+      "tests.test_maintenance_questions.MaintenanceQuestionsTest.test_original_words_survive_scope_relevant_text_filter",
+      "tests.test_maintenance_questions.MaintenanceQuestionsTest.test_other_requests_questions_language_and_buttons_are_not_answers",
+      "tests.test_maintenance_questions.MaintenanceQuestionsTest.test_multiple_questions_require_reference_even_with_historical_focus",
+      "tests.test_maintenance_questions.MaintenanceQuestionsTest.test_unknown_or_retired_reference_never_answers_current_question",
+      "tests.test_maintenance_questions.MaintenanceQuestionsTest.test_reply_queued_before_question_cannot_answer_it",
+      "tests.test_maintenance_questions.MaintenanceQuestionsTest.test_validation_rejects_rewritten_or_resolved_answers",
+      "tests.test_maintenance_questions.MaintenanceQuestionsTest.test_success_acknowledges_sharing_without_confirming_appointment"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
@@ -1175,7 +1184,10 @@
       "com.chatbotinn.orchestration.v2.service.RoomServiceChangeServiceTest.identifiesDisabledSelectedExtraButOffersOnlyAvailableAlternativesAndKeepsOtherSelections",
       "com.chatbotinn.orchestration.v2.service.RoomServiceChangeServiceTest.rejectsStaleOrderAndForeignOrDuplicateTargets",
       "com.chatbotinn.process.conversationtask.RoomServiceV2ProcessIntegrationTest.targetedKitchenChangesAskOnlyForTheExtraAndPreserveTheOrderOrCancel(boolean)[1]",
-      "com.chatbotinn.process.conversationtask.RoomServiceV2ProcessIntegrationTest.targetedKitchenChangesAskOnlyForTheExtraAndPreserveTheOrderOrCancel(boolean)[2]"
+      "com.chatbotinn.process.conversationtask.RoomServiceV2ProcessIntegrationTest.targetedKitchenChangesAskOnlyForTheExtraAndPreserveTheOrderOrCancel(boolean)[2]",
+      "com.chatbotinn.process.conversationtask.MaintenanceRequestV2ProcessIntegrationTest.staffQuestionsKeepVerbatimRepliesAndRepeatOnTheSameFolio",
+      "com.chatbotinn.process.conversationtask.MaintenanceRequestV2ProcessIntegrationTest.unansweredQuestionCanBeWithdrawnWithoutClosingTheMaintenance",
+      "com.chatbotinn.process.conversationtask.MaintenanceRequestV2ProcessIntegrationTest.questionRejectsInventedAnswersAndMissingOrStaleStaffTask"
     ],
     "allowed_skips": [
       "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
