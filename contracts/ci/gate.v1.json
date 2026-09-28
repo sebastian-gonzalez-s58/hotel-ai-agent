@@ -529,7 +529,13 @@
       "tests.test_room_confirmation_localization.RoomConfirmationLocalizationTest.test_english_catalog_confirmation_cannot_be_rewritten_in_spanish",
       "tests.test_room_confirmation_localization.RoomConfirmationLocalizationTest.test_language_flag_alone_cannot_bypass_localization",
       "tests.test_room_confirmation_localization.RoomConfirmationLocalizationTest.test_other_locales_still_use_presentation_translation",
-      "tests.test_room_confirmation_localization.RoomConfirmationLocalizationTest.test_spanish_summary_preserves_catalog_and_explicit_confirmation"
+      "tests.test_room_confirmation_localization.RoomConfirmationLocalizationTest.test_spanish_summary_preserves_catalog_and_explicit_confirmation",
+      "tests.test_kitchen_changes.KitchenChangeTest.test_confirmation_revalidates_price_and_cancellation_has_current_guest_evidence",
+      "tests.test_kitchen_changes.KitchenChangeTest.test_initial_server_button_optional_skip_and_multiple_choices",
+      "tests.test_kitchen_changes.KitchenChangeTest.test_real_incident_changes_only_chorizo_and_requires_updated_confirmation",
+      "tests.test_kitchen_changes.KitchenChangeTest.test_sauce_category_words_are_accepted_but_unknown_additions_are_not",
+      "tests.test_kitchen_changes.KitchenChangeTest.test_scope_validation_rejects_unrelated_changes_and_retaining_blocked_option",
+      "tests.test_kitchen_changes.KitchenChangeTest.test_unavailable_choice_and_old_buttons_never_change_or_complete_order"
     ],
     "allowed_skips": [
       "tests.test_catalog_selection.LiveCatalogSelectionTest.test_multilingual_choices_and_nonchoices",
@@ -1164,7 +1170,12 @@
       "com.chatbotinn.orchestration.v2.service.ConversationTaskServicePersistenceTest.catalogRejectionLeavesTaskPendingWithoutProcessCorrelation",
       "com.chatbotinn.architecture.config.CatalogOptionOfferMigrationTest.enablesOnlyExistingOptionalFoodGroupsWithoutChangingSelectionRequirements",
       "com.chatbotinn.catalog.service.CatalogItemServiceTest.offeringOptionalGroupDoesNotMakeSelectionRequiredAndPatchPreservesPolicy",
-      "com.chatbotinn.catalog.service.CatalogItemServiceTest.groupWithoutOfferPolicyRetainsLegacyDefaultAndInvalidLimitsAreRejected"
+      "com.chatbotinn.catalog.service.CatalogItemServiceTest.groupWithoutOfferPolicyRetainsLegacyDefaultAndInvalidLimitsAreRejected",
+      "com.chatbotinn.orchestration.v2.service.RoomServiceChangeServiceTest.acceptsOnlyTargetedChangesAndProtectsOtherItemsNotesQuantityAndDelivery",
+      "com.chatbotinn.orchestration.v2.service.RoomServiceChangeServiceTest.identifiesDisabledSelectedExtraButOffersOnlyAvailableAlternativesAndKeepsOtherSelections",
+      "com.chatbotinn.orchestration.v2.service.RoomServiceChangeServiceTest.rejectsStaleOrderAndForeignOrDuplicateTargets",
+      "com.chatbotinn.process.conversationtask.RoomServiceV2ProcessIntegrationTest.targetedKitchenChangesAskOnlyForTheExtraAndPreserveTheOrderOrCancel(boolean)[1]",
+      "com.chatbotinn.process.conversationtask.RoomServiceV2ProcessIntegrationTest.targetedKitchenChangesAskOnlyForTheExtraAndPreserveTheOrderOrCancel(boolean)[2]"
     ],
     "allowed_skips": [
       "com.chatbotinn.agent.v2.service.ConversationRegressionIntegrationTest.fixtureConversationsRoundTripThroughSpringAndPython"
