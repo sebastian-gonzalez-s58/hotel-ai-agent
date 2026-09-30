@@ -1,6 +1,8 @@
 {
   "version": "6",
   "templates": {
+    "guest_booking.open": {"en": "Open this link to choose your service, date and time: {url}\nYour request will be sent to the staff for approval. We will send updates here.", "es": "Abre este enlace para elegir tu servicio, fecha y horario: {url}\nTu solicitud se enviará al personal para su aprobación. Te enviaremos las actualizaciones por aquí."},
+    "guest_booking.unavailable": {"en": "I could not open the booking calendar. Please try again shortly; no reservation has been submitted.", "es": "No pude abrir el calendario de reservas. Inténtalo de nuevo en un momento; no se ha enviado ninguna reservación."},
     "guest_order.open": {"en": "Open this link to choose your items and confirm your order: {url}\nWe will send order updates here after you confirm.", "es": "Abre este enlace para elegir tus productos y confirmar tu pedido: {url}\nTe enviaremos las actualizaciones por aquí después de que confirmes."},
     "guest_order.unavailable": {"en": "I could not open your order page. Please try again shortly; your order has not been submitted.", "es": "No pude abrir la página de tu pedido. Inténtalo de nuevo en un momento; tu pedido no se ha enviado."},
     "greeting.named": {"en": "Hello, {name}. How can we help you today? Please choose an option from the menu.", "es": "Hola, {name}. ¿Cómo podemos ayudarte hoy? Por favor, elige una opción del menú."},
