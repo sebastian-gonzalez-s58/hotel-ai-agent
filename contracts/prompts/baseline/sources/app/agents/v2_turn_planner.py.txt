@@ -19,6 +19,7 @@ from app.agents.reservation_actions import plan_reservation_action
 from app.agents.room_service_status import existing_order_message, resolve_order, status_message
 from app.agents.kitchen_changes import kitchen_context, initial_pending, advance_options, validate_scope as validate_kitchen_scope
 from app.agents.social_opening import classify_social_opening
+from app.agents.guest_order_sessions import plan_guest_order_session
 from app.agents.schema_validation import satisfies_schema
 from app.agents.spa_turns import plan_spa_turn, preserve_spa_state, started_spa_summary, validate_spa_call
 from app.prompts.v2_turn import build_v2_turn_prompt
@@ -65,6 +66,16 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     language_decision = None
     if language_enabled(request):
         request, language_decision = resolve_language(request, latest)
+    selected = _capture_selection(request, latest) if latest is not None else None
+    web_order = plan_guest_order_session(request, latest, _latest_capture_state(request),
+                                        selected_code=selected[0].offeringCode if selected else None)
+    if web_order is not None:
+        response = _deterministic_turn_response(request, started_at, **web_order)
+        response.languageDecision = language_decision
+        if language_enabled(request):
+            response.detectedLanguage = language_decision.locale if language_decision else None
+            response = localize_response(request, response, started_at)
+        return response
     if (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
             and latest is not None and _is_room_confirmation_button(latest)
             and (not _room_confirmation_matches(request, latest)
@@ -416,6 +427,8 @@ def _preserve_start_failure(request, response):
 def _preserve_room_service_draft(request, response):
     """BC-004: another service's summary cannot discard an independent order."""
     old = _latest_capture_state(request)
+    if old.get("phase") == "WEB_ORDER":
+        return response
     if response.updatedConversationSummary is None:
         return response
     updated = request.model_copy(deep=True)
@@ -493,6 +506,10 @@ def _resume_room_service_draft(request, scope, started_at):
 @timed("agent.plan_with_model")
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
                      scope: ScopeDecision | None = None) -> AgentTurnResponse:
+    web_order = plan_guest_order_session(request, _latest_inbound_message(request),
+                                        _latest_capture_state(request), scope=scope)
+    if web_order is not None:
+        return _deterministic_turn_response(request, started_at, **web_order)
     question = plan_question(request, _latest_inbound_message(request), scope)
     if question is not None:
         return _deterministic_turn_response(request, started_at, **question)
@@ -2000,6 +2017,9 @@ def _validate_plan(
         if not set(call.evidenceMessageIds).issubset(message_ids):
             raise AgentModelError("Tool call contains evidence outside the turn context")
         _validate_lifecycle_call(call, offerings, operations_by_id)
+        if (call.toolName == DomainToolName.OPEN_GUEST_ORDER_SESSION
+                and call.arguments.get("language") != request.guest.preferredLanguage):
+            raise AgentModelError("Guest order launch must use the current guest language")
         _validate_status_call(call, offerings)
         _validate_conversation_task_call(call, tasks_by_id)
         if call.toolName == DomainToolName.START_SERVICE and call.arguments.get("offeringCode") == "ROOM_SERVICE":
@@ -2220,6 +2240,14 @@ def _ensure_faq_follow_up(request: AgentTurnRequest, messages: list[dict]) -> No
 
 
 def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
+    if call.toolName == DomainToolName.OPEN_GUEST_ORDER_SESSION:
+        offering = offerings.get(call.arguments.get("offeringCode"))
+        if offering is None or offering.guestExperience != "WEB_ORDER":
+            raise AgentModelError("Guest web checkout is unavailable for this offering")
+        if call.targetOperationId is not None or call.targetConversationTaskId is not None:
+            raise AgentModelError("Guest order launch cannot mutate an operation or task")
+        if not call.evidenceMessageIds:
+            raise AgentModelError("Guest order launch requires guest evidence")
     if call.toolName == DomainToolName.START_SERVICE:
         if call.targetOperationId is not None:
             raise AgentModelError("START_SERVICE cannot target an existing operation")
@@ -2227,6 +2255,8 @@ def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
         offering = offerings.get(offering_code)
         if offering is None:
             raise AgentModelError("START_SERVICE references an unavailable offering")
+        if offering.guestExperience == "WEB_ORDER":
+            raise AgentModelError("WEB_ORDER requires guest checkout, not agent START_SERVICE")
         if not isinstance(call.arguments.get("input"), dict):
             raise AgentModelError("START_SERVICE input must be an object")
         _validate_offering_input(
