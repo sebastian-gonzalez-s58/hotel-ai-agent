@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "47fb40bac5f23647ae99dbdfe680bf700ccac43eaef411c4230782783cd9384f",
-  "evidence": "docs/maintenance-questions-review.md",
+  "baseline_index_sha256": "b86bb1f6b2e1102629746d029dd0cfa757e0bb42f2c1e034354872659f314c67",
+  "evidence": "docs/guest-order-checkout-review.md",
   "human_approval": false,
   "reviewer": "Codex implementation review",
-  "reason": "Reviewed additive staff-question routing, 8 authorized real-model synthetic cases and mandatory regression coverage. Existing prompt instructions, anchors and gate requirements retained."
+  "reason": "Inspected additive opt-in WEB_ORDER rule, schema/tool extension and ES/EN deterministic links. Existing prompt rules and anchors retained. Eight focused guest checkout contract tests and existing flow regression batch passed; full mandatory suite remains required. No real-model validation claimed."
 }

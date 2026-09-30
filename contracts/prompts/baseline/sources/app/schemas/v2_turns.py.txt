@@ -27,6 +27,7 @@ class DomainToolName(str, Enum):
     LIST_ACTIVE_OPERATIONS = "LIST_ACTIVE_OPERATIONS"
     GET_OPERATION = "GET_OPERATION"
     GET_OPERATION_STATUS = "GET_OPERATION_STATUS"
+    OPEN_GUEST_ORDER_SESSION = "OPEN_GUEST_ORDER_SESSION"
     START_SERVICE = "START_SERVICE"
     SAVE_CONVERSATION_TASK_PROGRESS = "SAVE_CONVERSATION_TASK_PROGRESS"
     COMPLETE_CONVERSATION_TASK = "COMPLETE_CONVERSATION_TASK"
@@ -131,6 +132,7 @@ class OfferingCapability(StrictModel):
     inputSchema: dict[str, Any]
     catalogCodes: list[str] = Field(default_factory=list)
     requiresExplicitGuestConfirmation: bool = False
+    guestExperience: Literal["WEB_ORDER"] | None = None
 
 
 class ToolPolicy(StrictModel):
