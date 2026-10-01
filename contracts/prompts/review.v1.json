@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "9cb2a3b0e54ef2345b600eedbdd1fc3877f0ad2064d26254f69fecfc84684912",
-  "evidence": "docs/telware-current-sandbox-promotion.md",
+  "baseline_index_sha256": "31b29e5de8377f939c71af9519f99eaeb3f3d7a0d806f72f0da19ed629453314",
+  "evidence": "docs/demo-promotion-20261001.md",
   "human_approval": false,
-  "reviewer": "Codex local implementation review",
-  "reason": "Promote deployed sandbox while preserving Telware-specific contact/capture safeguards and union of mandatory tests. Effective model instructions and behavioral anchors unchanged; room confirmation location labels localized and timing wrappers added."
+  "reviewer": "Codex implementation review",
+  "reason": "Merge current sandbox booking and maintenance capabilities while retaining existing Telware room-service draft continuity. No new prompt behavior designed. Reviewed planner delta against sandbox and preserved all anchors. Mandatory paired deterministic gate required before deployment."
 }

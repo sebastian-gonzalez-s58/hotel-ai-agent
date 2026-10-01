@@ -784,6 +784,11 @@
           "inputSchema"
         ],
         "properties": {
+          "guestExperience": {
+            "type": ["string", "null"],
+            "enum": ["WEB_ORDER", "WEB_BOOKING", null],
+            "description": "When enabled, launch guest web checkout instead of capturing and submitting this offering in chat."
+          },
           "offeringCode": {
             "type": "string",
             "minLength": 1,
@@ -844,6 +849,8 @@
                 "SEARCH_KNOWLEDGE",
                 "LIST_ACTIVE_OPERATIONS",
                 "GET_OPERATION",
+                "OPEN_GUEST_ORDER_SESSION",
+              "OPEN_GUEST_BOOKING_SESSION",
                 "START_SERVICE",
                 "SAVE_CONVERSATION_TASK_PROGRESS",
                 "COMPLETE_CONVERSATION_TASK",
@@ -1217,6 +1224,8 @@
               "SEARCH_KNOWLEDGE",
               "LIST_ACTIVE_OPERATIONS",
               "GET_OPERATION",
+              "OPEN_GUEST_ORDER_SESSION",
+              "OPEN_GUEST_BOOKING_SESSION",
               "START_SERVICE",
               "SAVE_CONVERSATION_TASK_PROGRESS",
               "COMPLETE_CONVERSATION_TASK",

@@ -203,6 +203,8 @@
       ],
       "unit_files": [
         "tests/test_v2_turn_planner.py",
+        "tests/test_guest_order_sessions.py",
+        "tests/test_guest_booking_sessions.py",
         "tests/test_multilingual_understanding.py",
         "tests/test_room_service_interruptions.py",
         "tests/test_pending_language_switch.py",
