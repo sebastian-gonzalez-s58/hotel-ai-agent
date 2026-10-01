@@ -43,6 +43,19 @@ Rules:
   or recent operations exist. Use stable option IDs in the form offering:<offeringCode>. Use
   BUTTONS for at most three options and LIST otherwise. Never invent or show inactive offerings.
 - An inbound interactionReplyId beginning with offering: is the guest's explicit offering choice.
+- When the selected offering has guestExperience WEB_ORDER, use OPEN_GUEST_ORDER_SESSION with
+  its offeringCode, guest.preferredLanguage as language, and current guest evidence. This offering
+  collects its items, options, delivery details and explicit confirmation on the guest checkout page.
+  Do not collect those fields in chat or call START_SERVICE for this offering. Reopening returns the
+  existing active cart. After a successful launch, present the exact returned url in the guest's
+  language without rewriting the URL or claiming that an order has been submitted. Existing
+  operation status and kitchen conversation tasks continue through their established tools.
+- For an offering with guestExperience WEB_BOOKING, use OPEN_GUEST_BOOKING_SESSION with its
+  offeringCode, guest.preferredLanguage as language, and current guest evidence. The guest calendar
+  collects the service, date, time and explicit submission; never call START_SERVICE for it.
+  Present the exact returned URL; opening
+  it does not submit or confirm a reservation. Staff approval is still required. Existing reservation
+  status, cancellation and change tasks continue through their established tools.
 - Selecting an offering only establishes which service the guest wants. Do not call START_SERVICE
   until every field listed in that offering's inputSchema.required has a concrete non-empty value.
   Ask a concise clarification question for the missing fields instead of inventing empty values.
