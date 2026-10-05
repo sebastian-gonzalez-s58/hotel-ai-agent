@@ -1239,6 +1239,23 @@ def _room_service_operation_task_plan(
         return None
 
     offering = next((o for o in request.availableOfferings if o.offeringCode == "ROOM_SERVICE"), None)
+    if task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS" and task.context.get("guestExperience") == "WEB_ORDER":
+        if _is_free_text_cancel(latest_inbound.text) or (latest_inbound.interactionReplyId or "").endswith(":CANCEL"):
+            return _deterministic_turn_response(request, started_at, disposition="TOOL_CALLS_REQUIRED", messages=[],
+                tool_calls=[{"toolCallId": str(uuid4()), "toolName": "COMPLETE_CONVERSATION_TASK",
+                    "targetOperationId": str(task.operationId), "targetConversationTaskId": str(task.conversationTaskId),
+                    "arguments": {"conversationTaskId": str(task.conversationTaskId), "expectedVersion": task.version,
+                                  "result": {"roomServiceChangeCancelled": True}},
+                    "confidence": 1.0, "evidenceMessageIds": [str(latest_inbound.messageId)]}],
+                updated_summary=request.conversation.summary)
+        return _deterministic_turn_response(request, started_at, disposition="TOOL_CALLS_REQUIRED", messages=[],
+            tool_calls=[{"toolCallId": str(uuid4()), "toolName": "OPEN_GUEST_ORDER_SESSION",
+                "targetOperationId": str(task.operationId), "targetConversationTaskId": str(task.conversationTaskId),
+                "arguments": {"conversationTaskId": str(task.conversationTaskId), "offeringCode": next(
+                    o.offeringCode for o in request.activeOperations if o.operationId == task.operationId),
+                    "language": request.guest.preferredLanguage},
+                "confidence": 1.0, "evidenceMessageIds": [str(latest_inbound.messageId)]}],
+            updated_summary=request.conversation.summary)
     if task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS" and catalog_for(offering, "items"):
         return _catalog_replacement_plan(request, started_at, task, offering, latest_inbound)
 
@@ -2052,6 +2069,13 @@ def _validate_plan(
                         or call.arguments.get("input") != _latest_capture_state(request).get("capturedFields"))):
                 raise AgentModelError("Room-service button does not authorize the current captured order")
         target_task = tasks_by_id.get(call.targetConversationTaskId)
+        if (target_task and target_task.context.get("guestExperience") == "WEB_ORDER"
+                and call.toolName == DomainToolName.SAVE_CONVERSATION_TASK_PROGRESS):
+            raise AgentModelError("Order changes must be edited in the guest menu")
+        if (target_task and target_task.context.get("guestExperience") == "WEB_ORDER"
+                and call.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK
+                and call.arguments.get("result", {}).get("roomServiceChangeCancelled") is not True):
+            raise AgentModelError("Order changes must be confirmed in the guest menu")
         validate_question_call(request, call, target_task, _latest_inbound_message(request))
         strict_replacement = (target_task and target_task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS"
                               and catalog_for(offerings.get("ROOM_SERVICE"), "items"))
@@ -2274,7 +2298,14 @@ def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
         if offering is None or offering.guestExperience != "WEB_ORDER":
             raise AgentModelError("Guest web checkout is unavailable for this offering")
         if call.targetOperationId is not None or call.targetConversationTaskId is not None:
-            raise AgentModelError("Guest order launch cannot mutate an operation or task")
+            operation = operations_by_id.get(call.targetOperationId)
+            task = next((t for t in operation.pendingConversationTasks
+                         if t.conversationTaskId == call.targetConversationTaskId), None) if operation else None
+            if (not task or task.taskType != "ROOM_SERVICE_ORDER_CHANGE_DETAILS"
+                    or task.context.get("guestExperience") != "WEB_ORDER"
+                    or operation.offeringCode != call.arguments.get("offeringCode")
+                    or str(task.conversationTaskId) != call.arguments.get("conversationTaskId")):
+                raise AgentModelError("Guest order amendment requires its pending web-edit task")
         if not call.evidenceMessageIds:
             raise AgentModelError("Guest order launch requires guest evidence")
     if call.toolName == DomainToolName.START_SERVICE:
