@@ -19,6 +19,7 @@ from app.agents.reservation_actions import plan_reservation_action
 from app.agents.room_service_status import existing_order_message, resolve_order, status_message
 from app.agents.kitchen_changes import kitchen_context, initial_pending, advance_options, validate_scope as validate_kitchen_scope
 from app.agents.social_opening import classify_social_opening
+from app.agents.pending_service_cancellation import plan_pending_cancellation
 from app.agents.guest_order_sessions import plan_guest_order_session
 from app.agents.guest_booking_sessions import plan_guest_booking_session
 from app.agents.schema_validation import satisfies_schema
@@ -68,7 +69,8 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     if language_enabled(request):
         request, language_decision = resolve_language(request, latest)
     selected = _capture_selection(request, latest) if latest is not None else None
-    web_order = plan_guest_order_session(request, latest, _latest_capture_state(request),
+    cancellation = plan_pending_cancellation(request, latest, _latest_capture_state(request))
+    web_order = cancellation or plan_guest_order_session(request, latest, _latest_capture_state(request),
                                         selected_code=selected[0].offeringCode if selected else None)
     if web_order is None:
         web_order = plan_guest_booking_session(request, latest, _latest_capture_state(request),
@@ -133,7 +135,10 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         reservation = plan_reservation_action(request, latest, scope)
         existing_message = existing_order_message(request, latest, scope, _latest_capture_state(request))
         question = plan_question(request, latest, scope)
-        if question is not None:
+        cancellation = plan_pending_cancellation(request, latest, _latest_capture_state(request), scope)
+        if cancellation is not None:
+            response = _deterministic_turn_response(request, started_at, **cancellation)
+        elif question is not None:
             response = _deterministic_turn_response(request, started_at, **question)
         elif reservation is not None:
             response = _deterministic_turn_response(request, started_at, **reservation)
@@ -510,6 +515,9 @@ def _resume_room_service_draft(request, scope, started_at):
 @timed("agent.plan_with_model")
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
                      scope: ScopeDecision | None = None) -> AgentTurnResponse:
+    cancellation = plan_pending_cancellation(request, _latest_inbound_message(request), _latest_capture_state(request), scope)
+    if cancellation is not None:
+        return _deterministic_turn_response(request, started_at, **cancellation)
     web_order = plan_guest_order_session(request, _latest_inbound_message(request),
                                         _latest_capture_state(request), scope=scope)
     if web_order is None:
@@ -2247,6 +2255,12 @@ def _ensure_faq_follow_up(request: AgentTurnRequest, messages: list[dict]) -> No
 
 
 def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
+    if call.toolName == DomainToolName.CANCEL_GUEST_WEB_SESSION:
+        offering = offerings.get(call.arguments.get("offeringCode"))
+        if offering is None or offering.guestExperience not in ("WEB_ORDER", "WEB_BOOKING"):
+            raise AgentModelError("Guest web cancellation requires a web offering")
+        if call.targetOperationId is not None or call.targetConversationTaskId is not None or not call.evidenceMessageIds:
+            raise AgentModelError("Guest web cancellation requires guest evidence and cannot mutate an operation")
     if call.toolName == DomainToolName.OPEN_GUEST_BOOKING_SESSION:
         offering = offerings.get(call.arguments.get("offeringCode"))
         if offering is None or offering.guestExperience != "WEB_BOOKING":

@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "e34db93dccce979a0047174ad69dea6dfe8bcdb1a6640d608527497e14660065",
-  "evidence": "docs/guest-booking-calendar-review.md",
+  "baseline_index_sha256": "d7121bbd885f97c786a2d7da2fa961dbdcc661ced8006803e4fc1eeff508081c",
+  "evidence": "docs/pending-service-cancellation-review.md",
   "human_approval": false,
   "reviewer": "Codex implementation review",
-  "reason": "Inspected additive WEB_BOOKING launch contract and all generated schema changes. Existing rules and anchors retained; 85 focused offline tests pass. No real-model validation claimed; full paired gate required."
+  "reason": "Reviewed all nine changed snapshots. Only additive cancellation enum in effective model schemas; no prompt prose or anchors removed. Scoped pending-draft cancellation precedes web launch and generic capture. Focused agent and transactional backend tests pass. Full paired offline gate required; no live model calls claimed."
 }
