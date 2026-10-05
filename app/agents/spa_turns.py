@@ -350,7 +350,7 @@ def _options(request, prefix, actions, token=None):
     labels = {
         "ACCEPT": ("Aceptar", "Accept"), "CONFIRM": ("Confirmar", "Confirm"),
         "UPDATE": ("Confirmar cambios", "Confirm changes"),
-        "CHANGE": ("Cambiar", "Change"), "CANCEL": ("Cancelar", "Cancel"),
+        "CHANGE": ("Buscar alternativa" if "ACCEPT" in actions else "Cambiar", "Find alternative" if "ACCEPT" in actions else "Change"), "CANCEL": ("Cancelar", "Cancel"),
     }
     return [{"id": prefix + ":" + action + (":" + token if token and action in {"CONFIRM", "UPDATE"} else ""),
              "label": _text(request, *labels[action])} for action in actions]
@@ -654,6 +654,20 @@ def _plan_task(request, state, task, message, button, offering):
         draft = {"version": task.version, "capturedFields": _original_fields(task), "unresolvedFields": {}}
         tasks[task_id] = draft
     draft.update(operationId=str(task.operationId), taskType=task.taskType)
+    if task.taskType == "SPA_RESERVATION_CHANGE_DETAILS" and task.context.get("guestExperience") == "WEB_BOOKING":
+        action = button[2] if button else _action(message) if message else None
+        if action == "CANCEL" and _can_call(request, DomainToolName.COMPLETE_CONVERSATION_TASK):
+            draft["submittedDecision"] = "CANCEL"
+            return _reply(request, state, calls=[_task_call(task, message, {"decision": "CANCEL"})])
+        if message and _can_call(request, DomainToolName.OPEN_GUEST_BOOKING_SESSION):
+            return _reply(request, state, calls=[{
+                "toolName": "OPEN_GUEST_BOOKING_SESSION", "targetOperationId": str(task.operationId),
+                "targetConversationTaskId": task_id,
+                "arguments": {"conversationTaskId": task_id, "offeringCode": offering.offeringCode,
+                              "language": request.guest.preferredLanguage},
+                "confidence": 1.0, "evidenceMessageIds": [str(message.messageId)]}])
+        return _reply(request, state, _text(request,"Abre el enlace del calendario para elegir otra alternativa.",
+                                           "Open the calendar link to choose another alternative."))
     if task.taskType == "SPA_RESERVATION_CHANGE_DETAILS":
         return _capture(request, state, draft, message, button, offering, task,
                         prompt_only=message is None or bool(button and button[2] == "SELECT"))

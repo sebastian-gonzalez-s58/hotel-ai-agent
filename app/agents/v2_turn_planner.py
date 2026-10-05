@@ -2069,13 +2069,17 @@ def _validate_plan(
                         or call.arguments.get("input") != _latest_capture_state(request).get("capturedFields"))):
                 raise AgentModelError("Room-service button does not authorize the current captured order")
         target_task = tasks_by_id.get(call.targetConversationTaskId)
-        if (target_task and target_task.context.get("guestExperience") == "WEB_ORDER"
+        if (target_task and target_task.context.get("guestExperience") in {"WEB_ORDER", "WEB_BOOKING"}
                 and call.toolName == DomainToolName.SAVE_CONVERSATION_TASK_PROGRESS):
             raise AgentModelError("Order changes must be edited in the guest menu")
         if (target_task and target_task.context.get("guestExperience") == "WEB_ORDER"
                 and call.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK
                 and call.arguments.get("result", {}).get("roomServiceChangeCancelled") is not True):
             raise AgentModelError("Order changes must be confirmed in the guest menu")
+        if (target_task and target_task.context.get("guestExperience") == "WEB_BOOKING"
+                and call.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK
+                and call.arguments.get("result", {}).get("decision") != "CANCEL"):
+            raise AgentModelError("Booking changes must be confirmed in the guest calendar")
         validate_question_call(request, call, target_task, _latest_inbound_message(request))
         strict_replacement = (target_task and target_task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS"
                               and catalog_for(offerings.get("ROOM_SERVICE"), "items"))
@@ -2290,7 +2294,14 @@ def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
         if offering is None or offering.guestExperience != "WEB_BOOKING":
             raise AgentModelError("Guest booking calendar is unavailable for this offering")
         if call.targetOperationId is not None or call.targetConversationTaskId is not None:
-            raise AgentModelError("Guest booking launch cannot mutate an operation or task")
+            operation = operations_by_id.get(call.targetOperationId)
+            task = next((t for t in operation.pendingConversationTasks
+                         if t.conversationTaskId == call.targetConversationTaskId), None) if operation else None
+            if (not task or task.taskType != "SPA_RESERVATION_CHANGE_DETAILS"
+                    or task.context.get("guestExperience") != "WEB_BOOKING"
+                    or operation.offeringCode != call.arguments.get("offeringCode")
+                    or str(task.conversationTaskId) != call.arguments.get("conversationTaskId")):
+                raise AgentModelError("Guest booking amendment requires its pending web-edit task")
         if not call.evidenceMessageIds:
             raise AgentModelError("Guest booking launch requires guest evidence")
     if call.toolName == DomainToolName.OPEN_GUEST_ORDER_SESSION:
