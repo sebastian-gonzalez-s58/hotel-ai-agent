@@ -24,9 +24,13 @@ def plan_guest_order_session(request, latest, state, *, selected_code=None, scop
                  and not parsed.username and not parsed.password)
         text = template("guest_order.open", request.guest.preferredLanguage, url=url) if valid else template(
             "guest_order.unavailable", request.guest.preferredLanguage)
+        if valid and data.get("amendment"):
+            text = (f"Your order is already loaded. Edit your items or options and send the changes to the kitchen here: {url}"
+                    if request.guest.preferredLanguage.lower().startswith("en") else
+                    f"Tu pedido ya está cargado. Edita los artículos o complementos y envía los cambios a cocina aquí: {url}")
         return {"disposition": "RESPONSE_READY", "messages": [{"purpose": "ANSWER", "text": text,
                 "language": request.guest.preferredLanguage, "operationIds": [], "conversationTaskIds": []}],
-                "updated_summary": _summary(state, code) if valid else request.conversation.summary}
+                "updated_summary": _summary(state, code) if valid and not data.get("amendment") else request.conversation.summary}
     if request.previousToolResults or latest is None:
         return None
     code = selected_code
@@ -34,8 +38,32 @@ def plan_guest_order_session(request, latest, state, *, selected_code=None, scop
         code = scope.offeringCode
     elif scope and scope.kind == "CONTEXT_REPLY" and not request.conversation.focusedConversationTaskId:
         code = state.get("pendingOffering")
-        if any(o.offeringCode == code and o.pendingConversationTasks for o in request.activeOperations):
+        if any(o.offeringCode == code and o.pendingConversationTasks and not any(t.context.get("guestExperience") == "WEB_ORDER" for t in o.pendingConversationTasks) for o in request.activeOperations):
             return None
+    if scope and scope.kind in {"SERVICE_REQUEST", "CONTEXT_REPLY"}:
+        candidates = [(operation, task) for operation in request.activeOperations
+                      for task in operation.pendingConversationTasks
+                      if task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS"
+                      and task.context.get("guestExperience") == "WEB_ORDER"
+                      and (operation.offeringCode == code or scope.kind == "CONTEXT_REPLY"
+                           and task.conversationTaskId == request.conversation.focusedConversationTaskId)]
+        if len(candidates) == 1:
+            operation, task = candidates[0]
+            if scope.replyAction == "CANCEL":
+                return {"disposition": "TOOL_CALLS_REQUIRED", "messages": [], "tool_calls": [{
+                    "toolCallId": str(uuid4()), "toolName": "COMPLETE_CONVERSATION_TASK",
+                    "targetOperationId": str(operation.operationId), "targetConversationTaskId": str(task.conversationTaskId),
+                    "arguments": {"conversationTaskId": str(task.conversationTaskId), "expectedVersion": task.version,
+                                  "result": {"roomServiceChangeCancelled": True}},
+                    "confidence": 1, "evidenceMessageIds": [str(latest.messageId)]}],
+                    "updated_summary": request.conversation.summary}
+            return {"disposition": "TOOL_CALLS_REQUIRED", "messages": [], "tool_calls": [{
+                "toolCallId": str(uuid4()), "toolName": "OPEN_GUEST_ORDER_SESSION",
+                "targetOperationId": str(operation.operationId), "targetConversationTaskId": str(task.conversationTaskId),
+                "arguments": {"offeringCode": operation.offeringCode, "language": request.guest.preferredLanguage,
+                              "conversationTaskId": str(task.conversationTaskId)},
+                "confidence": 1, "evidenceMessageIds": [str(latest.messageId)]}],
+                "updated_summary": request.conversation.summary}
     if code not in offerings:
         return None
     if DomainToolName.OPEN_GUEST_ORDER_SESSION not in request.toolPolicy.allowedTools:

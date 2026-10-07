@@ -1,0 +1,43 @@
+2026-09-21 20:44:17,727 INFO chatbotinn-agent Agent logging configured environment=local version=0.1.0
+2026-09-21 20:44:17,887 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=10000000-0000-0000-0000-000000000001 kind=CONTEXT_REPLY offering=None mixed=False locale=en action=NONE
+2026-09-21 20:44:17,887 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=10000000-0000-0000-0000-000000000001 kind=CONTEXT_REPLY offering=None mixed=False locale=en action=NONE
+2026-09-21 20:44:17,929 INFO chatbotinn-agent.input-understanding Guest decision interpreted. message_id=20000000-0000-0000-0000-000000000001 action=AMBIGUOUS accepted=True confidence=1.0 evidence_matches=True
+2026-09-21 20:44:17,977 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=080861d4-315a-4c10-8681-578da6e52c07 items=1 require_full=False
+2026-09-21 20:44:18,161 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=5fc73fc0-da47-57fc-b6f6-d748cb2dd755 kind=HOTEL_QUESTION offering=FAQ mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:18,186 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=c602e81e-6bff-53e1-993f-e329b86e2f59 kind=SERVICE_REQUEST offering=ROOM_SERVICE mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:18,202 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=b55e8fab-d94c-5824-8649-0ddd14e9f058 kind=HOTEL_QUESTION offering=FAQ mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:18,227 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=1729844c-1aed-541b-8858-bff1f195e7b0 kind=SERVICE_REQUEST offering=ROOM_SERVICE mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:18,581 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=5fc73fc0-da47-57fc-b6f6-d748cb2dd755 kind=HOTEL_QUESTION offering=FAQ mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:18,744 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=d54988a7-a0ca-5a0f-9a21-e265b6caabb0 kind=CONTEXT_REPLY offering=ROOM_SERVICE mixed=False locale=es-MX action=CANCEL
+2026-09-21 20:44:18,744 INFO chatbotinn-agent.input-understanding Guest decision interpreted. message_id=b13defa2-3fb9-5340-b7ae-8ed4a621d882 action=CANCEL accepted=True confidence=1.0 evidence_matches=True
+2026-09-21 20:44:18,802 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:18,802 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 items=1 require_full=False
+2026-09-21 20:44:18,963 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:18,966 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 items=1 require_full=False
+2026-09-21 20:44:18,977 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=d54988a7-a0ca-5a0f-9a21-e265b6caabb0 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=CONFIRM
+2026-09-21 20:44:18,977 INFO chatbotinn-agent.input-understanding Guest decision interpreted. message_id=b13defa2-3fb9-5340-b7ae-8ed4a621d882 action=CONFIRM accepted=True confidence=1.0 evidence_matches=True
+2026-09-21 20:44:19,027 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=SOCIAL offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:19,177 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:19,185 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 items=1 require_full=False
+2026-09-21 20:44:19,302 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:19,310 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 items=1 require_full=False
+2026-09-21 20:44:19,327 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:19,327 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 items=1 require_full=False
+2026-09-21 20:44:19,354 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:19,354 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 items=1 require_full=False
+2026-09-21 20:44:19,419 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:19,419 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 items=1 require_full=False
+2026-09-21 20:44:19,502 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:19,502 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 items=1 require_full=False
+2026-09-21 20:44:19,579 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:19,583 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 items=1 require_full=False
+2026-09-21 20:44:19,585 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=d54988a7-a0ca-5a0f-9a21-e265b6caabb0 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:19,594 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=b13defa2-3fb9-5340-b7ae-8ed4a621d882 items=1 require_full=False
+2026-09-21 20:44:19,919 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=None mixed=False locale=es-MX action=NONE
+2026-09-21 20:44:19,927 INFO chatbotinn-agent.input-understanding Order understanding completed. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 items=1 require_full=False
+2026-09-21 20:44:19,985 INFO chatbotinn-agent.v2-scope-router Hotel scope classified. turn_id=14da03f7-669c-5193-8fc2-183753203bd3 kind=CONTEXT_REPLY offering=ROOM_SERVICE mixed=False locale=es-MX action=CANCEL
+2026-09-21 20:44:19,985 INFO chatbotinn-agent.input-understanding Guest decision interpreted. message_id=bd640e5e-8754-5ac1-8e12-ec7696cb77d0 action=CANCEL accepted=True confidence=1.0 evidence_matches=True
+----------------------------------------------------------------------
+Ran 59 tests in 2.184s
+
+OK (skipped=1)

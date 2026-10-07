@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "31b29e5de8377f939c71af9519f99eaeb3f3d7a0d806f72f0da19ed629453314",
-  "evidence": "docs/demo-promotion-20261001.md",
+  "baseline_index_sha256": "1a7df61433d845e7a6b2840b11fa2b6d4f0c1c4b83a337b80e7f1c46e93cd206",
+  "evidence": "docs/telware-sandbox-promotion-20261007.md",
   "human_approval": false,
   "reviewer": "Codex implementation review",
-  "reason": "Merge current sandbox booking and maintenance capabilities while retaining existing Telware room-service draft continuity. No new prompt behavior designed. Reviewed planner delta against sandbox and preserved all anchors. Mandatory paired deterministic gate required before deployment."
+  "reason": "Reviewed the sandbox integration against Telware continuity safeguards. The candidate changes 15 captured documents: guest order and booking amendment handlers, deterministic FAQ handoff text, booking clock context, planner capture continuity, and their tests. Effective instruction text and critical anchors remain intact; six context snapshots change only deterministic synthetic IDs. Offline replay and targeted agent tests are required before deployment; no live model calls are claimed."
 }

@@ -1295,7 +1295,8 @@ class V2TurnPlannerTest(unittest.TestCase):
 
         self.assertEqual("RESPONSE_READY", second.disposition)
         self.assertEqual("HANDOFF", second.messages[0].purpose)
-        self.assertIn("no tengo información suficiente", second.messages[0].text)
+        self.assertIn("te responderá por este chat", second.messages[0].text)
+        self.assertNotIn("asistente virtual", second.messages[0].text)
         self.assertIn("equipo del hotel", second.messages[0].text)
         self.assertNotIn("FAQ-20260828-DEF67890", second.messages[0].text)
         openai_call.assert_not_called()
@@ -1345,7 +1346,8 @@ class V2TurnPlannerTest(unittest.TestCase):
 
         self.assertEqual("RESPONSE_READY", second.disposition)
         self.assertEqual("HANDOFF", second.messages[0].purpose)
-        self.assertIn("no tengo información suficiente", second.messages[0].text)
+        self.assertIn("te responderá por este chat", second.messages[0].text)
+        self.assertNotIn("asistente virtual", second.messages[0].text)
         openai_call.assert_not_called()
 
     def test_old_catalog_capture_does_not_hijack_a_later_greeting(self):
