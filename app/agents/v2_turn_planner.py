@@ -1755,11 +1755,11 @@ def _faq_started_response_plan(
         purpose = "ANSWER"
     else:
         text = (
-            "Lo siento, como asistente virtual no tengo información suficiente para responder "
-            "tu pregunta. La compartiré con el equipo del hotel para que te respondan a la brevedad."
+            "Para darte una respuesta precisa, el equipo del hotel revisará tu consulta "
+            "y te responderá por este chat. Puedes seguir usando nuestros servicios mientras tanto."
             if spanish
-            else "I’m sorry, but I do not have enough information to answer your question. "
-            "I’ll share it with the hotel team so they can reply shortly."
+            else "To give you an accurate answer, the hotel team will review your question "
+            "and reply here in this chat. You can continue using our services in the meantime."
         )
         purpose = "HANDOFF"
 
