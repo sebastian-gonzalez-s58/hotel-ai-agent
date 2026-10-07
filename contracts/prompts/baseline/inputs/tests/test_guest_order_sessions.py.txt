@@ -27,6 +27,43 @@ def request_for(code="ROOM_SERVICE", locale="es-MX", enabled=True):
 
 
 class GuestOrderSessionTest(unittest.TestCase):
+    def web_amendment(self):
+        from tests.test_multilingual_understanding import task_operation
+        request = request_for()
+        request.toolPolicy.allowedTools.append("COMPLETE_CONVERSATION_TASK")
+        operation = task_operation("ROOM_SERVICE_ORDER_CHANGE_DETAILS")
+        task = operation.pendingConversationTasks[0]
+        task.context = {"guestExperience": "WEB_ORDER"}
+        task.requiredOutputSchema = {"type": "object", "properties": {"items": {"type": "array"}, "roomServiceChangeCancelled": {"const": True}},
+                                     "oneOf": [{"required": ["items"]}, {"required": ["roomServiceChangeCancelled"]}]}
+        request.activeOperations = [operation]
+        request.conversation.focusedConversationTaskId = task.conversationTaskId
+        request.conversation.recentMessages[-1].interactionReplyId = None
+        request.conversation.recentMessages[-1].text = "Mejor quiero una hamburguesa"
+        return request, operation, task
+
+    def test_web_amendment_reopens_same_task_instead_of_chat_capture_or_new_order(self):
+        request, operation, task = self.web_amendment()
+        for kind in ("CONTEXT_REPLY", "SERVICE_REQUEST"):
+            scope = ScopeDecision(kind=kind, offeringCode="ROOM_SERVICE", relevantText="Una hamburguesa", hasRequestDetails=True,
+                                  containsUnrelatedTopic=False, confidence=1)
+            with scripted_runtime([]):
+                response = _plan_hotel_turn(request, 0, scope)
+            self.assertEqual(["OPEN_GUEST_ORDER_SESSION"], [c.toolName for c in response.toolCalls])
+            self.assertEqual(task.conversationTaskId, response.toolCalls[0].targetConversationTaskId)
+            self.assertEqual(operation.operationId, response.toolCalls[0].targetOperationId)
+            _validate_lifecycle_call(response.toolCalls[0], {o.offeringCode:o for o in request.availableOfferings}, {operation.operationId:operation})
+
+    def test_web_amendment_can_still_cancel_existing_order(self):
+        request, operation, task = self.web_amendment()
+        request.conversation.recentMessages[-1].text = "Cancelar pedido"
+        scope = ScopeDecision(kind="CONTEXT_REPLY", offeringCode="ROOM_SERVICE", relevantText="Cancelar pedido", hasRequestDetails=False,
+                              containsUnrelatedTopic=False, confidence=1, replyAction="CANCEL")
+        with scripted_runtime([]):
+            response = _plan_hotel_turn(request, 0, scope)
+        self.assertEqual(["COMPLETE_CONVERSATION_TASK"], [c.toolName for c in response.toolCalls])
+        self.assertEqual({"roomServiceChangeCancelled": True}, response.toolCalls[0].arguments["result"])
+
     def test_offering_selection_launches_generic_orders_without_model_or_capture(self):
         for code in ("ROOM_SERVICE", "POOL_BAR"):
             for locale in ("es-MX", "en-US"):

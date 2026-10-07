@@ -26,6 +26,57 @@ def request_for(code="SPA", locale="en-US", enabled=True):
 
 
 class GuestBookingSessionTest(unittest.TestCase):
+    def amendment(self):
+        from tests.test_multilingual_understanding import task_operation
+        request = request_for()
+        request.toolPolicy.allowedTools.append('COMPLETE_CONVERSATION_TASK')
+        operation = task_operation('SPA_RESERVATION_CHANGE_DETAILS')
+        operation.offeringCode = 'SPA'
+        task = operation.pendingConversationTasks[0]
+        task.context = {'guestExperience': 'WEB_BOOKING'}
+        task.requiredOutputSchema = {'type': 'object', 'required': ['decision'],
+                                    'properties': {'decision': {'enum': ['UPDATE', 'CANCEL']}}}
+        request.activeOperations = [operation]
+        request.conversation.focusedConversationTaskId = task.conversationTaskId
+        request.conversation.recentMessages[-1].interactionReplyId = None
+        request.conversation.recentMessages[-1].text = 'Another treatment tomorrow'
+        return request, operation, task
+
+    def test_amendment_reopens_calendar_and_never_collects_replacement_fields(self):
+        request, operation, task = self.amendment()
+        for kind in ('CONTEXT_REPLY', 'SERVICE_REQUEST'):
+            scope = ScopeDecision(kind=kind, offeringCode='SPA', relevantText='Another treatment tomorrow',
+                hasRequestDetails=True, containsUnrelatedTopic=False, confidence=1)
+            with scripted_runtime([]):
+                result = _plan_hotel_turn(request, 0, scope)
+            self.assertEqual(['OPEN_GUEST_BOOKING_SESSION'], [c.toolName for c in result.toolCalls])
+            self.assertEqual(task.conversationTaskId, result.toolCalls[0].targetConversationTaskId)
+            _validate_lifecycle_call(result.toolCalls[0], {'SPA': request.availableOfferings[0]}, {operation.operationId: operation})
+
+    def test_amendment_cancel_still_completes_its_task(self):
+        request, _, task = self.amendment()
+        request.conversation.recentMessages[-1].text = 'Cancel'
+        scope = ScopeDecision(kind='CONTEXT_REPLY', offeringCode='SPA', relevantText='Cancel',
+                hasRequestDetails=False, containsUnrelatedTopic=False, confidence=1, replyAction='CANCEL')
+        with scripted_runtime([]):
+            result = _plan_hotel_turn(request, 0, scope)
+        self.assertEqual('COMPLETE_CONVERSATION_TASK', result.toolCalls[0].toolName)
+        self.assertEqual({'decision': 'CANCEL'}, result.toolCalls[0].arguments['result'])
+
+    def test_amendment_link_preserves_folio_context_and_guest_language(self):
+        for locale in ('en-US', 'es-MX'):
+            request, _, _ = self.amendment()
+            request.guest.preferredLanguage = locale
+            request.conversation.summary = '{"existing": "booking"}'
+            url = 'https://hotel.example/guest-booking#token=edit-session'
+            request.previousToolResults = [ToolResult(toolCallId=uuid4(), toolName='OPEN_GUEST_BOOKING_SESSION',
+                status='SUCCEEDED', result={'offeringCode': 'SPA', 'url': url, 'amendment': True})]
+            with scripted_runtime([]):
+                result = plan_v2_turn(request)
+            self.assertIn(url, result.messages[0].text)
+            self.assertIn('mismo folio' if locale.startswith('es') else 'same reference', result.messages[0].text)
+            self.assertEqual(request.conversation.summary, result.updatedConversationSummary)
+
     def test_menu_launch_is_generic_localized_and_never_collects_fields(self):
         for code in ("SPA", "TENNIS_LESSON"):
             for locale in ("en-US", "es-MX"):

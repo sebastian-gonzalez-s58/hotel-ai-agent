@@ -1,6 +1,9 @@
 {
   "version": "6",
   "templates": {
+    "draft.cancelled": {"es": "Listo, descarté la solicitud que estabas preparando. ¿En qué más puedo ayudarte?", "en": "Done, I discarded the request you were preparing. What else can I help you with?"},
+    "draft.already_submitted": {"es": "La solicitud ya se envió o está siendo enviada. No la he cancelado. Para revisar su cancelación, indícame el folio.", "en": "The request has already been submitted or is being submitted. I have not cancelled it. Please provide its reference so we can check its cancellation."},
+    "draft.cancel_failed": {"es": "No pude cancelar el borrador. Intenta de nuevo; todavía no puedo confirmar la cancelación.", "en": "I could not cancel the draft. Please try again; I cannot confirm cancellation yet."},
     "guest_booking.open": {"en": "Open this link to choose your service, date and time: {url}\nYour request will be sent to the staff for approval. We will send updates here.", "es": "Abre este enlace para elegir tu servicio, fecha y horario: {url}\nTu solicitud se enviará al personal para su aprobación. Te enviaremos las actualizaciones por aquí."},
     "guest_booking.unavailable": {"en": "I could not open the booking calendar. Please try again shortly; no reservation has been submitted.", "es": "No pude abrir el calendario de reservas. Inténtalo de nuevo en un momento; no se ha enviado ninguna reservación."},
     "guest_order.open": {"en": "Open this link to choose your items and confirm your order: {url}\nWe will send order updates here after you confirm.", "es": "Abre este enlace para elegir tus productos y confirmar tu pedido: {url}\nTe enviaremos las actualizaciones por aquí después de que confirmes."},
