@@ -15,18 +15,33 @@ def questions(request):
 
 def select_question(request, message):
     candidates = questions(request)
-    task_ids = [request.trigger.conversationTaskId] if request.trigger.conversationTaskId else message.conversationTaskIds
-    operation_ids = [request.trigger.operationId] if request.trigger.operationId else message.operationIds
     refs = re.findall(r'\bREQ-[A-Z0-9-]+', message.text.upper())
-    if task_ids:
-        candidates = [task for task in candidates if task.conversationTaskId in task_ids]
-    elif operation_ids:
-        candidates = [task for task in candidates if task.operationId in operation_ids]
+    if request.trigger.conversationTaskId:
+        # An explicit trigger is authoritative. Do not let a stale task id
+        # complete another guest's question.
+        candidates = [task for task in candidates if task.conversationTaskId == request.trigger.conversationTaskId]
+    elif request.trigger.operationId:
+        candidates = [task for task in candidates if task.operationId == request.trigger.operationId]
+    elif message.conversationTaskIds:
+        selected = [task for task in candidates if task.conversationTaskId in message.conversationTaskIds]
+        # A stale correlation from another service must not make the only
+        # pending maintenance question ambiguous.
+        if selected:
+            candidates = selected
+        elif len(candidates) != 1:
+            return None
+    elif message.operationIds:
+        selected = [task for task in candidates if task.operationId in message.operationIds]
+        if selected:
+            candidates = selected
+        elif len(candidates) != 1:
+            return None
     elif refs:
         ids = {op.operationId for op in request.activeOperations if (op.referenceCode or '').upper() in refs}
         candidates = [task for task in candidates if task.operationId in ids]
-    elif sum(len(op.pendingConversationTasks) for op in request.activeOperations) != 1:
-        # A historical focus is not enough to answer one of several staff questions.
+    elif len(candidates) != 1:
+        # A folio is only necessary when several maintenance questions are open.
+        # Other service tasks, such as a pending spa alternative, are unrelated.
         return None
     return candidates[0] if len(candidates) == 1 else None
 
