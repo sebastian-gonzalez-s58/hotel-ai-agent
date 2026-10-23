@@ -85,6 +85,40 @@ class MaintenanceQuestionsTest(unittest.TestCase):
         result = self.run_plan(request)
         self.assertEqual(second.operationId, result.toolCalls[0].targetOperationId)
 
+    def test_unrelated_service_task_does_not_block_the_only_maintenance_answer(self):
+        request = request_for_question('Yes please')
+        unrelated = request.activeOperations[0].model_copy(deep=True)
+        unrelated.operationId = uuid4()
+        unrelated.referenceCode = 'REQ-20260928-SPA00001'
+        unrelated.offeringCode = 'SPA'
+        unrelated.pendingConversationTasks[0].operationId = unrelated.operationId
+        unrelated.pendingConversationTasks[0].conversationTaskId = uuid4()
+        unrelated.pendingConversationTasks[0].taskType = 'SPA_ALTERNATIVE_DECISION'
+        request.activeOperations.append(unrelated)
+
+        result = self.run_plan(request)
+
+        self.assertEqual(1, len(result.toolCalls))
+        self.assertEqual(request.activeOperations[0].operationId, result.toolCalls[0].targetOperationId)
+        self.assertEqual({'maintenanceGuestAnswer': 'Yes please'}, result.toolCalls[0].arguments['result'])
+
+    def test_stale_unrelated_task_correlation_does_not_block_the_only_question(self):
+        request = request_for_question('Yes please')
+        unrelated = request.activeOperations[0].model_copy(deep=True)
+        unrelated.operationId = uuid4()
+        unrelated.offeringCode = 'SPA'
+        unrelated.pendingConversationTasks[0].operationId = unrelated.operationId
+        unrelated.pendingConversationTasks[0].conversationTaskId = uuid4()
+        unrelated.pendingConversationTasks[0].taskType = 'SPA_ALTERNATIVE_DECISION'
+        request.activeOperations.append(unrelated)
+        request.conversation.recentMessages[0].conversationTaskIds = [
+            unrelated.pendingConversationTasks[0].conversationTaskId
+        ]
+
+        result = self.run_plan(request)
+
+        self.assertEqual(request.activeOperations[0].operationId, result.toolCalls[0].targetOperationId)
+
     def test_unknown_or_retired_reference_never_answers_current_question(self):
         request = request_for_question('REQ-20260928-UNKNOWN: a las 5')
         self.assertEqual([], self.run_plan(request).toolCalls)
