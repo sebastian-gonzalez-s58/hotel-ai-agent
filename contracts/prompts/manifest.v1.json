@@ -199,10 +199,13 @@
       ],
       "sources": [
         "app/prompts/v2_turn.py",
-        "app/agents/v2_turn_planner.py"
+        "app/agents/v2_turn_planner.py",
+        "app/agents/pending_service_cancellation.py"
       ],
       "unit_files": [
         "tests/test_v2_turn_planner.py",
+        "tests/test_guest_order_sessions.py",
+        "tests/test_guest_booking_sessions.py",
         "tests/test_multilingual_understanding.py",
         "tests/test_room_service_interruptions.py",
         "tests/test_pending_language_switch.py",
@@ -215,7 +218,8 @@
         "tests/test_maintenance_new_request.py",
         "tests/test_maintenance_reference_followup.py",
         "tests/test_reservation_actions.py",
-        "tests/test_room_confirmation_localization.py"
+        "tests/test_room_confirmation_localization.py",
+        "tests/test_pending_service_cancellation.py"
       ]
     },
     {

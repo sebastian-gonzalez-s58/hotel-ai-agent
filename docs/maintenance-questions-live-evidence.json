@@ -1,0 +1,128 @@
+{
+  "model": "gpt-5.6-terra",
+  "authorized_max": 12,
+  "attempted": 8,
+  "results": [
+    {
+      "case": "horario-es",
+      "pass": true,
+      "kind": "CONTEXT_REPLY",
+      "offering": "MAINTENANCE",
+      "separate": false,
+      "captured": true,
+      "usage": {
+        "inputTokens": 3030,
+        "cachedInputTokens": 0,
+        "outputTokens": 181,
+        "reasoningTokens": 0,
+        "totalTokens": 3211
+      }
+    },
+    {
+      "case": "horario-en",
+      "pass": true,
+      "kind": "CONTEXT_REPLY",
+      "offering": "MAINTENANCE",
+      "separate": false,
+      "captured": true,
+      "usage": {
+        "inputTokens": 3025,
+        "cachedInputTokens": 0,
+        "outputTokens": 175,
+        "reasoningTokens": 0,
+        "totalTokens": 3200
+      }
+    },
+    {
+      "case": "detalle-es",
+      "pass": true,
+      "kind": "CONTEXT_REPLY",
+      "offering": "MAINTENANCE",
+      "separate": false,
+      "captured": true,
+      "usage": {
+        "inputTokens": 3026,
+        "cachedInputTokens": 0,
+        "outputTokens": 173,
+        "reasoningTokens": 0,
+        "totalTokens": 3199
+      }
+    },
+    {
+      "case": "detalle-en",
+      "pass": true,
+      "kind": "CONTEXT_REPLY",
+      "offering": "MAINTENANCE",
+      "separate": false,
+      "captured": true,
+      "usage": {
+        "inputTokens": 3022,
+        "cachedInputTokens": 0,
+        "outputTokens": 172,
+        "reasoningTokens": 0,
+        "totalTokens": 3194
+      }
+    },
+    {
+      "case": "ya-funciona",
+      "pass": true,
+      "kind": "CONTEXT_REPLY",
+      "offering": "MAINTENANCE",
+      "separate": false,
+      "captured": true,
+      "usage": {
+        "inputTokens": 3021,
+        "cachedInputTokens": 0,
+        "outputTokens": 168,
+        "reasoningTokens": 0,
+        "totalTokens": 3189
+      }
+    },
+    {
+      "case": "otra-operacion",
+      "pass": true,
+      "kind": "SERVICE_REQUEST",
+      "offering": "ROOM_SERVICE",
+      "separate": false,
+      "captured": false,
+      "usage": {
+        "inputTokens": 3024,
+        "cachedInputTokens": 0,
+        "outputTokens": 170,
+        "reasoningTokens": 0,
+        "totalTokens": 3194
+      }
+    },
+    {
+      "case": "faq-pendiente",
+      "pass": true,
+      "kind": "HOTEL_QUESTION",
+      "offering": "FAQ",
+      "separate": false,
+      "captured": false,
+      "usage": {
+        "inputTokens": 3019,
+        "cachedInputTokens": 0,
+        "outputTokens": 169,
+        "reasoningTokens": 0,
+        "totalTokens": 3188
+      }
+    },
+    {
+      "case": "otro-problema",
+      "pass": true,
+      "kind": "SERVICE_REQUEST",
+      "offering": "MAINTENANCE",
+      "separate": true,
+      "captured": false,
+      "usage": {
+        "inputTokens": 3029,
+        "cachedInputTokens": 0,
+        "outputTokens": 176,
+        "reasoningTokens": 0,
+        "totalTokens": 3205
+      }
+    }
+  ],
+  "status": "PASS"
+}

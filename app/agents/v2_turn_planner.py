@@ -14,9 +14,14 @@ from app.core.config import settings
 from app.core.errors import AgentModelError
 from app.agents.v2_scope_router import ScopeDecision, classify_hotel_scope
 from app.agents.maintenance_recurrence import plan_maintenance_recurrence
+from app.agents.maintenance_questions import plan_question, validate_question_call
 from app.agents.reservation_actions import plan_reservation_action
 from app.agents.room_service_status import existing_order_message, resolve_order, status_message
+from app.agents.kitchen_changes import kitchen_context, initial_pending, advance_options, validate_scope as validate_kitchen_scope
 from app.agents.social_opening import classify_social_opening
+from app.agents.pending_service_cancellation import plan_pending_cancellation
+from app.agents.guest_order_sessions import plan_guest_order_session
+from app.agents.guest_booking_sessions import plan_guest_booking_session
 from app.agents.schema_validation import satisfies_schema
 from app.agents.spa_turns import plan_spa_turn, preserve_spa_state, started_spa_summary, validate_spa_call
 from app.prompts.v2_turn import build_v2_turn_prompt
@@ -63,6 +68,20 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
     language_decision = None
     if language_enabled(request):
         request, language_decision = resolve_language(request, latest)
+    selected = _capture_selection(request, latest) if latest is not None else None
+    cancellation = plan_pending_cancellation(request, latest, _latest_capture_state(request))
+    web_order = cancellation or plan_guest_order_session(request, latest, _latest_capture_state(request),
+                                        selected_code=selected[0].offeringCode if selected else None)
+    if web_order is None:
+        web_order = plan_guest_booking_session(request, latest, _latest_capture_state(request),
+                                              selected_code=selected[0].offeringCode if selected else None)
+    if web_order is not None:
+        response = _deterministic_turn_response(request, started_at, **web_order)
+        response.languageDecision = language_decision
+        if language_enabled(request):
+            response.detectedLanguage = language_decision.locale if language_decision else None
+            response = localize_response(request, response, started_at)
+        return response
     if (request.trigger.type == "INBOUND_MESSAGE" and not request.previousToolResults
             and latest is not None and _is_room_confirmation_button(latest)
             and (not _room_confirmation_matches(request, latest)
@@ -115,7 +134,13 @@ def _plan_v2_turn(request: AgentTurnRequest) -> AgentTurnResponse:
         maintenance = plan_maintenance_recurrence(request, _latest_capture_state(request), latest, scope)
         reservation = plan_reservation_action(request, latest, scope)
         existing_message = existing_order_message(request, latest, scope, _latest_capture_state(request))
-        if reservation is not None:
+        question = plan_question(request, latest, scope)
+        cancellation = plan_pending_cancellation(request, latest, _latest_capture_state(request), scope)
+        if cancellation is not None:
+            response = _deterministic_turn_response(request, started_at, **cancellation)
+        elif question is not None:
+            response = _deterministic_turn_response(request, started_at, **question)
+        elif reservation is not None:
             response = _deterministic_turn_response(request, started_at, **reservation)
         elif maintenance is not None:
             response = _deterministic_turn_response(request, started_at, **maintenance)
@@ -206,6 +231,8 @@ def _pending_catalog_option_answer(request, message):
             draft = drafts.get(str(task.conversationTaskId), {})
             if draft.get('version') == task.version:
                 pending.append(draft.get('pending'))
+            else:
+                pending.append(initial_pending(kitchen_context(task)))
     return any(p and p.get('kind') == 'OPTION' and pending_choice(p, message) for p in pending)
 
 
@@ -435,6 +462,8 @@ def _preserve_start_failure(request, response):
 def _preserve_room_service_draft(request, response):
     """BC-004: another service's summary cannot discard an independent order."""
     old = _latest_capture_state(request)
+    if old.get("phase") == "WEB_ORDER":
+        return response
     if response.updatedConversationSummary is None:
         return response
     updated = request.model_copy(deep=True)
@@ -517,6 +546,19 @@ def _resume_room_service_draft(request, scope, started_at):
 @timed("agent.plan_with_model")
 def _plan_hotel_turn(request: AgentTurnRequest, started_at: float,
                      scope: ScopeDecision | None = None) -> AgentTurnResponse:
+    cancellation = plan_pending_cancellation(request, _latest_inbound_message(request), _latest_capture_state(request), scope)
+    if cancellation is not None:
+        return _deterministic_turn_response(request, started_at, **cancellation)
+    web_order = plan_guest_order_session(request, _latest_inbound_message(request),
+                                        _latest_capture_state(request), scope=scope)
+    if web_order is None:
+        web_order = plan_guest_booking_session(request, _latest_inbound_message(request),
+                                              _latest_capture_state(request), scope=scope)
+    if web_order is not None:
+        return _deterministic_turn_response(request, started_at, **web_order)
+    question = plan_question(request, _latest_inbound_message(request), scope)
+    if question is not None:
+        return _deterministic_turn_response(request, started_at, **question)
     maintenance_resolution = _maintenance_resolution_task_plan(request, started_at, scope)
     if maintenance_resolution is not None:
         return maintenance_resolution
@@ -1228,6 +1270,23 @@ def _room_service_operation_task_plan(
         return None
 
     offering = next((o for o in request.availableOfferings if o.offeringCode == "ROOM_SERVICE"), None)
+    if task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS" and task.context.get("guestExperience") == "WEB_ORDER":
+        if _is_free_text_cancel(latest_inbound.text) or (latest_inbound.interactionReplyId or "").endswith(":CANCEL"):
+            return _deterministic_turn_response(request, started_at, disposition="TOOL_CALLS_REQUIRED", messages=[],
+                tool_calls=[{"toolCallId": str(uuid4()), "toolName": "COMPLETE_CONVERSATION_TASK",
+                    "targetOperationId": str(task.operationId), "targetConversationTaskId": str(task.conversationTaskId),
+                    "arguments": {"conversationTaskId": str(task.conversationTaskId), "expectedVersion": task.version,
+                                  "result": {"roomServiceChangeCancelled": True}},
+                    "confidence": 1.0, "evidenceMessageIds": [str(latest_inbound.messageId)]}],
+                updated_summary=request.conversation.summary)
+        return _deterministic_turn_response(request, started_at, disposition="TOOL_CALLS_REQUIRED", messages=[],
+            tool_calls=[{"toolCallId": str(uuid4()), "toolName": "OPEN_GUEST_ORDER_SESSION",
+                "targetOperationId": str(task.operationId), "targetConversationTaskId": str(task.conversationTaskId),
+                "arguments": {"conversationTaskId": str(task.conversationTaskId), "offeringCode": next(
+                    o.offeringCode for o in request.activeOperations if o.operationId == task.operationId),
+                    "language": request.guest.preferredLanguage},
+                "confidence": 1.0, "evidenceMessageIds": [str(latest_inbound.messageId)]}],
+            updated_summary=request.conversation.summary)
     if task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS" and catalog_for(offering, "items"):
         return _catalog_replacement_plan(request, started_at, task, offering, latest_inbound)
 
@@ -1287,17 +1346,32 @@ def _catalog_replacement_plan(request, started_at, task, offering, message):
     state = deepcopy(_latest_capture_state(request))
     drafts = state.setdefault("catalogReplacementTasks", {})
     key = str(task.conversationTaskId)
+    kitchen = kitchen_context(task)
     draft = drafts.get(key, {})
     if draft.get("version") != task.version:
-        draft = {"version": task.version, "items": []}
+        draft = {"version": task.version, "items": deepcopy(kitchen['baseInput']['items']) if kitchen else []}
+        if kitchen and kitchen.get('optionsOnly'):
+            draft.update(pending=initial_pending(kitchen), kitchenStep=0)
     drafts[key] = draft
     old = draft.get("items", [])
     reply = message.interactionReplyId or ""
     expected = f"catalog-replacement:{key}:{draft.get('token')}:CONFIRM"
+    cancelled = kitchen and ((not reply and _is_free_text_cancel(message.text))
+                            or (draft.get('token') and reply == f"catalog-replacement:{key}:{draft['token']}:CANCEL"))
+    if cancelled:
+        return _deterministic_turn_response(request, started_at, disposition="TOOL_CALLS_REQUIRED", messages=[],
+            tool_calls=[{"toolCallId": str(uuid4()), "toolName": "COMPLETE_CONVERSATION_TASK",
+                "targetOperationId": str(task.operationId), "targetConversationTaskId": key,
+                "arguments": {"conversationTaskId": key, "expectedVersion": task.version, "result": {"roomServiceChangeCancelled": True}},
+                "confidence": 1.0, "evidenceMessageIds": [str(message.messageId)]}], updated_summary=request.conversation.summary)
     choice = pending_choice(draft.get("pending"), message)
+    if kitchen and kitchen.get('optionsOnly') and not reply and draft.get('kitchenStep', 0) >= len(kitchen['groups']):
+        draft.update(kitchenStep=0, pending=initial_pending(kitchen))
+        draft['pending']['token'] = str(uuid4())
     if reply == expected and draft.get("token"):
         items, pending = normalize_order(offering, old, semantic=False)
         if items and not pending and items == old:
+            validate_kitchen_scope(kitchen, items)
             return _deterministic_turn_response(request, started_at, disposition="TOOL_CALLS_REQUIRED", messages=[],
                 tool_calls=[{"toolCallId": str(uuid4()), "toolName": "COMPLETE_CONVERSATION_TASK",
                     "targetOperationId": str(task.operationId), "targetConversationTaskId": key,
@@ -1305,10 +1379,25 @@ def _catalog_replacement_plan(request, started_at, task, offering, message):
                     "confidence": 1.0, "evidenceMessageIds": [str(message.messageId)]}], updated_summary=request.conversation.summary)
     else:
         items = deepcopy(old)
-        if choice:
+        if kitchen and kitchen.get('optionsOnly') and draft.get('kitchenStep', 0) < len(kitchen['groups']):
+            items, pending = advance_options(offering, kitchen, draft, message)
+            if pending:
+                draft.update(items=items, pending=pending)
+                draft.pop('token', None)
+                output = catalog_clarification(request, offering, 'items', pending)
+                prefix = (f"Conservaremos el resto de tu pedido. Artículo {pending['itemIndex'] + 1}. "
+                          if request.guest.preferredLanguage.lower().startswith('es') else
+                          f"We will keep the rest of your order. Item {pending['itemIndex'] + 1}. ")
+                output['text'] = prefix + output['text']
+                if output.get('interaction'):
+                    output['interaction']['body'] = output['text'][:1024]
+                output['operationIds'] = [str(task.operationId)]
+                return _deterministic_turn_response(request, started_at, disposition='RESPONSE_READY', messages=[output],
+                    updated_summary=json.dumps(state, ensure_ascii=False))
+        elif choice:
             index = draft["pending"]["itemIndex"]
             items[index] = apply_choice(items[index], draft["pending"], choice)
-        elif not reply:
+        elif not reply and not (kitchen and kitchen.get('optionsOnly')):
             extracted = understand_order(request, message, items, allow_partial=True, require_full=not bool(items))
             if extracted is not None:
                 items = extracted
@@ -1327,6 +1416,9 @@ def _catalog_replacement_plan(request, started_at, task, offering, message):
                        "\nConfirm the updated order or type your changes.")
         output["interaction"] = {"type": "BUTTONS", "body": output["text"][:1024], "options": [{
             "id": f"catalog-replacement:{key}:{draft['token']}:CONFIRM", "label": "Confirmar" if spanish else "Confirm"}]}
+        if kitchen:
+            output['interaction']['options'].append({'id': f"catalog-replacement:{key}:{draft['token']}:CANCEL",
+                'label': 'Cancelar pedido' if spanish else 'Cancel order'})
     output["operationIds"] = [str(task.operationId)]
     output["conversationTaskIds"] = []
     messages = [output]
@@ -1704,11 +1796,11 @@ def _faq_started_response_plan(
         purpose = "ANSWER"
     else:
         text = (
-            "Lo siento, como asistente virtual no tengo información suficiente para responder "
-            "tu pregunta. La compartiré con el equipo del hotel para que te respondan a la brevedad."
+            "Para darte una respuesta precisa, el equipo del hotel revisará tu consulta "
+            "y te responderá por este chat. Puedes seguir usando nuestros servicios mientras tanto."
             if spanish
-            else "I’m sorry, but I do not have enough information to answer your question. "
-            "I’ll share it with the hotel team so they can reply shortly."
+            else "To give you an accurate answer, the hotel team will review your question "
+            "and reply here in this chat. You can continue using our services in the meantime."
         )
         purpose = "HANDOFF"
 
@@ -1998,6 +2090,9 @@ def _validate_plan(
         if not set(call.evidenceMessageIds).issubset(message_ids):
             raise AgentModelError("Tool call contains evidence outside the turn context")
         _validate_lifecycle_call(call, offerings, operations_by_id)
+        if (call.toolName in {DomainToolName.OPEN_GUEST_ORDER_SESSION, DomainToolName.OPEN_GUEST_BOOKING_SESSION}
+                and call.arguments.get("language") != request.guest.preferredLanguage):
+            raise AgentModelError("Guest web session launch must use the current guest language")
         _validate_status_call(call, offerings)
         _validate_conversation_task_call(call, tasks_by_id)
         if call.toolName == DomainToolName.START_SERVICE and call.arguments.get("offeringCode") == "ROOM_SERVICE":
@@ -2015,6 +2110,18 @@ def _validate_plan(
                         or call.arguments.get("input") != _latest_capture_state(request).get("capturedFields"))):
                 raise AgentModelError("Room-service button does not authorize the current captured order")
         target_task = tasks_by_id.get(call.targetConversationTaskId)
+        if (target_task and target_task.context.get("guestExperience") in {"WEB_ORDER", "WEB_BOOKING"}
+                and call.toolName == DomainToolName.SAVE_CONVERSATION_TASK_PROGRESS):
+            raise AgentModelError("Order changes must be edited in the guest menu")
+        if (target_task and target_task.context.get("guestExperience") == "WEB_ORDER"
+                and call.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK
+                and call.arguments.get("result", {}).get("roomServiceChangeCancelled") is not True):
+            raise AgentModelError("Order changes must be confirmed in the guest menu")
+        if (target_task and target_task.context.get("guestExperience") == "WEB_BOOKING"
+                and call.toolName == DomainToolName.COMPLETE_CONVERSATION_TASK
+                and call.arguments.get("result", {}).get("decision") != "CANCEL"):
+            raise AgentModelError("Booking changes must be confirmed in the guest calendar")
+        validate_question_call(request, call, target_task, _latest_inbound_message(request))
         strict_replacement = (target_task and target_task.taskType == "ROOM_SERVICE_ORDER_CHANGE_DETAILS"
                               and catalog_for(offerings.get("ROOM_SERVICE"), "items"))
         if understanding_enabled() or strict_replacement:
@@ -2083,9 +2190,17 @@ def _validate_understood_call(request, call, tasks_by_id):
                 raise AgentModelError("Kitchen-change decision does not match current guest evidence")
         else:
             offering = next((o for o in request.availableOfferings if o.offeringCode == "ROOM_SERVICE"), None)
+            kitchen = kitchen_context(task)
+            if kitchen and result == {'roomServiceChangeCancelled': True}:
+                draft = _latest_capture_state(request).get('catalogReplacementTasks', {}).get(str(task.conversationTaskId), {})
+                if ((not latest.interactionReplyId and _is_free_text_cancel(latest.text))
+                        or (draft.get('version') == task.version and draft.get('token') and latest.interactionReplyId == f"catalog-replacement:{task.conversationTaskId}:{draft['token']}:CANCEL")):
+                    return
+                raise AgentModelError('Kitchen cancellation requires current guest evidence')
             if catalog_for(offering, "items"):
                 draft = _latest_capture_state(request).get("catalogReplacementTasks", {}).get(str(task.conversationTaskId), {})
                 checked, pending = normalize_order(offering, draft.get("items", []), semantic=False)
+                validate_kitchen_scope(kitchen, checked)
                 expected_reply = f"catalog-replacement:{task.conversationTaskId}:{draft.get('token')}:CONFIRM"
                 if (draft.get("version") != task.version or not draft.get("token") or pending
                         or not checked or checked != draft.get("items") or result.get("items") != checked
@@ -2209,6 +2324,42 @@ def _ensure_faq_follow_up(request: AgentTurnRequest, messages: list[dict]) -> No
 
 
 def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
+    if call.toolName == DomainToolName.CANCEL_GUEST_WEB_SESSION:
+        offering = offerings.get(call.arguments.get("offeringCode"))
+        if offering is None or offering.guestExperience not in ("WEB_ORDER", "WEB_BOOKING"):
+            raise AgentModelError("Guest web cancellation requires a web offering")
+        if call.targetOperationId is not None or call.targetConversationTaskId is not None or not call.evidenceMessageIds:
+            raise AgentModelError("Guest web cancellation requires guest evidence and cannot mutate an operation")
+    if call.toolName == DomainToolName.OPEN_GUEST_BOOKING_SESSION:
+        offering = offerings.get(call.arguments.get("offeringCode"))
+        if offering is None or offering.guestExperience != "WEB_BOOKING":
+            raise AgentModelError("Guest booking calendar is unavailable for this offering")
+        if call.targetOperationId is not None or call.targetConversationTaskId is not None:
+            operation = operations_by_id.get(call.targetOperationId)
+            task = next((t for t in operation.pendingConversationTasks
+                         if t.conversationTaskId == call.targetConversationTaskId), None) if operation else None
+            if (not task or task.taskType != "SPA_RESERVATION_CHANGE_DETAILS"
+                    or task.context.get("guestExperience") != "WEB_BOOKING"
+                    or operation.offeringCode != call.arguments.get("offeringCode")
+                    or str(task.conversationTaskId) != call.arguments.get("conversationTaskId")):
+                raise AgentModelError("Guest booking amendment requires its pending web-edit task")
+        if not call.evidenceMessageIds:
+            raise AgentModelError("Guest booking launch requires guest evidence")
+    if call.toolName == DomainToolName.OPEN_GUEST_ORDER_SESSION:
+        offering = offerings.get(call.arguments.get("offeringCode"))
+        if offering is None or offering.guestExperience != "WEB_ORDER":
+            raise AgentModelError("Guest web checkout is unavailable for this offering")
+        if call.targetOperationId is not None or call.targetConversationTaskId is not None:
+            operation = operations_by_id.get(call.targetOperationId)
+            task = next((t for t in operation.pendingConversationTasks
+                         if t.conversationTaskId == call.targetConversationTaskId), None) if operation else None
+            if (not task or task.taskType != "ROOM_SERVICE_ORDER_CHANGE_DETAILS"
+                    or task.context.get("guestExperience") != "WEB_ORDER"
+                    or operation.offeringCode != call.arguments.get("offeringCode")
+                    or str(task.conversationTaskId) != call.arguments.get("conversationTaskId")):
+                raise AgentModelError("Guest order amendment requires its pending web-edit task")
+        if not call.evidenceMessageIds:
+            raise AgentModelError("Guest order launch requires guest evidence")
     if call.toolName == DomainToolName.START_SERVICE:
         if call.targetOperationId is not None:
             raise AgentModelError("START_SERVICE cannot target an existing operation")
@@ -2216,6 +2367,10 @@ def _validate_lifecycle_call(call, offerings, operations_by_id) -> None:
         offering = offerings.get(offering_code)
         if offering is None:
             raise AgentModelError("START_SERVICE references an unavailable offering")
+        if offering.guestExperience == "WEB_ORDER":
+            raise AgentModelError("WEB_ORDER requires guest checkout, not agent START_SERVICE")
+        if offering.guestExperience == "WEB_BOOKING":
+            raise AgentModelError("WEB_BOOKING requires the guest calendar, not agent START_SERVICE")
         if not isinstance(call.arguments.get("input"), dict):
             raise AgentModelError("START_SERVICE input must be an object")
         _validate_offering_input(
