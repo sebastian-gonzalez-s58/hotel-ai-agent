@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "baseline_index_sha256": "9cb2a3b0e54ef2345b600eedbdd1fc3877f0ad2064d26254f69fecfc84684912",
-  "evidence": "docs/telware-current-sandbox-promotion.md",
+  "baseline_index_sha256": "1a7df61433d845e7a6b2840b11fa2b6d4f0c1c4b83a337b80e7f1c46e93cd206",
+  "evidence": "docs/telware-sandbox-promotion-20261007.md",
   "human_approval": false,
-  "reviewer": "Codex local implementation review",
-  "reason": "Promote deployed sandbox while preserving Telware-specific contact/capture safeguards and union of mandatory tests. Effective model instructions and behavioral anchors unchanged; room confirmation location labels localized and timing wrappers added."
+  "reviewer": "Codex implementation review",
+  "reason": "Reviewed the sandbox integration against Telware continuity safeguards. The candidate changes 15 captured documents: guest order and booking amendment handlers, deterministic FAQ handoff text, booking clock context, planner capture continuity, and their tests. Effective instruction text and critical anchors remain intact; six context snapshots change only deterministic synthetic IDs. Offline replay and targeted agent tests are required before deployment; no live model calls are claimed."
 }
